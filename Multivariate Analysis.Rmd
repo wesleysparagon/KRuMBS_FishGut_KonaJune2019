@@ -1,0 +1,126 @@
+---
+title: "Multivariate Analysis"
+author: "Wesley Sparagon"
+date: "4/17/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(vegan)
+library(RVAideMemoire)
+library(RColorBrewer)
+library(viridis)
+library(ggplot2)
+```
+
+Read in metadata and unifrac data.
+
+```{r}
+weighted.unifrac=read.csv(file="weighted.unifrac.csv") #read in weighted unifrac data. This data was generated from CMAIKI nextflow run: "krumbs_konafieldsampling_16s_june_2019_50k_100otu_14042020"
+
+metadata=read.csv(file="metadata.csv") #read in metadata
+metadata$Gut_Section=factor(metadata$Gut_Section,levels=c("ST","PC","GI","HG","No_Inoc","")) #reorder the levels of the Gut_Subsection factor. This will be usefu later when generating ordinations.
+metadata$Species=factor(metadata$Species,levels=c("Kyphosus cinerascens","Kyphosus hawaiiensis","Kyphosus vaigiensis","")) #reorder the levels of the Species factor. This will be usefu later when generating ordinations.
+metadata$Gut_SubSection=factor(metadata$Gut_SubSection,levels=c("PC","ST","GI","GI_1","GI_2","GI_3","GI_4","HG","HG_1","HG_2","HG_3","No_Inoc","")) #reorder the levels of the Gut_SubSection factor. This will be usefu later when generating ordinations.
+metadata.fish=metadata[metadata$Sample_Type_Broad=="Fish_Gut",] #subset metadata to include only fish gut samples
+metadata.fish.F4.F8=metadata.fish[metadata.fish$Fish_Number!="F1" & metadata.fish$Fish_Number!="F2" & metadata.fish$Fish_Number!="F3",] #subset metadata removing F1-F3. This is because F1-F3 were sampled differently and do not have gut_subsections.
+
+#To work up the unifrac column data into a matrix, first split the "Groups" column into 2 columns so that each sample name in a pairwise comparison has a seperate column.
+unifrac.split.groups=strsplit(as.character(weighted.unifrac$Groups),split="-") #split the groups column by "-", moving the 2 samples that are being compared into seperate vectors within a list.
+for (i in 1:nrow(weighted.unifrac)) { #for each row in the unifrac df (corresponding to a pairwise comparison)
+  weighted.unifrac$Group1[i]=unifrac.split.groups[[i]][1] #make a new column called Group1, extract the character string from the unifrac.split.groups list that corresponds to the first sample in the pairwise comparison and add it to the Group1 column
+  weighted.unifrac$Group2[i]=unifrac.split.groups[[i]][2] #do the same thing but with the second sample in the pairwsie comparison (Group 2)
+}
+#make an empty df with the number of rows and columns equal to the number of samples you want in the dist matrix. Extract pairwise distances from the unifrac df and move them here.
+weighted.unifrac.matrix=as.data.frame(matrix(nrow=length(metadata.fish[,1]),ncol=length(metadata.fish[,1]))) #Use the metadata.fish df to count the number of samples in the weighted.unifrac.matrix
+#name the rows and columns according to samples you want in the matrix
+rownames(weighted.unifrac.matrix)=metadata.fish$SampleCode
+colnames(weighted.unifrac.matrix)=metadata.fish$SampleCode
+#for each row (pairwise comparison) in the weighted.unifrac df, extract the W score and then copy it into the correct row and column of the empty weighted.unifrac matrix.
+for (i in 1:nrow(weighted.unifrac)) { #for each row in the weighted.unifrac df
+    weighted.unifrac.matrix[rownames(weighted.unifrac.matrix)==weighted.unifrac[,4][i], #subset the weigted.unifrac matrix to find the row that corresponds to the target Group1 samplename in the weighted.unifrac df. 
+    colnames(weighted.unifrac.matrix)==weighted.unifrac[,5][i]]=weighted.unifrac[,3][i] #subset the weighted.unifrac matrix to find the column that corresponds to the target Group2 samplename in the weighted.unifrac df.
+#the weighted.unifrac.matrix has now been subset to the cell that has the row and column values corresponding to the Group1 and Group2 values for the pairwise comparison in the weighted.unifrac df. For this cell, add the corresponding W score for the comparison.
+}
+#Fill diagnols and finish working up the matrix. 
+for (i in 1:nrow(weighted.unifrac.matrix)) { #for each column in the unifrac matrix
+    weighted.unifrac.matrix[,i]=t(weighted.unifrac.matrix[i,]) #transpose the values in a given row into it's corresponding column
+}
+weighted.unifrac.matrix[is.na(weighted.unifrac.matrix)]=0 #replace NAs with 0s
+weighted.unifrac.matrix=weighted.unifrac.matrix[as.logical(apply(weighted.unifrac.matrix,1,FUN=sum)),as.logical(apply(weighted.unifrac.matrix,2,FUN=sum))] #subset the weighted.unifrac.matrix so that any rows or columns whose sum=0 are removed. This removes samples which are in the metadata but failed to sequence and/or pass through the pipeline at 50k subsampling.
+weighted.unifrac.F4.F8.matrix=weighted.unifrac.matrix[-1:-11,-1:-11] #make a unifrac matrix without F1-F3. These are excluded do to differences in dissection methodology.
+write.csv(weighted.unifrac.matrix,file="weighted.unifrac.matrix.matrix.csv") #export unifrac matrices as CSVs
+write.csv(weighted.unifrac.F4.F8.matrix,file="weighted.unifrac.matrix.F4.F8.matrix.csv")
+weighted.unifrac.dist=as.dist(weighted.unifrac.matrix) #convert to "dist" type
+weighted.unifrac.F4.F8.dist=as.dist(weighted.unifrac.F4.F8.matrix) 
+```
+
+The unifrac data and metadata have been imported and worked up. Next, run PERMANOVAs on the dist matrices.
+
+```{r}
+#First model: full distance matrix, variables of interest: Species, Gut_section, and Fish_Number as strata.
+permanova.gut.section=adonis.II(weighted.unifrac.dist~Species*Gut_Section,by="margin",strata=metadata.fish$Fish_Number,data=metadata.fish,permutations=999)
+permanova.gut.section #Gut_Subsection and Species are both significant, no significant interaction.
+
+#Check to see if the strata=metadata.fish$Fish_Number term is influencing the results.
+test.no.strata=permanova.gut.section=adonis.II(weighted.unifrac.dist~Species*Gut_Section,by="margin",data=metadata.fish,permutations=999)
+test.no.strata #looks like the results are exactly the same, so the permanova.gut.section model wil be used.
+
+#Second model: F4-F8 distance matrix, variables of interest. Species, Gut_subsection, and Fish_Number as strata. Note: because F1-F3 were sampled differently (no gut_subsections), they are removed from this model.
+permanova.gut.subsection=adonis.II(weighted.unifrac.F4.F8.dist~Species*Gut_SubSection,by="margin",strata=metadata.fish.F4.F8$Fish_Number,data=metadata.fish.F4.F8,permutations=999)
+permanova.gut.subsection #Gut_SubSection and Species are both significant. No significant interaction.
+
+#NEED TO RUN PAIRSWISE ADONIS ON EVERYTHING
+
+```
+
+Visualize the PERMANOVA results using NMDS. First, run NMDS.
+
+```{r}
+nmds.weighted.unifrac=metaMDS(weighted.unifrac.dist,k=2,trymax=200)
+nmds.weighted.unifrac 
+#no convergent solution but stress value is acceptable.
+
+nmds.weighted.unifrac.F4.F8=metaMDS(weighted.unifrac.F4.F8.dist,k=2,trymax=200)
+nmds.weighted.unifrac.F4.F8
+#no convergent solution but stress value is acceptable.
+```
+
+NMDS results seem fine, so make ordinations of the NMDS results.
+
+```{r}
+pointvec=c(15,16,17) #generate a vector of points to correspond to Species.
+
+colvec=viridis(n=4,option="C") #generate a vector of colors to correspond to Gut_Section.
+
+plot(nmds.weighted.unifrac,type="n",yim=c(-.6,.6)) #Set up the NMDS plot environment
+points(nmds.weighted.unifrac, #plot each sample as a point
+       cex=2,
+       pch=pointvec[metadata.fish$Species], #point shape corresponds to fish Species
+       col=colvec[metadata.fish$Gut_Section]) #point color corresponds to Gut_Section
+
+ordiellipse(nmds.weighted.unifrac,metadata.fish$Gut_Section,kind="sd",draw="polygon",alpha=c(0,0),lwd=2.5,border=colvec) #add SD ellipses, colored by Gut_Section
+
+legend(.17,.42,legend = c(levels(as.factor(metadata.fish$Gut_Section))[1:4],levels(as.factor(metadata.fish$Species))[1:3]),cex=1,y.intersp=.2,bg="transparent",bty="o",col=c(colvec,"black","black","black"),pch=c(16,16,16,16,15,16,17),pt.cex=1.5) #Add legend. Save image as 8.5x11 PDF (portrait)
+
+```
+
+Next, plot the same NMDS but color by Gut_SubSection instead of Gut_Section. Do this using the subset unifrac matrix and metadata that only contain F4-F8.
+
+```{r}
+#This graph will be made in ggplot2 since it can perform color gradients well.
+nmds.scores=as.data.frame(scores(nmds.weighted.unifrac.F4.F8)) #extract NMDS scores and save in new df
+nmds.scores$Gut_SubSection=metadata.fish.F4.F8$Gut_SubSection #add the Fish_GutSubsection to the new df
+nmds.scores$Ranked_Distance_from_Stomach=metadata.fish.F4.F8$Ranked_Gut_SubSection_Distance_from_Stomach #Add Ranked_Gut_SubSection_Distance_from_Stomach to df, give it a shorter name
+nmds.scores$Species=metadata.fish.F4.F8$Species #Add Species to the new df.
+
+ggplot(nmds.scores,aes(x=NMDS1,y=NMDS2,shape=Species,color=Ranked_Distance_from_Stomach,size=2))+ #plot nmds.scores, specify x and y axis, shape corresponding to species, color corresponding to Ranked_Distance_from_Stomach
+  scale_color_gradientn(colors=viridis(n=9,option="D"))+ #set gradient scale to desired viridis scale
+  geom_point(data=nmds.scores,aes(x=NMDS1,y=NMDS2))+ #add points
+  theme_classic() #export graphs as 8.5x11 PDF (portrait)
+  
+```
+
+
