@@ -13,6 +13,7 @@ library(RVAideMemoire)
 library(RColorBrewer)
 library(viridis)
 library(ggplot2)
+library(cowplot)
 ```
 
 Read in metadata and unifrac data.
@@ -23,9 +24,13 @@ weighted.unifrac=read.csv(file="weighted.unifrac.csv") #read in weighted unifrac
 metadata=read.csv(file="metadata.csv") #read in metadata
 metadata$Gut_Section=factor(metadata$Gut_Section,levels=c("ST","PC","GI","HG","No_Inoc","")) #reorder the levels of the Gut_Subsection factor. This will be usefu later when generating ordinations.
 metadata$Species=factor(metadata$Species,levels=c("Kyphosus cinerascens","Kyphosus hawaiiensis","Kyphosus vaigiensis","")) #reorder the levels of the Species factor. This will be usefu later when generating ordinations.
-metadata$Gut_SubSection=factor(metadata$Gut_SubSection,levels=c("PC","ST","GI","GI_1","GI_2","GI_3","GI_4","HG","HG_1","HG_2","HG_3","No_Inoc","")) #reorder the levels of the Gut_SubSection factor. This will be usefu later when generating ordinations.
+metadata$Gut_SubSection=factor(metadata$Gut_SubSection,levels=c("ST","PC","GI","GI_1","GI_2","GI_3","GI_4","HG","HG_1","HG_2","HG_3","No_Inoc","")) #reorder the levels of the Gut_SubSection factor. This will be useful later when generating ordinations.
 metadata.fish=metadata[metadata$Sample_Type_Broad=="Fish_Gut",] #subset metadata to include only fish gut samples
-metadata.fish.F4.F8=metadata.fish[metadata.fish$Fish_Number!="F1" & metadata.fish$Fish_Number!="F2" & metadata.fish$Fish_Number!="F3",] #subset metadata removing F1-F3. This is because F1-F3 were sampled differently and do not have gut_subsections.
+metadata.fish.F4.F8=metadata.fish[metadata.fish$Gut_SubSection!="GI" & metadata.fish$Gut_SubSection!="HG",] #subset metadata removing Gut_SubSections GI and HG. This corresponds to the HG/GI samples from F1-F3, which were sampled differently and do not have gut_subsections compared to fish F4-F8.
+
+alpha.diversity=read.csv(file="all_alphaDiversity_100.summary.csv") #read in alpha diversity file
+alpha.diversity.fish=alpha.diversity[alpha.diversity$group %in% metadata.fish$SampleCode,] #subset alpha.diversity for only the fish gut samples
+alpha.diversity.fish.F4.F8=alpha.diversity[alpha.diversity$group %in% metadata.fish.F4.F8$SampleCode,] #subset alpha.diversity for only fish gut samples F4-F8
 
 #To work up the unifrac column data into a matrix, first split the "Groups" column into 2 columns so that each sample name in a pairwise comparison has a seperate column.
 unifrac.split.groups=strsplit(as.character(weighted.unifrac$Groups),split="-") #split the groups column by "-", moving the 2 samples that are being compared into seperate vectors within a list.
@@ -50,31 +55,37 @@ for (i in 1:nrow(weighted.unifrac.matrix)) { #for each column in the unifrac mat
 }
 weighted.unifrac.matrix[is.na(weighted.unifrac.matrix)]=0 #replace NAs with 0s
 weighted.unifrac.matrix=weighted.unifrac.matrix[as.logical(apply(weighted.unifrac.matrix,1,FUN=sum)),as.logical(apply(weighted.unifrac.matrix,2,FUN=sum))] #subset the weighted.unifrac.matrix so that any rows or columns whose sum=0 are removed. This removes samples which are in the metadata but failed to sequence and/or pass through the pipeline at 50k subsampling.
-weighted.unifrac.F4.F8.matrix=weighted.unifrac.matrix[-1:-11,-1:-11] #make a unifrac matrix without F1-F3. These are excluded do to differences in dissection methodology.
+weighted.unifrac.F4.F8.matrix=weighted.unifrac.matrix[c(-1:-2,-5:-6,-8:-9),c(-1:-2,-5:-6,-8:-9)] #make a unifrac matrix without the F1-F3 GI and HG samples.. These are excluded do to differences in dissection methodology.
 write.csv(weighted.unifrac.matrix,file="weighted.unifrac.matrix.matrix.csv") #export unifrac matrices as CSVs
 write.csv(weighted.unifrac.F4.F8.matrix,file="weighted.unifrac.matrix.F4.F8.matrix.csv")
 weighted.unifrac.dist=as.dist(weighted.unifrac.matrix) #convert to "dist" type
-weighted.unifrac.F4.F8.dist=as.dist(weighted.unifrac.F4.F8.matrix) 
+weighted.unifrac.F4.F8.dist=as.dist(weighted.unifrac.F4.F8.matrix)
+
+#Make metadata files corresponding to only the samples in the unifrac matrices, eg. only the samples to pass through the sequencing pipeline.
+metadata.fish.1=metadata.fish[metadata.fish$SampleCode %in% rownames(weighted.unifrac.matrix),]
+metadata.fish.F4.F8.1=metadata.fish.F4.F8[metadata.fish.F4.F8$SampleCode %in% rownames(weighted.unifrac.F4.F8.matrix),]
 ```
 
 The unifrac data and metadata have been imported and worked up. Next, run PERMANOVAs on the dist matrices.
 
 ```{r}
 #First model: full distance matrix, variables of interest: Species, Gut_section, and Fish_Number as strata.
-permanova.gut.section=adonis.II(weighted.unifrac.dist~Species*Gut_Section,by="margin",strata=metadata.fish$Fish_Number,data=metadata.fish,permutations=999)
+permanova.gut.section=adonis.II(weighted.unifrac.dist~Species*Gut_Section,by="margin",strata=metadata.fish.1$Fish_Number,data=metadata.fish.1,permutations=999)
 permanova.gut.section #Gut_Subsection and Species are both significant, no significant interaction.
 
-#Check to see if the strata=metadata.fish$Fish_Number term is influencing the results.
-test.no.strata=permanova.gut.section=adonis.II(weighted.unifrac.dist~Species*Gut_Section,by="margin",data=metadata.fish,permutations=999)
+#Check if the strata=metadata.fish$Fish_Number term is influencing the results.
+test.no.strata=permanova.gut.section=adonis.II(weighted.unifrac.dist~Species*Gut_Section,by="margin",data=metadata.fish.1,permutations=999)
 test.no.strata #looks like the results are exactly the same, so the permanova.gut.section model wil be used.
 
 #Second model: F4-F8 distance matrix, variables of interest. Species, Gut_subsection, and Fish_Number as strata. Note: because F1-F3 were sampled differently (no gut_subsections), they are removed from this model.
-permanova.gut.subsection=adonis.II(weighted.unifrac.F4.F8.dist~Species*Gut_SubSection,by="margin",strata=metadata.fish.F4.F8$Fish_Number,data=metadata.fish.F4.F8,permutations=999)
+permanova.gut.subsection=adonis.II(weighted.unifrac.F4.F8.dist~Species*Gut_SubSection,by="margin",strata=metadata.fish.F4.F8.1$Fish_Number,data=metadata.fish.F4.F8.1,permutations=999)
 permanova.gut.subsection #Gut_SubSection and Species are both significant. No significant interaction.
 
 #NEED TO RUN PAIRSWISE ADONIS ON EVERYTHING
 
 ```
+
+Both Gut Section/SubSection and Species have a significant effect on fish gut microbiome community structure, with no significant interaction. When Species and Gut_Section are the predictors, Gut_Section has a stronger effect on the fish gut microbiome then species. When Species and Gut_SubSection are the predictors, they have similar strength effects on the fish gut microbiome (Species has a slightly higher F value).
 
 Visualize the PERMANOVA results using NMDS. First, run NMDS.
 
@@ -93,17 +104,17 @@ NMDS results seem fine, so make ordinations of the NMDS results.
 ```{r}
 pointvec=c(15,16,17) #generate a vector of points to correspond to Species.
 
-colvec=viridis(n=4,option="C") #generate a vector of colors to correspond to Gut_Section.
+colvec=viridis(n=4,option="D") #generate a vector of colors to correspond to Gut_Section.
 
-plot(nmds.weighted.unifrac,type="n",yim=c(-.6,.6)) #Set up the NMDS plot environment
+plot(nmds.weighted.unifrac,type="n",xlim=c(-.5,.5)) #Set up the NMDS plot environment
 points(nmds.weighted.unifrac, #plot each sample as a point
        cex=2,
-       pch=pointvec[metadata.fish$Species], #point shape corresponds to fish Species
-       col=colvec[metadata.fish$Gut_Section]) #point color corresponds to Gut_Section
+       pch=pointvec[metadata.fish.1$Species], #point shape corresponds to fish Species
+       col=colvec[metadata.fish.1$Gut_Section]) #point color corresponds to Gut_Section
 
-ordiellipse(nmds.weighted.unifrac,metadata.fish$Gut_Section,kind="sd",draw="polygon",alpha=c(0,0),lwd=2.5,border=colvec) #add SD ellipses, colored by Gut_Section
+ordiellipse(nmds.weighted.unifrac,metadata.fish.1$Gut_Section,kind="sd",draw="polygon",alpha=c(0,0),lwd=2.5,border=colvec) #add SD ellipses, colored by Gut_Section
 
-legend(.17,.42,legend = c(levels(as.factor(metadata.fish$Gut_Section))[1:4],levels(as.factor(metadata.fish$Species))[1:3]),cex=1,y.intersp=.2,bg="transparent",bty="o",col=c(colvec,"black","black","black"),pch=c(16,16,16,16,15,16,17),pt.cex=1.5) #Add legend. Save image as 8.5x11 PDF (portrait)
+legend(.2,.42,legend = c(levels(as.factor(metadata.fish.1$Gut_Section))[1:4],levels(as.factor(metadata.fish.1$Species))[1:3]),cex=1,y.intersp=.2,bg="transparent",bty="o",col=c(colvec,"black","black","black"),pch=c(16,16,16,16,15,16,17),pt.cex=1.5) #Add legend. Save image as 8.5x11 PDF (landscape)
 
 ```
 
@@ -112,15 +123,202 @@ Next, plot the same NMDS but color by Gut_SubSection instead of Gut_Section. Do 
 ```{r}
 #This graph will be made in ggplot2 since it can perform color gradients well.
 nmds.scores=as.data.frame(scores(nmds.weighted.unifrac.F4.F8)) #extract NMDS scores and save in new df
-nmds.scores$Gut_SubSection=metadata.fish.F4.F8$Gut_SubSection #add the Fish_GutSubsection to the new df
-nmds.scores$Ranked_Distance_from_Stomach=metadata.fish.F4.F8$Ranked_Gut_SubSection_Distance_from_Stomach #Add Ranked_Gut_SubSection_Distance_from_Stomach to df, give it a shorter name
-nmds.scores$Species=metadata.fish.F4.F8$Species #Add Species to the new df.
+nmds.scores$Gut_SubSection=metadata.fish.F4.F8.1$Gut_SubSection #add the Fish_GutSubsection to the new df
+nmds.scores$Ranked_Distance_from_Stomach=metadata.fish.F4.F8.1$Ranked_Gut_SubSection_Distance_from_Stomach #Add Ranked_Gut_SubSection_Distance_from_Stomach to df, give it a shorter name
+nmds.scores$Species=metadata.fish.F4.F8.1$Species #Add Species to the new df.
 
 ggplot(nmds.scores,aes(x=NMDS1,y=NMDS2,shape=Species,color=Ranked_Distance_from_Stomach,size=2))+ #plot nmds.scores, specify x and y axis, shape corresponding to species, color corresponding to Ranked_Distance_from_Stomach
   scale_color_gradientn(colors=viridis(n=9,option="D"))+ #set gradient scale to desired viridis scale
   geom_point(data=nmds.scores,aes(x=NMDS1,y=NMDS2))+ #add points
-  theme_classic() #export graphs as 8.5x11 PDF (portrait)
-  
+  theme_classic() #export graphs as 8.5x11 PDF (landscape)
 ```
 
+Next, work up and visualize the alpha diversity data to see if there are any trends.
 
+```{r}
+#Combine metadata df with respective apha diversity df.
+alpha.diversity.fish=cbind(alpha.diversity.fish,metadata.fish.1)
+alpha.diversity.fish.F4.F8=cbind(alpha.diversity.fish.F4.F8,metadata.fish.F4.F8.1)
+
+#make a function to calculate standard error
+stderror=function(x) {
+  se=sd(x)/sqrt(length(x))
+  return(se)
+}
+
+#Calculate means and SE of the various alpha diversity metrics for each Gut_Section and save as a df
+alpha.diversity.mean.gut_section=aggregate(alpha.diversity.fish$sobs,by=list(alpha.diversity.fish$Gut_Section),FUN=mean)$x #aggregate (mean) sobs by Gut_Section, save in new df.
+alpha.diversity.mean.gut_section=as.data.frame(alpha.diversity.mean.gut_section)
+colnames(alpha.diversity.mean.gut_section)[1]="sobs" #rename column 1 to sobs.
+alpha.diversity.mean.gut_section$SE_sobs=aggregate(alpha.diversity.fish$sobs,by=list(alpha.diversity.fish$Gut_Section),FUN=stderror)$x #aggregate (stderror) sobs by Gut_section, save as a new column in df.
+#repeat this process for chao
+alpha.diversity.mean.gut_section$chao=aggregate(alpha.diversity.fish$chao,by=list(alpha.diversity.fish$Gut_Section),FUN=mean)$x
+alpha.diversity.mean.gut_section$SE_chao=aggregate(alpha.diversity.fish$chao,by=list(alpha.diversity.fish$Gut_Section),FUN=stderror)$x
+#repeat this process for shannon
+alpha.diversity.mean.gut_section$shannon=aggregate(alpha.diversity.fish$shannon,by=list(alpha.diversity.fish$Gut_Section),FUN=mean)$x
+alpha.diversity.mean.gut_section$SE_shannon=aggregate(alpha.diversity.fish$shannon,by=list(alpha.diversity.fish$Gut_Section),FUN=stderror)$x
+#repeat this for shannoneven
+alpha.diversity.mean.gut_section$shannoneven=aggregate(alpha.diversity.fish$shannoneven,by=list(alpha.diversity.fish$Gut_Section),FUN=mean)$x
+alpha.diversity.mean.gut_section$SE_shannoneven=aggregate(alpha.diversity.fish$shannoneven,by=list(alpha.diversity.fish$Gut_Section),FUN=stderror)$x
+#now add in a Gut_Section column
+alpha.diversity.mean.gut_section$Gut_Section=aggregate(alpha.diversity.fish$shannoneven,by=list(alpha.diversity.fish$Gut_Section),FUN=stderror)$Group.1
+
+#Now graph all 4 alpha diversity indices as a function of Gut_Section
+sobs.gut.section.plot=ggplot(alpha.diversity.mean.gut_section,aes(x=Gut_Section,y=sobs,fill=Gut_Section))+
+  geom_bar(stat="identity")+
+  scale_fill_manual(values=viridis(n=4))+
+  geom_errorbar(aes(ymin=sobs-SE_sobs,ymax=sobs+SE_sobs),width=.5)+
+  ggtitle("Observed Sequences")+
+  theme_classic()
+#now repeat for chao
+chao.gut.section.plot=ggplot(alpha.diversity.mean.gut_section,aes(x=Gut_Section,y=chao,fill=Gut_Section))+
+  geom_bar(stat="identity")+
+  scale_fill_manual(values=viridis(n=4))+
+  geom_errorbar(aes(ymin=chao-SE_chao,ymax=chao+SE_chao),width=.5)+
+  ggtitle("Chao")+
+  theme_classic()
+#now repeat for shannon
+shannon.gut.section.plot=ggplot(alpha.diversity.mean.gut_section,aes(x=Gut_Section,y=shannon,fill=Gut_Section))+
+  geom_bar(stat="identity")+
+  scale_fill_manual(values=viridis(n=4))+
+  geom_errorbar(aes(ymin=shannon-SE_shannon,ymax=shannon+SE_shannon),width=.5)+
+  ggtitle("Shannon")+
+  theme_classic()
+#now repeat for shannoneven
+shannoneven.gut.section.plot=ggplot(alpha.diversity.mean.gut_section,aes(x=Gut_Section,y=shannoneven,fill=Gut_Section))+
+  geom_bar(stat="identity")+
+  scale_fill_manual(values=viridis(n=4))+
+  geom_errorbar(aes(ymin=shannoneven-SE_shannoneven,ymax=shannoneven+SE_shannoneven),width=.5)+
+  ggtitle("Shannon Eveness")+
+  theme_classic()
+
+plot_grid(sobs.gut.section.plot,chao.gut.section.plot,shannon.gut.section.plot,shannoneven.gut.section.plot) #use the plot_grid function to plot the above 4 plots (par(mfrow=())) doesnt work with ggplot2. Export as PNG (800 x 455).
+```
+
+Sobs and Chao show both ST and HG to have substantially higher alpha diversity compared to PC and GI. Shannon and shannon eveness show HG to have substantially higher alpha diversity than all other gut sections.
+
+Next, plot the same alpha diversity metrics by Species.
+
+```{r}
+#Calculate means and SE of the various alpha diversity metrics for each Species and save as a df
+alpha.diversity.mean.Species=aggregate(alpha.diversity.fish$sobs,by=list(alpha.diversity.fish$Species),FUN=mean)$x #aggregate (mean) sobs by Species, save in new df.
+alpha.diversity.mean.Species=as.data.frame(alpha.diversity.mean.Species)
+colnames(alpha.diversity.mean.Species)[1]="sobs" #rename column 1 to sobs.
+alpha.diversity.mean.Species$SE_sobs=aggregate(alpha.diversity.fish$sobs,by=list(alpha.diversity.fish$Species),FUN=stderror)$x #aggregate (stderror) sobs by Species, save as a new column in df.
+#repeat this process for chao
+alpha.diversity.mean.Species$chao=aggregate(alpha.diversity.fish$chao,by=list(alpha.diversity.fish$Species),FUN=mean)$x
+alpha.diversity.mean.Species$SE_chao=aggregate(alpha.diversity.fish$chao,by=list(alpha.diversity.fish$Species),FUN=stderror)$x
+#repeat this process for shannon
+alpha.diversity.mean.Species$shannon=aggregate(alpha.diversity.fish$shannon,by=list(alpha.diversity.fish$Species),FUN=mean)$x
+alpha.diversity.mean.Species$SE_shannon=aggregate(alpha.diversity.fish$shannon,by=list(alpha.diversity.fish$Species),FUN=stderror)$x
+#repeat this for shannoneven
+alpha.diversity.mean.Species$shannoneven=aggregate(alpha.diversity.fish$shannoneven,by=list(alpha.diversity.fish$Species),FUN=mean)$x
+alpha.diversity.mean.Species$SE_shannoneven=aggregate(alpha.diversity.fish$shannoneven,by=list(alpha.diversity.fish$Species),FUN=stderror)$x
+#now add in a Gut_Section column
+alpha.diversity.mean.Species$Species=aggregate(alpha.diversity.fish$shannoneven,by=list(alpha.diversity.fish$Species),FUN=stderror)$Group.1
+
+#Now graph all 4 alpha diversity indices as a function of Species
+sobs.Species.plot=ggplot(alpha.diversity.mean.Species,aes(x=Species,y=sobs,fill=Species))+
+  geom_bar(stat="identity")+
+  scale_fill_manual(values=viridis(n=4))+
+  geom_errorbar(aes(ymin=sobs-SE_sobs,ymax=sobs+SE_sobs),width=.5)+
+  ggtitle("Observed Sequences")+
+  theme_classic()
+#now repeat for chao
+chao.Species.plot=ggplot(alpha.diversity.mean.Species,aes(x=Species,y=chao,fill=Species))+
+  geom_bar(stat="identity")+
+  scale_fill_manual(values=viridis(n=4))+
+  geom_errorbar(aes(ymin=chao-SE_chao,ymax=chao+SE_chao),width=.5)+
+  ggtitle("Chao")+
+  theme_classic()
+#now repeat for shannon
+shannon.Species.plot=ggplot(alpha.diversity.mean.Species,aes(x=Species,y=shannon,fill=Species))+
+  geom_bar(stat="identity")+
+  scale_fill_manual(values=viridis(n=4))+
+  geom_errorbar(aes(ymin=shannon-SE_shannon,ymax=shannon+SE_shannon),width=.5)+
+  ggtitle("Shannon")+
+  theme_classic()
+#now repeat for shannoneven
+shannoneven.Species.plot=ggplot(alpha.diversity.mean.Species,aes(x=Species,y=shannoneven,fill=Species))+
+  geom_bar(stat="identity")+
+  scale_fill_manual(values=viridis(n=4))+
+  geom_errorbar(aes(ymin=shannoneven-SE_shannoneven,ymax=shannoneven+SE_shannoneven),width=.5)+
+  ggtitle("Shannon Eveness")+
+  theme_classic()
+
+plot_grid(sobs.Species.plot,chao.Species.plot,shannon.Species.plot,shannoneven.Species.plot) #use the plot_grid function to plot the above 4 plots (par(mfrow=())) doesnt work with ggplot2.
+
+```
+
+There appears to be no clear difference in any of the alpha diversity metrics between species.
+
+Next, plot the same alpha diversity metrics by Gut_SUBsection.
+
+```{r}
+#Calculate means and SE of the various alpha diversity metrics for each Gut_SubSection and save as a df
+alpha.diversity.mean.Gut_SubSection=aggregate(alpha.diversity.fish.F4.F8$sobs,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=mean)$x #aggregate (mean) sobs by Gut_SubSection, save in new df.
+alpha.diversity.mean.Gut_SubSection=as.data.frame(alpha.diversity.mean.Gut_SubSection)
+colnames(alpha.diversity.mean.Gut_SubSection)[1]="sobs" #rename column 1 to sobs.
+alpha.diversity.mean.Gut_SubSection$SE_sobs=aggregate(alpha.diversity.fish.F4.F8$sobs,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=stderror)$x #aggregate (stderror) sobs by Gut_SubSection, save as a new column in df.
+#repeat this process for chao
+alpha.diversity.mean.Gut_SubSection$chao=aggregate(alpha.diversity.fish.F4.F8$chao,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=mean)$x
+alpha.diversity.mean.Gut_SubSection$SE_chao=aggregate(alpha.diversity.fish.F4.F8$chao,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=stderror)$x
+#repeat this process for shannon
+alpha.diversity.mean.Gut_SubSection$shannon=aggregate(alpha.diversity.fish.F4.F8$shannon,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=mean)$x
+alpha.diversity.mean.Gut_SubSection$SE_shannon=aggregate(alpha.diversity.fish.F4.F8$shannon,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=stderror)$x
+#repeat this for shannoneven
+alpha.diversity.mean.Gut_SubSection$shannoneven=aggregate(alpha.diversity.fish.F4.F8$shannoneven,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=mean)$x
+alpha.diversity.mean.Gut_SubSection$SE_shannoneven=aggregate(alpha.diversity.fish.F4.F8$shannoneven,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=stderror)$x
+#now add in a Gut_SubSection column
+alpha.diversity.mean.Gut_SubSection$Gut_SubSection=aggregate(alpha.diversity.fish.F4.F8$shannoneven,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=stderror)$Group.1
+
+#Now graph all 4 alpha diversity indices as a function of Gut_SubSection
+sobs.gut.subsection.plot=ggplot(alpha.diversity.mean.Gut_SubSection,aes(x=Gut_SubSection,y=sobs,fill=Gut_SubSection))+
+  geom_bar(stat="identity")+
+  scale_fill_manual(values=viridis(n=9))+
+  geom_errorbar(aes(ymin=sobs-SE_sobs,ymax=sobs+SE_sobs),width=.5)+
+  ggtitle("Observed Sequences")+
+  theme_classic()
+#now repeat for chao
+chao.gut.subsection.plot=ggplot(alpha.diversity.mean.Gut_SubSection,aes(x=Gut_SubSection,y=chao,fill=Gut_SubSection))+
+  geom_bar(stat="identity")+
+  scale_fill_manual(values=viridis(n=9))+
+  geom_errorbar(aes(ymin=chao-SE_chao,ymax=chao+SE_chao),width=.5)+
+  ggtitle("Chao")+
+  theme_classic()
+#now repeat for shannon
+shannon.gut.subsection.plot=ggplot(alpha.diversity.mean.Gut_SubSection,aes(x=Gut_SubSection,y=shannon,fill=Gut_SubSection))+
+  geom_bar(stat="identity")+
+  scale_fill_manual(values=viridis(n=9))+
+  geom_errorbar(aes(ymin=shannon-SE_shannon,ymax=shannon+SE_shannon),width=.5)+
+  ggtitle("Shannon")+
+  theme_classic()
+#now repeat for shannoneven
+shannoneven.gut.subsection.plot=ggplot(alpha.diversity.mean.Gut_SubSection,aes(x=Gut_SubSection,y=shannoneven,fill=Gut_SubSection))+
+  geom_bar(stat="identity")+
+  scale_fill_manual(values=viridis(n=9))+
+  geom_errorbar(aes(ymin=shannoneven-SE_shannoneven,ymax=shannoneven+SE_shannoneven),width=.5)+
+  ggtitle("Shannon Eveness")+
+  theme_classic()
+
+plot_grid(sobs.gut.subsection.plot,chao.gut.subsection.plot,shannon.gut.subsection.plot,shannoneven.gut.subsection.plot) #use the plot_grid function to plot the above 4 plots (par(mfrow=())) doesnt work with ggplot2. Save as PNG (1095 x 485).
+
+```
+
+Next, look at how the gut microbiome dispersion changes through the gut.
+
+```{r}
+dispersion.gut.section=betadisper(weighted.unifrac.dist,type="centroid",group=metadata.fish.1$Gut_Section)
+dispersion.gut.section
+anova(dispersion.gut.section)
+TukeyHSD(dispersion.gut.section,ordered=FALSE,conf.level=.95)
+boxplot(dispersion.gut.section)
+
+dispersion.gut.subsection=betadisper(weighted.unifrac.F4.F8.dist,type="centroid",group=metadata.fish.F4.F8.1$Gut_SubSection)
+dispersion.gut.subsection
+anova(dispersion.gut.subsection)
+TukeyHSD(dispersion.gut.subsection,ordered=FALSE,conf.level=.95)
+boxplot(dispersion.gut.subsection)
+```
+
+There is a significant difference in distances to centroid for the various gut sections. ST and HG samples have less dispersion relative to PC and GI samples. However, there are outliers in each of the HG subsections and substantial variation in dispersion between each of the GI subsections. There is no significant difference between the dispersions for the gut sections. This analysis likely does not warrant more work at this time.
