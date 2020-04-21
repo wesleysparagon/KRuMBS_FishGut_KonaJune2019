@@ -64,6 +64,8 @@ weighted.unifrac.F4.F8.dist=as.dist(weighted.unifrac.F4.F8.matrix)
 #Make metadata files corresponding to only the samples in the unifrac matrices, eg. only the samples to pass through the sequencing pipeline.
 metadata.fish.1=metadata.fish[metadata.fish$SampleCode %in% rownames(weighted.unifrac.matrix),]
 metadata.fish.F4.F8.1=metadata.fish.F4.F8[metadata.fish.F4.F8$SampleCode %in% rownames(weighted.unifrac.F4.F8.matrix),]
+write.csv(metadata.fish.1,file="metadata.fish.1.csv") #export updated metadata dfs as CSVs
+write.csv(metadata.fish.F4.F8.1,file="metadata.fish.F4.F8.1.csv")
 ```
 
 The unifrac data and metadata have been imported and worked up. Next, run PERMANOVAs on the dist matrices.
