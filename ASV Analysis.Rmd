@@ -1,0 +1,366 @@
+---
+title: "ASV Analysis"
+author: "Wesley Sparagon"
+date: "4/20/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Read in and work up data/metadata.
+
+```{r}
+library(phyloseq)
+library(lme4)
+library(lmerTest)
+library(multcomp)
+library(ggplot2)
+library(cowplot)
+
+#Read in metadata
+metadata=read.csv(file="metadata.csv")
+metadata.fish.1=read.csv(file="metadata.fish.1.csv")
+metadata.fish.F4.F8.1=read.csv(file="metadata.fish.F4.F8.1.csv")
+metadata.fish.F4.F8.1$Gut_SubSection=factor(metadata.fish.F4.F8.1$Gut_SubSection,levels=c("ST","PC","GI_1","GI_2","GI_3","GI_4","HG_1","HG_2","HG_3")) #reorder the levels of the Gut_SubSection factor. This will be useful later when making plots.
+
+relabund=read.csv(file="abundance_table_100.csv") #read in relative abundance table
+rownames(relabund)=relabund$OTUNumber #make rownames correspond to OTU names
+relabund=relabund[,-1] #remove column 1 (OTU name column)
+relabund.t=relabund[,-87:-95]  #remove last 9 columns (which correspond to character vectors, taxonomy, etc.). Save as a new df which will be transposed. Must remove columns 87:89 BEFORE transposing.
+relabund.t=as.data.frame(t(relabund.t)) #transpose relabund.t df
+
+abund=read.csv(file="abundance_table_100.shared.csv") #read in abundance table
+rownames(abund)=abund$Group #make rownames correspond to OTU names
+abund=abund[,-1:-3] #remove columns 1-3 (non OTU columns)
+
+#subset relabund, relabund.t, and abund so they match with respective metadata
+relabund.fish=relabund[,colnames(relabund) %in% metadata.fish.1$SampleCode]
+relabund.fish.F4.F8=relabund.fish[,colnames(relabund.fish) %in% metadata.fish.F4.F8.1$SampleCode]
+relabund.fish=cbind(relabund.fish,relabund[,87:95]) #add back in taxonomy info
+relabund.fish.F4.F8=cbind(relabund.fish.F4.F8,relabund[,87:95]) #add back in taxonomy info
+relabund.t.fish=relabund.t[rownames(relabund.t) %in% metadata.fish.1$SampleCode,]
+relabund.t.fish.F4.F8=relabund.t.fish[rownames(relabund.t.fish) %in% metadata.fish.F4.F8.1$SampleCode,]
+abund.fish=abund[rownames(abund) %in% metadata.fish.1$SampleCode,]
+abund.fish.F4.F8=abund.fish[rownames(abund.fish) %in% metadata.fish.F4.F8.1$SampleCode,]
+
+taxonomy.fish=relabund.fish[,55:60] #make a taxonomy df for fish ASVs
+```
+
+Cull low abundance ASVs.
+
+```{r}
+#First visualize the distribution of relabund values.
+mean.relabund.t=apply(relabund.t,2,FUN=mean) #calculate the mean relabund value for each ASV.
+hist(mean.relabund.t,breaks=seq(0,.08,by=.0001),xlim=c(0,.02)) #make a histogram ranging from 0 - .02, with break every .0001 intervals. It looks like the most frequent relative abundance is very low. Preliminary relabund cull at .0001?
+
+#Cull ASVs at .0001 relabund cutoff
+sub=c() #create a empty vector
+cull=function(x) { #make a function that says for any input, generate a logical vector of TRUEs and FALSEs that will be used for subsetting, selecting ASVs that
+  sub=ifelse(length(x[x>=.0005])>=3 #have a relabund>.0005 in 3 samples 
+             | length(x[x>=.01])>0,TRUE,FALSE) #or have a relabund>.01 in at least one sample
+  return(sub)
+}
+cull.vec=apply(relabund.t.fish,2,FUN=cull) #apply cull function to relabund.t.fish, save output as a vector.
+relabund.t.fish.cull=relabund.t.fish[,cull.vec] #Use cull.vec to subset ASVs that passed the cull threshold.
+cull.vec.1=apply(relabund.fish[,1:51],1,FUN=cull) #apply cull function to relabund.fish (only sample columns), save output as a vector
+relabund.fish.cull=relabund.fish[cull.vec.1,] #Use cull.vec.1 to subset ASVs that passed the cull threshold.
+cull.vec.2=apply(relabund.t.fish.F4.F8,2,FUN=cull) #apply cull function to relabund.t.fish.F4.F8, save output as a vector.
+relabund.t.fish.F4.F8.cull=relabund.t.fish.F4.F8[,cull.vec.2] #Use cull.vec.1 to subset ASVs that passed the cull threshold.
+
+#export relabund dfs as CSVs
+write.csv(relabund.fish.cull,file="relabund.fish.cull.csv")
+write.csv(relabund.t.fish.cull,file="relabund.t.fish.cull.csv")
+
+#make a taxonomy df for culled fish ASVs
+taxonomy.fish.cull=relabund.fish.cull[,55:60]
+taxonomy.t.fish.F4.F8.cull=taxonomy.fish.cull[rownames(taxonomy.fish.cull) %in% colnames((relabund.t.fish.F4.F8.cull)),] #make a taxonomy df for culled fish (F4 - F8) ASVs.
+colnames(taxonomy.fish.cull)[1]="Kingdom" #change name of column 1 to Kingdom. This is necessary for phyloseq.
+```
+
+To visualize broad trends between gut subsections, we need to look at a higher taxonomic rank than ASVs. To do this, use phyloseq to glom ASVs by various taxonomic ranks and then export the data out of phyloseq.
+
+```{r}
+otu.phyloseq=otu_table(relabund.t.fish.cull,taxa_are_rows=FALSE)
+
+taxonomy.phyloseq=tax_table(as.matrix(taxonomy.fish.cull))
+
+rownames(metadata.fish.1)=metadata.fish.1$SampleCode #need to make rownames correspond to sample names for phyloseq
+metadata.phyloseq=sample_data(metadata.fish.1)
+
+fish.cull.phyloseq=phyloseq(otu.phyloseq,taxonomy.phyloseq,metadata.phyloseq)
+
+relabund.cull.phylum=tax_glom(fish.cull.phyloseq,taxrank="Phylum")
+relabund.cull.class=tax_glom(fish.cull.phyloseq,taxrank="Class")
+relabund.cull.order=tax_glom(fish.cull.phyloseq,taxrank="Order")
+relabund.cull.family=tax_glom(fish.cull.phyloseq,taxrank="Family")
+relabund.cull.genus=tax_glom(fish.cull.phyloseq,taxrank="Genus")
+
+relabund.cull.phylum.df=psmelt(relabund.cull.phylum)
+relabund.cull.class.df=psmelt(relabund.cull.class)
+relabund.cull.order.df=psmelt(relabund.cull.order)
+relabund.cull.family.df=psmelt(relabund.cull.family)
+relabund.cull.genus.df=psmelt(relabund.cull.genus)
+
+write.csv(relabund.cull.family.df,file="relabund.cull.family.df") #Export the ralbund.cull.genus (or family) data as a CSV and open it in JMP. Use JMP to create stacked bar charts.
+```
+
+Now model how individual ASVs respond to gut subsection and species and then use these results to pick specific ASVs for visualization.
+
+```{r}
+#Work up the relative abundance data for analysis.
+relabund.t.fish.F4.F8.cull.trans=asin(sqrt(relabund.t.fish.F4.F8.cull)) #arcsine sqrt transform relative abundance data to normalize. Save as new df.
+relabund.t.fish.F4.F8.cull.trans=cbind(relabund.t.fish.F4.F8.cull.trans,metadata.fish.F4.F8.1) #merge metadata into relabund data
+relabund.t.fish.F4.F8.cull=cbind(relabund.t.fish.F4.F8.cull,metadata.fish.F4.F8.1) #merge metadata into relabund data
+
+#now run a mixed model on the transformed ASV data. Have relative abundance be a function of Species, Gut_SubSection, and Fish_Number be a random effect. Interaction term has been removed since it was not significant in the multivariate analysis. Could re-run model with Species also as a random effect, need to consult coathors.
+mixed.mod=function(x) { #create a function that performs the desired mixed model
+  mod=lmer(x~Species+Gut_SubSection+(1|Fish_Number),data=relabund.t.fish.F4.F8.cull.trans)
+  return(mod)
+}
+mixed.mod.relabund.t.fish.F4.F8.cull.trans=apply(relabund.t.fish.F4.F8.cull.trans[,-790:-799],2,FUN=mixed.mod) #apply mixed.mod only to columns containing ASV data. Save as new object.
+
+#Now let's inspect the results of the mixed models.
+mixed.mod.singularity=lapply(mixed.mod.relabund.t.fish.F4.F8.cull.trans,FUN=isSingular) #test each mixed model for singularity, save in list. After inspecting the list it looks like most models are not singular.
+anova.kw=function(x) { #make a function that performs anova (Kenward-Roger)
+  results=anova(x,ddf="Kenward-Roger")
+  return(results)
+}
+mixed.mod.results=lapply(mixed.mod.relabund.t.fish.F4.F8.cull.trans,FUN=anova.kw) #perform an anova(ddf="Kenward-Roger") on all mixed models, save output.
+mixed.mod.pvals=as.data.frame(t(as.data.frame(mixed.mod.results))[seq(from=6,to=4734,by=6),]) #extract the pvas from the mixed.mod.results list. Do this by converting list to df, transposing it, and then extracting every 6th column (which correspond to the pvals from each model).
+
+#Work up p values
+mixed.mod.pvals$Gut_SubSection.padjust=p.adjust(mixed.mod.pvals$Gut_SubSection,method="BH") #Adjust p values for multiple comparisons
+mixed.mod.pvals$Species.padjust=p.adjust(mixed.mod.pvals$Species,method="BH") #Adjust p values for multiple comparisons
+rownames(mixed.mod.pvals)=colnames(relabund.t.fish.F4.F8.cull.trans)[1:789] #Change rownames to correspond with tested OTU names.
+mixed.mod.sig.otu.Gut_SubSection=mixed.mod.pvals[mixed.mod.pvals$Gut_SubSection.padjust<=.05,] #subset the mixed.mod.pvals df for significant (p<=.05) Gut_SubSection pvals. Save as new df.
+mixed.mod.sig.otu.Gut_SubSection=cbind(mixed.mod.sig.otu.Gut_SubSection,taxonomy.t.fish.F4.F8.cull[rownames(taxonomy.t.fish.F4.F8.cull) %in% rownames(mixed.mod.sig.otu.Gut_SubSection),]) #merge mixed.mod.sig.otu.Gut_SubSection with the associated OTU taxonomies.
+mixed.mod.sig.otu.Species=mixed.mod.pvals[mixed.mod.pvals$Species.padjust<=.05,] #subset the mixed.mod.pvals df for significant (p<=.05) Gut_SubSection pvals. Save as new df. It appears there are no significant Species pvals after padjustment. In fact, there appear to be no significant Species pvals BEFORE padjustment. Will need to look into why this is further. Perhaps if using the full sample set that includes F1-F3 GI/HG samples there would be enough replication to find significant species pvals.
+mixed.mod.sig.otu.Species=cbind(mixed.mod.sig.otu.Species,taxonomy.t.fish.F4.F8.cull[rownames(taxonomy.t.fish.F4.F8.cull) %in% rownames(mixed.mod.sig.otu.Species),]) #merge mixed.mod.sig.otu.Gut_SubSection with the associated OTU taxonomies.
+
+#Analyze the distribution of abundances of ASVs across the various subsections. Use the results of this to pick out ASVs that peak in abundance in the various sections.
+mean.gut_subsection=function(x,y) { #function of inputs x where x=row in relabund.t.fish.F4.F8.cull that corresponds to an ASV column and y=character string corresponding to Gut_SubSection
+  means=mean(x[relabund.t.fish.F4.F8.cull$Gut_SubSection==y]) 
+  return(means)}
+relabund.t.fish.F4.F8.cull.sig.otu.gut_subsection=cbind(relabund.t.fish.F4.F8.cull[,colnames(relabund.t.fish.F4.F8.cull) %in% rownames(mixed.mod.sig.otu.Gut_SubSection)],relabund.t.fish.F4.F8.cull[,790:799]) #make a new relabund df that only has the significant gut subsection otus.
+for (i in 1:length(rownames(mixed.mod.sig.otu.Gut_SubSection))) {
+  mixed.mod.sig.otu.Gut_SubSection$ST.mean[i]=mean.gut_subsection(relabund.t.fish.F4.F8.cull.sig.otu.gut_subsection[,i],"ST")
+}
+for (i in 1:length(rownames(mixed.mod.sig.otu.Gut_SubSection))) {
+  mixed.mod.sig.otu.Gut_SubSection$PC.mean[i]=mean.gut_subsection(relabund.t.fish.F4.F8.cull.sig.otu.gut_subsection[,i],"PC")
+}
+for (i in 1:length(rownames(mixed.mod.sig.otu.Gut_SubSection))) {
+  mixed.mod.sig.otu.Gut_SubSection$GI_1.mean[i]=mean.gut_subsection(relabund.t.fish.F4.F8.cull.sig.otu.gut_subsection[,i],"GI_1")
+}
+for (i in 1:length(rownames(mixed.mod.sig.otu.Gut_SubSection))) {
+  mixed.mod.sig.otu.Gut_SubSection$GI_2.mean[i]=mean.gut_subsection(relabund.t.fish.F4.F8.cull.sig.otu.gut_subsection[,i],"GI_2")
+}
+for (i in 1:length(rownames(mixed.mod.sig.otu.Gut_SubSection))) {
+  mixed.mod.sig.otu.Gut_SubSection$GI_3.mean[i]=mean.gut_subsection(relabund.t.fish.F4.F8.cull.sig.otu.gut_subsection[,i],"GI_3")
+}
+for (i in 1:length(rownames(mixed.mod.sig.otu.Gut_SubSection))) {
+  mixed.mod.sig.otu.Gut_SubSection$GI_4.mean[i]=mean.gut_subsection(relabund.t.fish.F4.F8.cull.sig.otu.gut_subsection[,i],"GI_4")
+}
+for (i in 1:length(rownames(mixed.mod.sig.otu.Gut_SubSection))) {
+  mixed.mod.sig.otu.Gut_SubSection$HG_1.mean[i]=mean.gut_subsection(relabund.t.fish.F4.F8.cull.sig.otu.gut_subsection[,i],"HG_1")
+}
+for (i in 1:length(rownames(mixed.mod.sig.otu.Gut_SubSection))) {
+  mixed.mod.sig.otu.Gut_SubSection$HG_2.mean[i]=mean.gut_subsection(relabund.t.fish.F4.F8.cull.sig.otu.gut_subsection[,i],"HG_2")
+}
+for (i in 1:length(rownames(mixed.mod.sig.otu.Gut_SubSection))) {
+  mixed.mod.sig.otu.Gut_SubSection$HG_3.mean[i]=mean.gut_subsection(relabund.t.fish.F4.F8.cull.sig.otu.gut_subsection[,i],"HG_3")
+}
+
+write.csv(mixed.mod.sig.otu.Gut_SubSection,file="mixed.mod.sig.otu.Gut_SubSection.csv") #export as CSV
+```
+
+Exported mixed.mod.sig.otu.Gut_Subsection inspected in excel for promising ASVs. Now I will visualize the changes in relabund of these ASVs across the gut.
+
+```{r}
+summary(glht(mixed.mod.relabund.t.fish.F4.F8.cull.trans$Otu00004, linfct = mcp(Gut_SubSection = "Tukey")), test = adjusted("holm")) #run post hoc testing to identify which Gut_SubSections are significantly different from each other
+
+otu.4.relabund.plot=
+  ggplot(relabund.t.fish.F4.F8.cull,aes(y=Otu00004,x=Gut_SubSection,fill=Gut_SubSection))+
+  scale_fill_manual(values=viridis(n=9,option="D"))+
+  geom_boxplot()+
+  ylim(0,.85)+
+  theme_minimal()+
+  theme(legend.position="none")+ #remove legend, crop a legend out and combine it with multiple plots
+   #remove legend, add 1 in later in power point for multiple plots.
+  ylab("Relative Abundance")+
+  ggtitle("Pasteurellaceae")
+
+#significance label code if necessary: geom_text(x=1,y=.8,label="A")
+```
+
+Highly abundant in the stomach while not found in any other gut sections at high abundance. Facultative anaerobe suggests potentially microaerophillic environment.
+
+```{r}
+summary(glht(mixed.mod.relabund.t.fish.F4.F8.cull.trans$Otu00309, linfct = mcp(Gut_SubSection = "Tukey")), test = adjusted("holm")) #run post hoc testing to identify which Gut_SubSections are significantly different from each other
+
+otu.309.relabund.plot=
+  ggplot(relabund.t.fish.F4.F8.cull,aes(y=Otu00309,x=Gut_SubSection,fill=Gut_SubSection))+
+  scale_fill_manual(values=viridis(n=9,option="D"))+
+  geom_boxplot()+
+  ylim(0,.015)+
+  theme_minimal()+
+  theme(legend.position="none")+ #remove legend, crop a legend out and combine it with multiple plots in power point. This can be done more eloquently by merging otu relabund column data that are to be visualized (and ONLY that data) into a df and plotting with facet().
+  ylab("Relative Abundance")+
+  ggtitle("Rivularia_PCC-7116 (Cyanobacteria)")
+
+#significance label code if necessary: ?
+
+plot_grid(otu.4.relabund.plot,otu.309.relabund.plot) #plot these 2 graphs together
+```
+
+Cyanobacteria found growing colonially on submerged stones (among other locations). Potentially a food source/incidental food source of grazing Nenue? Reduction in relative abundance through the gut suggests it is being digested.
+
+```{r}
+
+ggplot(relabund.t.fish.F4.F8.cull,aes(y=Otu00634,x=Gut_SubSection,fill=Gut_SubSection))+
+  scale_fill_manual(values=viridis(n=9,option="D"))+
+  geom_boxplot()+
+  theme_minimal()+
+  theme(legend.position="none")+
+  ylab("Relative Abundance")+
+  ggtitle("Hyphomonas")
+```
+
+Trend potentially driven by outlier. However, Hyphomonas is still important since it is a genus of Rhodobacterales that is a obligate aerobe, lending creedence to the hypothesis that the Nenue stomach is aerobic.
+
+Now let's visualize ASVs that are abundant in the early GI (PC-GI2)
+
+```{r}
+summary(glht(mixed.mod.relabund.t.fish.F4.F8.cull.trans$Otu00015, linfct = mcp(Gut_SubSection = "Tukey")), test = adjusted("holm")) #run post hoc testing to identify which Gut_SubSections are significantly different from each other
+
+otu.15.relabund.plot=
+  ggplot(relabund.t.fish.F4.F8.cull,aes(y=Otu00015,x=Gut_SubSection,fill=Gut_SubSection))+
+  scale_fill_manual(values=viridis(n=9,option="D"))+
+  geom_boxplot()+
+  theme_minimal()+
+  theme(legend.position="none")+
+  ylim(0,.4)+
+  ylab("Relative Abundance")+
+  ggtitle("Peptostreptococcaceae")
+  
+#significance code if necessary:annotate(geom="text",x=2:9,y=c(.05,.375,.275,.075,.075,.05,.05,.05),label=c("B/","A","A/B","B/","B/","B/","B/","B/"))
+```
+
+Anaerobic Clostridia fermenters. Suggests potentially anaerobic early GI with fermentation as a dominant process.
+
+```{r}
+
+summary(glht(mixed.mod.relabund.t.fish.F4.F8.cull.trans$Otu00003, linfct = mcp(Gut_SubSection = "Tukey")), test = adjusted("holm")) #run post hoc testing to identify which Gut_SubSections are significantly different from each other
+
+otu.3.relabund.plot=
+  ggplot(relabund.t.fish.F4.F8.cull,aes(y=Otu00003,x=Gut_SubSection,fill=Gut_SubSection))+
+  scale_fill_manual(values=viridis(n=9,option="D"))+
+  geom_boxplot()+ #Ask Craig if I should remove outliers using geom_boxplot(outlier.shape=NA)
+  theme_minimal()+
+  theme(legend.position="none")+
+  ylab("Relative Abundance")+
+  ggtitle("Vibrionaceae")
+
+#significance code if necessary:annotate(geom="text",x=1:7,y=c(.175,.175,.225,.35,.125,.05,.05),label=c("A/","A/","A/","A","A/","A/","A/"))
+
+plot_grid(otu.15.relabund.plot,otu.3.relabund.plot) #plot these 2 graphs together
+ 
+```
+
+Vibrionaceae peaking in the early GI (GI_1-2). Facultative anaerobes, fermenters.
+
+Now let's visualize ASVs that are abundant in the early GI (GI3-4).
+
+```{r}
+#No longer going to run post hocs until I have a better idea how to display them.
+ 
+otu.5.relabund.plot=
+ggplot(relabund.t.fish.F4.F8.cull,aes(y=Otu00005,x=Gut_SubSection,fill=Gut_SubSection))+
+  scale_fill_manual(values=viridis(n=9,option="D"))+
+  geom_boxplot()+ #Ask Craig if I should remove outliers using geom_boxplot(outlier.shape=NA)
+  theme_minimal()+
+  theme(legend.position="none")+
+  ylab("Relative Abundance")+
+  ggtitle("Turicibacter (Erysipelotrichaceae)")
+
+otu.33.relabund.plot=
+ggplot(relabund.t.fish.F4.F8.cull,aes(y=Otu00033,x=Gut_SubSection,fill=Gut_SubSection))+
+  scale_fill_manual(values=viridis(n=9,option="D"))+
+  geom_boxplot()+ #Ask Craig if I should remove outliers using geom_boxplot(outlier.shape=NA)
+  theme_minimal()+
+  theme(legend.position="none")+
+  ylab("Relative Abundance")+
+  ggtitle("Brevinema (Brevinemataceae)")
+
+otu.81.relabund.plot=
+ggplot(relabund.t.fish.F4.F8.cull,aes(y=Otu00081,x=Gut_SubSection,fill=Gut_SubSection))+
+  scale_fill_manual(values=viridis(n=9,option="D"))+
+  geom_boxplot()+ #Ask Craig if I should remove outliers using geom_boxplot(outlier.shape=NA)
+  theme_minimal()+
+  theme(legend.position="none")+
+  ylab("Relative Abundance")+
+  ggtitle("Clostridiaceae") #Generally anaerobic
+
+plot_grid(otu.5.relabund.plot,otu.33.relabund.plot,otu.81.relabund.plot)
+```
+
+Now let's visualize ASVs that are abundant in the hindgut (HG1-3)
+
+```{r}
+
+otu.19.relabund.plot=
+ggplot(relabund.t.fish.F4.F8.cull,aes(y=Otu00019,x=Gut_SubSection,fill=Gut_SubSection))+
+  scale_fill_manual(values=viridis(n=9,option="D"))+
+  geom_boxplot()+ #Ask Craig if I should remove outliers using geom_boxplot(outlier.shape=NA)
+  theme_minimal()+
+  theme(legend.position="none")+
+  ylab("Relative Abundance")+
+  ggtitle("Desulfovibrio")
+
+#Sulfate reducers higher in HG. Obligate anaerobes but can actually be aerobically tolerant.
+
+otu.25.relabund.plot=
+ggplot(relabund.t.fish.F4.F8.cull,aes(y=Otu00025,x=Gut_SubSection,fill=Gut_SubSection))+
+  scale_fill_manual(values=viridis(n=9,option="D"))+
+  geom_boxplot()+ #Ask Craig if I should remove outliers using geom_boxplot(outlier.shape=NA)
+  theme_minimal()+
+  theme(legend.position="none")+
+  ylab("Relative Abundance")+
+  ggtitle("Ruminococcaceae")
+
+#Obligate anaerobes.
+
+otu.40.relabund.plot=
+ggplot(relabund.t.fish.F4.F8.cull,aes(y=Otu00040,x=Gut_SubSection,fill=Gut_SubSection))+
+  scale_fill_manual(values=viridis(n=9,option="D"))+
+  geom_boxplot()+ #Ask Craig if I should remove outliers using geom_boxplot(outlier.shape=NA)
+  theme_minimal()+
+  theme(legend.position="none")+
+  ylab("Relative Abundance")+
+  ggtitle("Akkermansia")
+
+#chemoorganotroph obligate anaerobes.
+
+otu.60.relabund.plot=
+ggplot(relabund.t.fish.F4.F8.cull,aes(y=Otu00062,x=Gut_SubSection,fill=Gut_SubSection))+
+  scale_fill_manual(values=viridis(n=9,option="D"))+
+  geom_boxplot()+ #Ask Craig if I should remove outliers using geom_boxplot(outlier.shape=NA)
+  theme_minimal()+
+  theme(legend.position="none")+
+  ylab("Relative Abundance")+
+  ggtitle("Clostridiales vadinBB60 group")
+
+#don't include this one for now
+ggplot(relabund.t.fish.F4.F8.cull,aes(y=Otu00047,x=Gut_SubSection,fill=Gut_SubSection))+
+  scale_fill_manual(values=viridis(n=9,option="D"))+
+  geom_boxplot()+ #Ask Craig if I should remove outliers using geom_boxplot(outlier.shape=NA)
+  theme_minimal()+
+  theme(legend.position="none")+
+  ylab("Relative Abundance")+
+  ggtitle("Alistipes (Rikenellaceae)")
+
+plot_grid(otu.19.relabund.plot,otu.25.relabund.plot,otu.40.relabund.plot,otu.60.relabund.plot)
+
+```
+
