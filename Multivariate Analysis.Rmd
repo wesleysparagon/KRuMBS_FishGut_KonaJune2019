@@ -116,7 +116,7 @@ points(nmds.weighted.unifrac, #plot each sample as a point
 
 ordiellipse(nmds.weighted.unifrac,metadata.fish.1$Gut_Section,kind="sd",draw="polygon",alpha=c(0,0),lwd=2.5,border=colvec) #add SD ellipses, colored by Gut_Section
 
-legend(.2,.42,legend = c(levels(as.factor(metadata.fish.1$Gut_Section))[1:4],levels(as.factor(metadata.fish.1$Species))[1:3]),cex=1,y.intersp=.2,bg="transparent",bty="o",col=c(colvec,"black","black","black"),pch=c(16,16,16,16,15,16,17),pt.cex=1.5) #Add legend. Save image as 8.5x11 PDF (landscape)
+legend(.2,.42,legend = c(levels(as.factor(metadata.fish.1$Gut_Section))[1:4],"K. cinerascens","K. hawaiiensis","K. vaigiensis"),cex=1,y.intersp=.2,bg="transparent",bty="o",col=c(colvec,"black","black","black"),pch=c(16,16,16,16,15,16,17),pt.cex=1.5) #Add legend. Save image as 8.5x11 PDF (landscape)
 
 ```
 
@@ -128,11 +128,35 @@ nmds.scores=as.data.frame(scores(nmds.weighted.unifrac.F4.F8)) #extract NMDS sco
 nmds.scores$Gut_SubSection=metadata.fish.F4.F8.1$Gut_SubSection #add the Fish_GutSubsection to the new df
 nmds.scores$Ranked_Distance_from_Stomach=metadata.fish.F4.F8.1$Ranked_Gut_SubSection_Distance_from_Stomach #Add Ranked_Gut_SubSection_Distance_from_Stomach to df, give it a shorter name
 nmds.scores$Species=metadata.fish.F4.F8.1$Species #Add Species to the new df.
+nmds.scores$Fish_Number=metadata.fish.F4.F8.1$Fish_Number
 
 ggplot(nmds.scores,aes(x=NMDS1,y=NMDS2,shape=Species,color=Ranked_Distance_from_Stomach,size=2))+ #plot nmds.scores, specify x and y axis, shape corresponding to species, color corresponding to Ranked_Distance_from_Stomach
   scale_color_gradientn(colors=viridis(n=9,option="D"))+ #set gradient scale to desired viridis scale
   geom_point(data=nmds.scores,aes(x=NMDS1,y=NMDS2))+ #add points
   theme_classic() #export graphs as 8.5x11 PDF (landscape)
+
+#This plot is the same as the above ggplot, but also has ellipses and no axis
+colvec2=viridis(n=9,option="D")
+plot(nmds.weighted.unifrac.F4.F8,type="n",xlim=c(-.37,.68)) #Set up the NMDS plot environment
+points(nmds.weighted.unifrac.F4.F8, #plot each sample as a point
+       cex=2,
+       pch=pointvec[metadata.fish.F4.F8.1$Species], #point shape corresponds to fish Species
+       col=colvec2[as.factor(metadata.fish.F4.F8.1$Ranked_Gut_SubSection_Distance_from_Stomach)]) 
+ordiellipse(nmds.weighted.unifrac.F4.F8,metadata.fish.F4.F8.1$Ranked_Gut_SubSection_Distance_from_Stomach,show.groups=c("0","1","2","3","4","5","6","7","8"),kind="sd",draw="polygon",alpha=c(0,0),lwd=2.5,border=colvec2[1:9])
+
+legend(.4,.43,legend = c("ST","PC","GI_1","GI_2","GI_3","GI_4","HG_1","HG_2","HG_3","K. cinerascens","K. hawaiiensis","K. vaigiensis"),cex=1,y.intersp=.3,bg="transparent",bty="o",col=c(colvec2,"black","black","black"),pch=c(16,16,16,16,16,16,16,16,16,15,16,17),pt.cex=1.5) #Add legend. Save image as 8.5x11 PDF (landscape)
+
+#next, draw arrows from ST->HG for one fish
+colvec2=viridis(n=9,option="D")
+plot(nmds.weighted.unifrac.F4.F8,type="n",xlim=c(-.37,.68)) #Set up the NMDS plot environment
+points(nmds.weighted.unifrac.F4.F8, #plot each sample as a point
+       cex=2,
+       pch=pointvec[metadata.fish.F4.F8.1$Species], #point shape corresponds to fish Species
+       col=colvec2[as.factor(metadata.fish.F4.F8.1$Ranked_Gut_SubSection_Distance_from_Stomach)]) 
+ordiarrows(nmds.weighted.unifrac.F4.F8,group=metadata.fish.F4.F8.1$Fish_Number,order.by=metadata.fish.F4.F8.1$Ranked_Gut_SubSection_Distance_from_Stomach,show.groups=c("F7","F8"),lwd=2,col="black")
+
+legend(.4,.45,legend = c("ST","PC","GI_1","GI_2","GI_3","GI_4","HG_1","HG_2","HG_3","K. cinerascens","K. hawaiiensis","K. vaigiensis"),cex=1,y.intersp=.3,bg="transparent",bty="o",col=c(colvec2,"black","black","black"),pch=c(16,16,16,16,16,16,16,16,16,15,16,17),pt.cex=1.5) #Add legend. Save image as 8.5x11 PDF (landscape)
+
 ```
 
 Next, work up and visualize the alpha diversity data to see if there are any trends.
@@ -280,7 +304,8 @@ sobs.gut.subsection.plot=ggplot(alpha.diversity.mean.Gut_SubSection,aes(x=Gut_Su
   scale_fill_manual(values=viridis(n=9))+
   geom_errorbar(aes(ymin=sobs-SE_sobs,ymax=sobs+SE_sobs),width=.5)+
   ggtitle("Observed Sequences")+
-  theme_classic()
+  theme_classic()+
+  theme(legend.position = "none")
 #now repeat for chao
 chao.gut.subsection.plot=ggplot(alpha.diversity.mean.Gut_SubSection,aes(x=Gut_SubSection,y=chao,fill=Gut_SubSection))+
   geom_bar(stat="identity")+
@@ -301,9 +326,14 @@ shannoneven.gut.subsection.plot=ggplot(alpha.diversity.mean.Gut_SubSection,aes(x
   scale_fill_manual(values=viridis(n=9))+
   geom_errorbar(aes(ymin=shannoneven-SE_shannoneven,ymax=shannoneven+SE_shannoneven),width=.5)+
   ggtitle("Shannon Eveness")+
-  theme_classic()
+  theme_classic()+
+  theme(legend.position = "none")
 
 plot_grid(sobs.gut.subsection.plot,chao.gut.subsection.plot,shannon.gut.subsection.plot,shannoneven.gut.subsection.plot) #use the plot_grid function to plot the above 4 plots (par(mfrow=())) doesnt work with ggplot2. Save as PNG (1095 x 485).
+
+plot_grid(sobs.gut.subsection.plot,shannoneven.gut.subsection.plot) #use this plot (only sobs and shannon even for CBOGS talk).
+
+#NEED TO RUN STATS ON ALPHA DIVERIST DATA.
 
 ```
 
@@ -314,13 +344,13 @@ dispersion.gut.section=betadisper(weighted.unifrac.dist,type="centroid",group=me
 dispersion.gut.section
 anova(dispersion.gut.section)
 TukeyHSD(dispersion.gut.section,ordered=FALSE,conf.level=.95)
-boxplot(dispersion.gut.section)
+boxplot(dispersion.gut.section,col=colvec,xlab="Gut_Section")
 
 dispersion.gut.subsection=betadisper(weighted.unifrac.F4.F8.dist,type="centroid",group=metadata.fish.F4.F8.1$Gut_SubSection)
 dispersion.gut.subsection
 anova(dispersion.gut.subsection)
 TukeyHSD(dispersion.gut.subsection,ordered=FALSE,conf.level=.95)
-boxplot(dispersion.gut.subsection)
+boxplot(dispersion.gut.subsection,col=colvec2)
 ```
 
 There is a significant difference in distances to centroid for the various gut sections. ST and HG samples have less dispersion relative to PC and GI samples. However, there are outliers in each of the HG subsections and substantial variation in dispersion between each of the GI subsections. There is no significant difference between the dispersions for the gut sections. This analysis likely does not warrant more work at this time.

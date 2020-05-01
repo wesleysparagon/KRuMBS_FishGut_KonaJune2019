@@ -82,28 +82,29 @@ colnames(taxonomy.fish.cull)[1]="Kingdom" #change name of column 1 to Kingdom. T
 To visualize broad trends between gut subsections, we need to look at a higher taxonomic rank than ASVs. To do this, use phyloseq to glom ASVs by various taxonomic ranks and then export the data out of phyloseq.
 
 ```{r}
-otu.phyloseq=otu_table(relabund.t.fish.cull,taxa_are_rows=FALSE)
 
+#Convert relabund data, taxonomy data, and metadata to phyloseq objects and merge them.
+otu.phyloseq=otu_table(relabund.t.fish.cull,taxa_are_rows=FALSE) 
 taxonomy.phyloseq=tax_table(as.matrix(taxonomy.fish.cull))
-
 rownames(metadata.fish.1)=metadata.fish.1$SampleCode #need to make rownames correspond to sample names for phyloseq
 metadata.phyloseq=sample_data(metadata.fish.1)
-
 fish.cull.phyloseq=phyloseq(otu.phyloseq,taxonomy.phyloseq,metadata.phyloseq)
 
+#Use tax_glom() to glom relative abundance values by specific taxonomic ranks
 relabund.cull.phylum=tax_glom(fish.cull.phyloseq,taxrank="Phylum")
 relabund.cull.class=tax_glom(fish.cull.phyloseq,taxrank="Class")
 relabund.cull.order=tax_glom(fish.cull.phyloseq,taxrank="Order")
 relabund.cull.family=tax_glom(fish.cull.phyloseq,taxrank="Family")
 relabund.cull.genus=tax_glom(fish.cull.phyloseq,taxrank="Genus")
 
+#Use psmelt() to convert these from phyloseq class objects to normals dfs.
 relabund.cull.phylum.df=psmelt(relabund.cull.phylum)
 relabund.cull.class.df=psmelt(relabund.cull.class)
 relabund.cull.order.df=psmelt(relabund.cull.order)
 relabund.cull.family.df=psmelt(relabund.cull.family)
 relabund.cull.genus.df=psmelt(relabund.cull.genus)
 
-write.csv(relabund.cull.family.df,file="relabund.cull.family.df") #Export the ralbund.cull.genus (or family) data as a CSV and open it in JMP. Use JMP to create stacked bar charts.
+write.csv(relabund.cull.family.df,file="relabund.cull.family.df.csv") #Export the ralbund.cull.genus (or family) data as a CSV and open it in JMP. Use JMP to create stacked bar charts.
 ```
 
 Now model how individual ASVs respond to gut subsection and species and then use these results to pick specific ASVs for visualization.
