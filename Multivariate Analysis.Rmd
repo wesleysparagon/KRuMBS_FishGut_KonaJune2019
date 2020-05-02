@@ -27,10 +27,17 @@ metadata$Species=factor(metadata$Species,levels=c("Kyphosus cinerascens","Kyphos
 metadata$Gut_SubSection=factor(metadata$Gut_SubSection,levels=c("ST","PC","GI","GI_1","GI_2","GI_3","GI_4","HG","HG_1","HG_2","HG_3","No_Inoc","")) #reorder the levels of the Gut_SubSection factor. This will be useful later when generating ordinations.
 metadata.fish=metadata[metadata$Sample_Type_Broad=="Fish_Gut",] #subset metadata to include only fish gut samples
 metadata.fish.F4.F8=metadata.fish[metadata.fish$Gut_SubSection!="GI" & metadata.fish$Gut_SubSection!="HG",] #subset metadata removing Gut_SubSections GI and HG. This corresponds to the HG/GI samples from F1-F3, which were sampled differently and do not have gut_subsections compared to fish F4-F8.
+metadata.fish.2=metadata.fish[metadata.fish$Gut_SubSection!="PC",] #remove all PC samples
+metadata.fish.F4.F8.2=metadata.fish.F4.F8[metadata.fish.F4.F8$Gut_SubSection!="PC",] #remove all PC samples
+metadata.fish.2$Gut_Section=factor(metadata.fish.2$Gut_Section,levels=c("ST","GI","HG","No_Inoc","","PC")) #reorder the levels of the Gut_section factor. This will be useful later when generating ordinations.
+metadata.fish.F4.F8.2$Gut_SubSection=factor(metadata.fish.F4.F8.2$Gut_SubSection,levels=c("ST","GI_1","GI_2","GI_3","GI_4","HG_1","HG_2","HG_3","No_Inoc","","PC","GI","HG"))
+#reorder the levels of the Gut_Subsection factor. This will be useful later when generating ordinations.
 
 alpha.diversity=read.csv(file="all_alphaDiversity_100.summary.csv") #read in alpha diversity file
-alpha.diversity.fish=alpha.diversity[alpha.diversity$group %in% metadata.fish$SampleCode,] #subset alpha.diversity for only the fish gut samples
-alpha.diversity.fish.F4.F8=alpha.diversity[alpha.diversity$group %in% metadata.fish.F4.F8$SampleCode,] #subset alpha.diversity for only fish gut samples F4-F8
+alpha.diversity.fish=alpha.diversity[alpha.diversity$group %in% metadata.fish$SampleCode,] #subset alpha.diversity for only the fish gut samples.
+alpha.diversity.fish.F4.F8=alpha.diversity[alpha.diversity$group %in% metadata.fish.F4.F8$SampleCode,] #subset alpha.diversity for only fish gut samples F4-F8.
+alpha.diversity.fish.2=alpha.diversity.fish[alpha.diversity.fish$group %in% metadata.fish.2$SampleCode,] #remove PC samples
+alpha.diversity.fish.F4.F8.2=alpha.diversity.fish[alpha.diversity.fish$group %in% metadata.fish.F4.F8.2$SampleCode,] #remove PC samples
 
 #To work up the unifrac column data into a matrix, first split the "Groups" column into 2 columns so that each sample name in a pairwise comparison has a seperate column.
 unifrac.split.groups=strsplit(as.character(weighted.unifrac$Groups),split="-") #split the groups column by "-", moving the 2 samples that are being compared into seperate vectors within a list.
@@ -55,15 +62,22 @@ for (i in 1:nrow(weighted.unifrac.matrix)) { #for each column in the unifrac mat
 }
 weighted.unifrac.matrix[is.na(weighted.unifrac.matrix)]=0 #replace NAs with 0s
 weighted.unifrac.matrix=weighted.unifrac.matrix[as.logical(apply(weighted.unifrac.matrix,1,FUN=sum)),as.logical(apply(weighted.unifrac.matrix,2,FUN=sum))] #subset the weighted.unifrac.matrix so that any rows or columns whose sum=0 are removed. This removes samples which are in the metadata but failed to sequence and/or pass through the pipeline at 50k subsampling.
+weighted.unifrac.2.matrix=weighted.unifrac.matrix[c(-3,-7,-10,-19,-28,-36),c(-3,-7,-10,-19,-28,-36)] #remove the PC samples
 weighted.unifrac.F4.F8.matrix=weighted.unifrac.matrix[c(-1:-2,-5:-6,-8:-9),c(-1:-2,-5:-6,-8:-9)] #make a unifrac matrix without the F1-F3 GI and HG samples.. These are excluded do to differences in dissection methodology.
+weighted.unifrac.F4.F8.2.matrix=weighted.unifrac.F4.F8.matrix[c(-1,-3,-4,-13,-22,-30),c(-1,-3,-4,-13,-22,-30)] #remove PC samples
 write.csv(weighted.unifrac.matrix,file="weighted.unifrac.matrix.matrix.csv") #export unifrac matrices as CSVs
 write.csv(weighted.unifrac.F4.F8.matrix,file="weighted.unifrac.matrix.F4.F8.matrix.csv")
 weighted.unifrac.dist=as.dist(weighted.unifrac.matrix) #convert to "dist" type
 weighted.unifrac.F4.F8.dist=as.dist(weighted.unifrac.F4.F8.matrix)
+weighted.unifrac.2.dist=as.dist(weighted.unifrac.2.matrix)
+weighted.unifrac.F4.F8.2.dist=as.dist(weighted.unifrac.F4.F8.2.matrix)
 
 #Make metadata files corresponding to only the samples in the unifrac matrices, eg. only the samples to pass through the sequencing pipeline.
 metadata.fish.1=metadata.fish[metadata.fish$SampleCode %in% rownames(weighted.unifrac.matrix),]
 metadata.fish.F4.F8.1=metadata.fish.F4.F8[metadata.fish.F4.F8$SampleCode %in% rownames(weighted.unifrac.F4.F8.matrix),]
+metadata.fish.2.unifrac=metadata.fish.2[metadata.fish.2$SampleCode %in% rownames(weighted.unifrac.2.matrix),]
+metadata.fish.F4.F8.2.unifrac=metadata.fish.F4.F8.2[metadata.fish.F4.F8.2$SampleCode %in% rownames(weighted.unifrac.F4.F8.2.matrix),]
+
 write.csv(metadata.fish.1,file="metadata.fish.1.csv") #export updated metadata dfs as CSVs
 write.csv(metadata.fish.F4.F8.1,file="metadata.fish.F4.F8.1.csv")
 ```
@@ -77,17 +91,26 @@ permanova.gut.section #Gut_Subsection and Species are both significant, no signi
 
 #Check if the strata=metadata.fish$Fish_Number term is influencing the results.
 test.no.strata=permanova.gut.section=adonis.II(weighted.unifrac.dist~Species*Gut_Section,by="margin",data=metadata.fish.1,permutations=999)
-test.no.strata #looks like the results are exactly the same, so the permanova.gut.section model wil be used.
+test.no.strata #looks like the results are very similar, so the permanova.gut.section model wil be used. Note: Pseudo-F values are exactly the same whereas pvals do change slightly when the strata variable is changed.
 
 #Second model: F4-F8 distance matrix, variables of interest. Species, Gut_subsection, and Fish_Number as strata. Note: because F1-F3 were sampled differently (no gut_subsections), they are removed from this model.
 permanova.gut.subsection=adonis.II(weighted.unifrac.F4.F8.dist~Species*Gut_SubSection,by="margin",strata=metadata.fish.F4.F8.1$Fish_Number,data=metadata.fish.F4.F8.1,permutations=999)
 permanova.gut.subsection #Gut_SubSection and Species are both significant. No significant interaction.
 
+#Third (revised) model: distance matrix without PC, variables of interest: Species, Gut_section, and Fish_Number as strata.
+permanova.gut.section.2=adonis.II(weighted.unifrac.2.dist~Species*Gut_Section,by="margin",strata=metadata.fish.2.unifrac$Fish_Number,data=metadata.fish.2.unifrac,permutations=999)
+permanova.gut.section.2 #Gut_Section and Species are significant. No significant interaction.
+
+#Fourth (revised) model: F4-F8 distance matrix without PC samples, variables of interest: Species, Gut_subsection, and Fish_Number as strata. 
+permanova.gut.subsection.2=adonis.II(weighted.unifrac.F4.F8.2.dist~Species*Gut_SubSection,by="margin",strata=metadata.fish.F4.F8.2.unifrac$Fish_Number,data=metadata.fish.F4.F8.2.unifrac,permutations=999)
+permanova.gut.subsection.2 #Gut_SubSection and Species are both significant. Marginally significant interaction.
+
+
 #NEED TO RUN PAIRSWISE ADONIS ON EVERYTHING
 
 ```
 
-Both Gut Section/SubSection and Species have a significant effect on fish gut microbiome community structure, with no significant interaction. When Species and Gut_Section are the predictors, Gut_Section has a stronger effect on the fish gut microbiome then species. When Species and Gut_SubSection are the predictors, they have similar strength effects on the fish gut microbiome (Species has a slightly higher F value).
+Both Gut Section/SubSection and Species have a significant effect on fish gut microbiome community structure, with no significant interaction, although there is a marinally significant interaction (p<.01) in the gut_subsection model. When Species and Gut_Section are the predictors, Gut_Section has a stronger effect on the fish gut microbiome then species. When Species and Gut_SubSection are the predictors, they have similar strength effects on the fish gut microbiome (Species has a slightly higher F value).
 
 Visualize the PERMANOVA results using NMDS. First, run NMDS.
 
@@ -99,24 +122,39 @@ nmds.weighted.unifrac
 nmds.weighted.unifrac.F4.F8=metaMDS(weighted.unifrac.F4.F8.dist,k=2,trymax=200)
 nmds.weighted.unifrac.F4.F8
 #no convergent solution but stress value is acceptable.
+
+nmds.weighted.unifrac.2=metaMDS(weighted.unifrac.2.dist,k=2,trymax=200)
+nmds.weighted.unifrac.2
+#convergent solution and stress value is acceptable
+
+nmds.weighted.unifrac.F4.F8.2=metaMDS(weighted.unifrac.F4.F8.2.dist,k=2,trymax=200)
+nmds.weighted.unifrac.F4.F8.2
+#convergent solution and stress value is acceptable
 ```
 
 NMDS results seem fine, so make ordinations of the NMDS results.
 
 ```{r}
 pointvec=c(15,16,17) #generate a vector of points to correspond to Species.
-
-colvec=viridis(n=4,option="D") #generate a vector of colors to correspond to Gut_Section.
+colvec=viridis(n=3,option="D") #generate a vector of colors to correspond to Gut_Section.
 
 plot(nmds.weighted.unifrac,type="n",xlim=c(-.5,.5)) #Set up the NMDS plot environment
 points(nmds.weighted.unifrac, #plot each sample as a point
        cex=2,
        pch=pointvec[metadata.fish.1$Species], #point shape corresponds to fish Species
        col=colvec[metadata.fish.1$Gut_Section]) #point color corresponds to Gut_Section
-
 ordiellipse(nmds.weighted.unifrac,metadata.fish.1$Gut_Section,kind="sd",draw="polygon",alpha=c(0,0),lwd=2.5,border=colvec) #add SD ellipses, colored by Gut_Section
-
 legend(.2,.42,legend = c(levels(as.factor(metadata.fish.1$Gut_Section))[1:4],"K. cinerascens","K. hawaiiensis","K. vaigiensis"),cex=1,y.intersp=.2,bg="transparent",bty="o",col=c(colvec,"black","black","black"),pch=c(16,16,16,16,15,16,17),pt.cex=1.5) #Add legend. Save image as 8.5x11 PDF (landscape)
+
+#Next make the same plot with the updated dist matrices
+plot(nmds.weighted.unifrac.2,type="n") #Set up the NMDS plot environment
+points(nmds.weighted.unifrac.2, #plot each sample as a point
+       cex=2,
+       pch=pointvec[metadata.fish.2.unifrac$Species], #point shape corresponds to fish Species
+       col=colvec[metadata.fish.2.unifrac$Gut_Section]) #point color corresponds to Gut_Section
+ordiellipse(nmds.weighted.unifrac.2,metadata.fish.2.unifrac$Gut_Section,kind="sd",draw="polygon",alpha=c(0,0),lwd=2.5,border=colvec) #add SD ellipses, colored by Gut_Section
+legend(.2,-.22,legend = c("Stomach","Fore/midgut","Hindgut","K. cinerascens","K. hawaiiensis","K. vaigiensis"),cex=1,y.intersp=.25,bg="transparent",bty="o",col=c(colvec,"black","black","black"),pch=c(16,16,16,15,16,17),pt.cex=2) #Add legend. Save image as 8.5x11 PDF (landscape)
+
 
 ```
 
@@ -130,32 +168,28 @@ nmds.scores$Ranked_Distance_from_Stomach=metadata.fish.F4.F8.1$Ranked_Gut_SubSec
 nmds.scores$Species=metadata.fish.F4.F8.1$Species #Add Species to the new df.
 nmds.scores$Fish_Number=metadata.fish.F4.F8.1$Fish_Number
 
-ggplot(nmds.scores,aes(x=NMDS1,y=NMDS2,shape=Species,color=Ranked_Distance_from_Stomach,size=2))+ #plot nmds.scores, specify x and y axis, shape corresponding to species, color corresponding to Ranked_Distance_from_Stomach
-  scale_color_gradientn(colors=viridis(n=9,option="D"))+ #set gradient scale to desired viridis scale
-  geom_point(data=nmds.scores,aes(x=NMDS1,y=NMDS2))+ #add points
+#repeat for the PC culled nmds
+nmds.scores.2=as.data.frame(scores(nmds.weighted.unifrac.F4.F8.2)) #extract NMDS scores and save in new df
+nmds.scores.2$Gut_SubSection=metadata.fish.F4.F8.2.unifrac$Gut_SubSection #add the Fish_GutSubsection to the new df
+nmds.scores.2$Ranked_Distance_from_Stomach=metadata.fish.F4.F8.2.unifrac$Ranked_Gut_SubSection_Distance_from_Stomach #Add Ranked_Gut_SubSection_Distance_from_Stomach to df, give it a shorter name
+nmds.scores.2$Species=metadata.fish.F4.F8.2.unifrac$Species #Add Species to the new df.
+nmds.scores.2$Fish_Number=metadata.fish.F4.F8.2.unifrac$Fish_Number
+
+ggplot(nmds.scores.2,aes(x=NMDS1,y=NMDS2,shape=Species,color=Gut_SubSection,size=2))+ #plot nmds.scores, specify x and y axis, shape corresponding to species, color corresponding to Ranked_Distance_from_Stomach
+  scale_color_manual(values=viridis(n=8,option="D"))+ #set gradient scale to desired viridis scale
+  geom_point(data=nmds.scores.2,aes(x=NMDS1,y=NMDS2))+ #add points
   theme_classic() #export graphs as 8.5x11 PDF (landscape)
 
-#This plot is the same as the above ggplot, but also has ellipses and no axis
-colvec2=viridis(n=9,option="D")
-plot(nmds.weighted.unifrac.F4.F8,type="n",xlim=c(-.37,.68)) #Set up the NMDS plot environment
-points(nmds.weighted.unifrac.F4.F8, #plot each sample as a point
-       cex=2,
-       pch=pointvec[metadata.fish.F4.F8.1$Species], #point shape corresponds to fish Species
-       col=colvec2[as.factor(metadata.fish.F4.F8.1$Ranked_Gut_SubSection_Distance_from_Stomach)]) 
-ordiellipse(nmds.weighted.unifrac.F4.F8,metadata.fish.F4.F8.1$Ranked_Gut_SubSection_Distance_from_Stomach,show.groups=c("0","1","2","3","4","5","6","7","8"),kind="sd",draw="polygon",alpha=c(0,0),lwd=2.5,border=colvec2[1:9])
-
-legend(.4,.43,legend = c("ST","PC","GI_1","GI_2","GI_3","GI_4","HG_1","HG_2","HG_3","K. cinerascens","K. hawaiiensis","K. vaigiensis"),cex=1,y.intersp=.3,bg="transparent",bty="o",col=c(colvec2,"black","black","black"),pch=c(16,16,16,16,16,16,16,16,16,15,16,17),pt.cex=1.5) #Add legend. Save image as 8.5x11 PDF (landscape)
-
 #next, draw arrows from ST->HG for one fish
-colvec2=viridis(n=9,option="D")
-plot(nmds.weighted.unifrac.F4.F8,type="n",xlim=c(-.37,.68)) #Set up the NMDS plot environment
-points(nmds.weighted.unifrac.F4.F8, #plot each sample as a point
+colvec2=viridis(n=8,option="D")
+plot(nmds.weighted.unifrac.F4.F8.2,type="n",xlim=c(-.5,.53),ylim=c(-.4,.4)) #Set up the NMDS plot environment
+points(nmds.weighted.unifrac.F4.F8.2, #plot each sample as a point
        cex=2,
-       pch=pointvec[metadata.fish.F4.F8.1$Species], #point shape corresponds to fish Species
-       col=colvec2[as.factor(metadata.fish.F4.F8.1$Ranked_Gut_SubSection_Distance_from_Stomach)]) 
-ordiarrows(nmds.weighted.unifrac.F4.F8,group=metadata.fish.F4.F8.1$Fish_Number,order.by=metadata.fish.F4.F8.1$Ranked_Gut_SubSection_Distance_from_Stomach,show.groups=c("F7","F8"),lwd=2,col="black")
+       pch=pointvec[metadata.fish.F4.F8.2.unifrac$Species], #point shape corresponds to fish Species
+       col=colvec2[as.factor(metadata.fish.F4.F8.2.unifrac$Gut_SubSection)]) 
+ordiarrows(nmds.weighted.unifrac.F4.F8.2,group=metadata.fish.F4.F8.2.unifrac$Fish_Number,order.by=metadata.fish.F4.F8.2.unifrac$Gut_SubSection,show.groups=c("F4","F7","F8"),lwd=2,col="black")
 
-legend(.4,.45,legend = c("ST","PC","GI_1","GI_2","GI_3","GI_4","HG_1","HG_2","HG_3","K. cinerascens","K. hawaiiensis","K. vaigiensis"),cex=1,y.intersp=.3,bg="transparent",bty="o",col=c(colvec2,"black","black","black"),pch=c(16,16,16,16,16,16,16,16,16,15,16,17),pt.cex=1.5) #Add legend. Save image as 8.5x11 PDF (landscape)
+legend(.3,.45,legend = c("ST","GI_1","GI_2","GI_3","GI_4","HG_1","HG_2","HG_3","K. cinerascens","K. hawaiiensis","K. vaigiensis"),cex=1,y.intersp=.2,bg="transparent",bty="o",col=c(colvec2,"black","black","black"),pch=c(16,16,16,16,16,16,16,16,15,16,17),pt.cex=1.5) #Add legend. Save image as 8.5x11 PDF (landscape)
 
 ```
 
