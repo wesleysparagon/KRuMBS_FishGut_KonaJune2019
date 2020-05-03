@@ -290,68 +290,94 @@ summary(adiv.mod.gut.subsection.sobs)
 anova(adiv.mod.gut.subsection.sobs,ddf="Kenward-Roger") #Gut_SubSection is significant. Some interaction terms for Species:Gut_SubSection are missing and the anova function tells me to interperet typeIII hypothesis with care. Potentially remove Species:Gut_SubSection interaction?
 summary(glht(adiv.mod.gut.subsection.sobs, linfct = mcp(Gut_SubSection = "Tukey")),test=adjusted("holm")) #GI_2 and ST are significanty different from each other, everything else is not. Most pairwise comparisons have a pval of 1, so there might be something wrong with the model.
 
-#Model the shannoneven data in response to Gut_seciton, fish species, and fish ID
-adiv.mod.gut.section.shannoneven=lmer(shannoneven~Gut_Section*Species+(1|Fish_Number),data=alpha.diversity.fish.2)
-adiv.mod.gut.section.shannoneven
-summary(adiv.mod.gut.section.shannoneven)
-anova(adiv.mod.gut.section.shannoneven,ddf="Kenward-Roger") #Gut_Section is significant
-summary(glht(adiv.mod.gut.section.shannoneven, linfct = mcp(Gut_Section = "Tukey")),test=adjusted("holm")) 
-#Non of the gut sections are significantly different from each other.
+#Model the shannoneven data in response to Gut_subseciton, fish species, and fish ID
+adiv.mod.gut.subsection.shannoneven=lmer(shannoneven~Gut_SubSection*Species+(1|Fish_Number),data=alpha.diversity.fish.F4.F8.2) #I get this warning when running the model: "fixed-effect model matrix is rank deficient so dropping 2 columns / coefficients"
+adiv.mod.gut.subsection.shannoneven
+summary(adiv.mod.gut.subsection.shannonevenn)
+anova(adiv.mod.gut.subsection.shannoneven,ddf="Kenward-Roger") #Gut_SubSection is significant. Some interaction terms for Species:Gut_SubSection are missing and the anova function tells me to interperet typeIII hypothesis with care. Potentially remove Species:Gut_SubSection interaction?
+summary(glht(adiv.mod.gut.subsection.shannoneven, linfct = mcp(Gut_SubSection = "Tukey")),test=adjusted("holm")) #Non of the gut sections are significantly different from each other. All the pvals=1 so I think something is wrong with the model.
+#If the Species:Gut_SubSection term is removed from the model, it runs without warnings and the post hoc pairwise comparisons yield interpretable/realistic results.
 
-
-#Now graph sobs and shannoneven indices as a function of Gut_SubSection
-sobs.gut.subsection.plot=ggplot(alpha.diversity.mean.Gut_SubSection,aes(x=Gut_SubSection,y=sobs,fill=Gut_SubSection))+
+#Graph sobs and shannoneven indices as a function of Gut_SubSection
+sobs.gut.subsection.plot=ggplot(alpha.diversity.2.mean.gut_subsection,aes(x=Gut_SubSection,y=sobs,fill=Gut_SubSection))+
   geom_bar(stat="identity")+
-  scale_fill_manual(values=viridis(n=9))+
+  scale_fill_manual(values=viridis(n=8))+
   geom_errorbar(aes(ymin=sobs-SE_sobs,ymax=sobs+SE_sobs),width=.5)+
   ggtitle("Observed Sequences")+
   theme_classic()+
   theme(legend.position = "none")
-#now repeat for chao
-chao.gut.subsection.plot=ggplot(alpha.diversity.mean.Gut_SubSection,aes(x=Gut_SubSection,y=chao,fill=Gut_SubSection))+
-  geom_bar(stat="identity")+
-  scale_fill_manual(values=viridis(n=9))+
-  geom_errorbar(aes(ymin=chao-SE_chao,ymax=chao+SE_chao),width=.5)+
-  ggtitle("Chao")+
-  theme_classic()
-#now repeat for shannon
-shannon.gut.subsection.plot=ggplot(alpha.diversity.mean.Gut_SubSection,aes(x=Gut_SubSection,y=shannon,fill=Gut_SubSection))+
-  geom_bar(stat="identity")+
-  scale_fill_manual(values=viridis(n=9))+
-  geom_errorbar(aes(ymin=shannon-SE_shannon,ymax=shannon+SE_shannon),width=.5)+
-  ggtitle("Shannon")+
-  theme_classic()
+
 #now repeat for shannoneven
-shannoneven.gut.subsection.plot=ggplot(alpha.diversity.mean.Gut_SubSection,aes(x=Gut_SubSection,y=shannoneven,fill=Gut_SubSection))+
+shannoneven.gut.subsection.plot=ggplot(alpha.diversity.2.mean.gut_subsection,aes(x=Gut_SubSection,y=shannoneven,fill=Gut_SubSection))+
   geom_bar(stat="identity")+
-  scale_fill_manual(values=viridis(n=9))+
+  scale_fill_manual(values=viridis(n=8))+
   geom_errorbar(aes(ymin=shannoneven-SE_shannoneven,ymax=shannoneven+SE_shannoneven),width=.5)+
   ggtitle("Shannon Eveness")+
   theme_classic()+
   theme(legend.position = "none")
 
-plot_grid(sobs.gut.subsection.plot,chao.gut.subsection.plot,shannon.gut.subsection.plot,shannoneven.gut.subsection.plot) #use the plot_grid function to plot the above 4 plots (par(mfrow=())) doesnt work with ggplot2. Save as PNG (1095 x 485).
-
-plot_grid(sobs.gut.subsection.plot,shannoneven.gut.subsection.plot) #use this plot (only sobs and shannon even for CBOGS talk).
-
-#NEED TO RUN STATS ON ALPHA DIVERIST DATA.
+plot_grid(sobs.gut.subsection.plot,shannoneven.gut.subsection.plot) ##use the plot_grid function to plot the above 4 plots (par(mfrow=())) doesnt work with ggplot2. Save as PNG (1095 x 485).
 
 ```
+
+Overall, similar patterns in the gut subsections as in the gut sections. Sobs high in the ST and HG, lowest in the early GI and increasing as you progress to the hindgut. Shannon evenness progresses from lowest to highest as you transect through the gut from ST to HG_3.
 
 Next, look at how the gut microbiome dispersion changes through the gut.
 
 ```{r}
-dispersion.gut.section=betadisper(weighted.unifrac.dist,type="centroid",group=metadata.fish.1$Gut_Section)
+#Extract dispersion values from the unifrac data and asses their distribution.
+dispersion.gut.section=betadisper(weighted.unifrac.2.dist,type="centroid",group=metadata.fish.2.unifrac$Gut_Section)
 dispersion.gut.section
-anova(dispersion.gut.section)
-TukeyHSD(dispersion.gut.section,ordered=FALSE,conf.level=.95)
-boxplot(dispersion.gut.section,col=colvec,xlab="Gut_Section")
+hist(dispersion.gut.section$distances) #asses the distribution of the dispersion data
+shapiro.test(dispersion.gut.section$distances) #data is not normal and needs to be transformed.
+dispersion.gut.section$sqrt.distances=sqrt(dispersion.gut.section$distances) #square root transform the distance data
+hist(dispersion.gut.section$sqrt.distances) #asses distribution of sqrt transformed dispersion data
+shapiro.test(dispersion.gut.section$sqrt.distances) #the data appears (barely) normal
+dispersion.gut.section1=as.data.frame(dispersion.gut.section[[7]]) #make a new df with just the sqrt distances.
+dispersion.gut.section1$distances=dispersion.gut.section[[3]] #add the original distance values as well.
+colnames(dispersion.gut.section1)[1]="sqrt.distances"
+dispersion.gut.section1$samples=rownames(dispersion.gut.section1) #add in metadata
+dispersion.gut.section1$Gut_Section=metadata.fish.2.unifrac$Gut_Section
+dispersion.gut.section1$Gut_SubSection=metadata.fish.2.unifrac$Gut_SubSection
+dispersion.gut.section1$Species=metadata.fish.2.unifrac$Species
+dispersion.gut.section1$Fish_Number=metadata.fish.2.unifrac$Fish_Number
+dispersion.gut.section2=dispersion.gut.section1[c(-1:-2,-4:-7),] #remove F1-F3 GI and HG samples and save as new df.
 
-dispersion.gut.subsection=betadisper(weighted.unifrac.F4.F8.dist,type="centroid",group=metadata.fish.F4.F8.1$Gut_SubSection)
-dispersion.gut.subsection
-anova(dispersion.gut.subsection)
-TukeyHSD(dispersion.gut.subsection,ordered=FALSE,conf.level=.95)
-boxplot(dispersion.gut.subsection,col=colvec2)
+#Model the sqrt distance values in response to Species, Gut_Section, and Fish_Number as a random effect.
+dispersion.mod.gut.section=lmer(sqrt.distances~Species*Gut_Section+(1|Fish_Number),data=dispersion.gut.section1)
+dispersion.mod.gut.section
+summary(dispersion.mod.gut.section)
+anova(dispersion.mod.gut.section,ddf="Kenward-Roger") #Gut_Section and Species:Gut_Section are both significant.
+summary(glht(dispersion.mod.gut.section, linfct = mcp(Gut_Section = "Tukey")),test=adjusted("holm"))
+#all 3 sections are significantly different from each other. However, this post hoc does not include the fact that the Species:Gut_Section term is significant, so it may be worth revisiting this.
+
+#Model the sqrt distance values in response to Species, Gut_SubSection, and Fish_Number as a random effect.
+dispersion.mod.gut.subsection=lmer(sqrt.distances~Species*Gut_SubSection+(1|Fish_Number),data=dispersion.gut.section2) #Warning "fixed-effect model matrix is rank deficient so dropping 2 columns / coefficients"
+dispersion.mod.gut.subsection
+summary(dispersion.mod.gut.subsection)
+anova(dispersion.mod.gut.subsection,ddf="Kenward-Roger") #Gut_Section, Species, and Species:Gut_Section are both significant.
+summary(glht(dispersion.mod.gut.subsection, linfct = mcp(Gut_SubSection = "Tukey")),test=adjusted("holm"))
+#This post hoc does not include the fact that the Species and Species:Gut_Section terms are significant, so it may be worth revisiting this.
+
+#visualize the dispersion data (against gut_subsection and Species)
+ggplot(dispersion.gut.section2,aes(y=distances,x=Gut_SubSection,fill=Gut_SubSection))+
+  geom_boxplot()+
+  scale_fill_manual(values=viridis(n=8,option="D"))+
+  theme_minimal()+
+  facet_grid(~Species) 
+#It looks like including species as seperate subplots is not necessary.
+
+dispersion.gut.subsection.plot=ggplot(dispersion.gut.section2,aes(y=distances,x=Gut_SubSection,fill=Gut_SubSection))+
+  geom_boxplot()+
+  scale_fill_manual(values=viridis(n=8,option="D"))+
+  theme_classic()
+
+#Visualize dispersion as a function of gut section and species.
+dispersion.gut.section.plot=ggplot(dispersion.gut.section2,aes(y=distances,x=Gut_Section,fill=Gut_Section))+
+  geom_boxplot()+
+  scale_fill_manual(values=viridis(n=3,option="D"))+
+  theme_classic()+
+   facet_grid(~Species) 
 ```
 
-There is a significant difference in distances to centroid for the various gut sections. ST and HG samples have less dispersion relative to PC and GI samples. However, there are outliers in each of the HG subsections and substantial variation in dispersion between each of the GI subsections. There is no significant difference between the dispersions for the gut sections. This analysis likely does not warrant more work at this time.
+There is a significant difference in distances to centroid for the various gut sections and fish species, as well as their interaction. Generally, HG(1-3) samples had the lowest dispersion while all the GI samples (1-4) had the highest. ST samples had low dispersion, close to that of the HG samples. There was substantial variation between species, with k. cinerascens and k. hawaiiensis having high dispersions than k. vaigiensis. In all species HG smaples had relativley low dispersion while GI samples had relativley high dispersion. In K. vaigiensis, ST dispersion was high (equal to that of GI) whereas in the other 2 species ST dispersion was much lower.
