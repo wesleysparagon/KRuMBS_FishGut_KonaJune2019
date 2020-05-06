@@ -81,6 +81,8 @@ metadata.fish.F4.F8.1=metadata.fish.F4.F8[metadata.fish.F4.F8$SampleCode %in% ro
 metadata.fish.2.unifrac=metadata.fish.2[metadata.fish.2$SampleCode %in% rownames(weighted.unifrac.2.matrix),]
 metadata.fish.F4.F8.2.unifrac=metadata.fish.F4.F8.2[metadata.fish.F4.F8.2$SampleCode %in% rownames(weighted.unifrac.F4.F8.2.matrix),]
 
+write.csv(metadata.fish.2.unifrac,file="metadata.fish.noPC.unifrac.csv")
+write.csv(metadata.fish.F4.F8.2.unifrac,file="metadata.fish.F4.F8.noPC.unifrac.csv")
 write.csv(metadata.fish.1,file="metadata.fish.1.csv") #export updated metadata dfs as CSVs
 write.csv(metadata.fish.F4.F8.1,file="metadata.fish.F4.F8.1.csv")
 ```
@@ -107,7 +109,6 @@ permanova.gut.section.2 #Gut_Section and Species are significant. No significant
 #Fourth (revised) model: F4-F8 distance matrix without PC samples, variables of interest: Species, Gut_subsection, and Fish_Number as strata. 
 permanova.gut.subsection.2=adonis.II(weighted.unifrac.F4.F8.2.dist~Species*Gut_SubSection,by="margin",strata=metadata.fish.F4.F8.2.unifrac$Fish_Number,data=metadata.fish.F4.F8.2.unifrac,permutations=999)
 permanova.gut.subsection.2 #Gut_SubSection and Species are both significant. Marginally significant interaction.
-
 
 #NEED TO RUN PAIRSWISE ADONIS ON EVERYTHING
 
@@ -152,6 +153,8 @@ legend(.2,-.22,legend = c("Stomach","Fore/midgut","Hindgut","K. cinerascens","K.
 
 ```
 
+The gut sections all form relativley distinct clusters.
+
 Next, plot the same NMDS but color by Gut_SubSection instead of Gut_Section. Do this using the subset unifrac matrix and metadata that only contain F4-F8.
 
 ```{r}
@@ -173,8 +176,14 @@ ggplot(nmds.scores.2,aes(x=NMDS1,y=NMDS2,shape=Species,color=Gut_SubSection,size
   scale_color_manual(values=viridis(n=8,option="D"))+ #set gradient scale to desired viridis scale
   geom_point(data=nmds.scores.2,aes(x=NMDS1,y=NMDS2))+ #add points
   theme_classic() #export graphs as 8.5x11 PDF (landscape)
+```
 
-#next, draw arrows from ST->HG for one fish
+
+There is a clear gradient of microbial community structure as you transect the fish gut from ST to HG_3.
+
+Next, draw arrows from ST->HG for individual fish to further visualize this successional gradient.
+
+```{r}
 colvec2=viridis(n=8,option="D")
 plot(nmds.weighted.unifrac.F4.F8.2,type="n",xlim=c(-.5,.53),ylim=c(-.4,.4)) #Set up the NMDS plot environment
 points(nmds.weighted.unifrac.F4.F8.2, #plot each sample as a point
@@ -186,6 +195,8 @@ ordiarrows(nmds.weighted.unifrac.F4.F8.2,group=metadata.fish.F4.F8.2.unifrac$Fis
 legend(.3,.45,legend = c("ST","GI_1","GI_2","GI_3","GI_4","HG_1","HG_2","HG_3","K. cinerascens","K. hawaiiensis","K. vaigiensis"),cex=1,y.intersp=.2,bg="transparent",bty="o",col=c(colvec2,"black","black","black"),pch=c(16,16,16,16,16,16,16,16,15,16,17),pt.cex=1.5) #Add legend. Save image as 8.5x11 PDF (landscape)
 
 ```
+
+These arrows track changes in 3 individual fishes' (F4, F7, F8) gut microbiomes. Each arrow connects the ordinated gut microbial communities in the correct order (St->HG_3). This further elucidates the consisten microbial community gradient we see through the fish gut.
 
 Next, work up and visualize the alpha diversity data to see if there are any trends.
 
@@ -216,10 +227,20 @@ alpha.diversity.2.mean.gut_section$Gut_Section=aggregate(alpha.diversity.fish.2$
 #Model the alpha diversity (sobs and shannoneven) metrics using mixed models with Gut_Section and Fish_Species as fixed effects and Fish_ID as a random effect.
 #First, check to see that the sobs and shannoneven data are normal
 hist(alpha.diversity.fish.2$sobs) #asses normality of sobs data
-shapiro.test(alpha.diversity.fish.2$sobs) #sobs data appears to be normal
-hist(alpha.diversity.fish.2$shannoneven) #asses normality of shannoneven data
-shapiro.test(alpha.diversity.fish.2$shannoneven) #shannoneven data appears (barely) normal
+shapiro.test(alpha.diversity.fish.2$sobs) 
+```
 
+The sobs data appearto be normal.
+
+```{r}
+hist(alpha.diversity.fish.2$shannoneven) #asses normality of shannoneven data
+shapiro.test(alpha.diversity.fish.2$shannoneven)
+
+```
+
+The shannoneven data appear to be (barely) normal. Thus I will not transform either the sobs or shannoneven data prior to running the mixed models.
+
+```{r}
 #Model the sobs data in response to Gut_seciton, fish species, and fish ID
 adiv.mod.gut.section.sobs=lmer(sobs~Gut_Section*Species+(1|Fish_Number),data=alpha.diversity.fish.2)
 summary(adiv.mod.gut.section.sobs)
@@ -231,9 +252,13 @@ adiv.mod.gut.section.shannoneven=lmer(shannoneven~Gut_Section*Species+(1|Fish_Nu
 summary(adiv.mod.gut.section.shannoneven)
 anova(adiv.mod.gut.section.shannoneven,ddf="Kenward-Roger") #Gut_Section is significant
 summary(glht(adiv.mod.gut.section.shannoneven, linfct = mcp(Gut_Section = "Tukey")),test=adjusted("holm")) 
-#Non of the gut sections are significantly different from each other.
+#None of the gut sections are significantly different from each other.
+```
 
-#Now graph alpha diversity indices as a function of Gut_Section
+For both sobs and shannoneven, Gut Section was a significant predictor while Species was not. Species will therefore be left out of the visualizations.
+
+```{r}
+#Graph alpha diversity indices as a function of Gut_Section
 sobs.gut.section.plot=ggplot(alpha.diversity.2.mean.gut_section,aes(x=Gut_Section,y=sobs,fill=Gut_Section))+
   ylim(0,675)+
   geom_bar(stat="identity")+
@@ -254,9 +279,8 @@ shannoneven.gut.section.plot=ggplot(alpha.diversity.2.mean.gut_section,aes(x=Gut
 plot_grid(sobs.gut.section.plot,shannoneven.gut.section.plot) #use the plot_grid function to plot the above 4 plots (par(mfrow=())) doesnt work with ggplot2. Export as PNG (800 x 455).
 ```
 
-Sobs shows both ST and HG to have substantially higher alpha diversity compared to GI. Shannon eveness shows HG to have substantially higher alpha diversity than all other gut sections.
 
-Given that there was no significant difference in any of the alpha diversity metrics between species, I will not plot them.
+Sobs shows both ST and HG to have substantially higher alpha diversity compared to GI. Shannon eveness shows HG to have substantially higher alpha diversity than all other gut sections.
 
 Next, plot the same alpha diversity metrics by Gut_SUBsection.
 
@@ -284,7 +308,11 @@ summary(adiv.mod.gut.subsection.shannoneven)
 anova(adiv.mod.gut.subsection.shannoneven,ddf="Kenward-Roger") #Gut_SubSection is significant. Some interaction terms for Species:Gut_SubSection are missing and the anova function tells me to interperet typeIII hypothesis with care. Potentially remove Species:Gut_SubSection interaction?
 summary(glht(adiv.mod.gut.subsection.shannoneven, linfct = mcp(Gut_SubSection = "Tukey")),test=adjusted("holm")) #Non of the gut sections are significantly different from each other. All the pvals=1 so I think something is wrong with the model.
 #If the Species:Gut_SubSection term is removed from the model, it runs without warnings and the post hoc pairwise comparisons yield interpretable/realistic results.
+```
 
+Gut_SubSection is a significant predictor of both sobs and shannoneven. The modes appear to struggle with certain Species:Gut_SubSection terms, likely because of limited sample size for certain species making it impossible to asses certain interactions. It may be necessary to not include interactions in these models.
+
+```{r}
 #Graph sobs and shannoneven indices as a function of Gut_SubSection
 sobs.gut.subsection.plot=ggplot(alpha.diversity.2.mean.gut_subsection,aes(x=Gut_SubSection,y=sobs,fill=Gut_SubSection))+
   geom_bar(stat="identity")+
@@ -304,8 +332,8 @@ shannoneven.gut.subsection.plot=ggplot(alpha.diversity.2.mean.gut_subsection,aes
   theme(legend.position = "none")
 
 plot_grid(sobs.gut.subsection.plot,shannoneven.gut.subsection.plot) ##use the plot_grid function to plot the above 4 plots (par(mfrow=())) doesnt work with ggplot2. Save as PNG (1095 x 485).
-
 ```
+
 
 Overall, similar patterns in the gut subsections as in the gut sections. Sobs high in the ST and HG, lowest in the early GI and increasing as you progress to the hindgut. Shannon evenness progresses from lowest to highest as you transect through the gut from ST to HG_3.
 
@@ -343,7 +371,11 @@ summary(dispersion.mod.gut.subsection)
 anova(dispersion.mod.gut.subsection,ddf="Kenward-Roger") #Gut_Section, Species, and Species:Gut_Section are both significant.
 summary(glht(dispersion.mod.gut.subsection, linfct = mcp(Gut_SubSection = "Tukey")),test=adjusted("holm"))
 #This post hoc does not include the fact that the Species and Species:Gut_Section terms are significant, so it may be worth revisiting this.
+```
 
+There is a significant difference in distances to centroid for the various gut sections and fish species, as well as their interaction. However, both models have "rank defficient" warnings which may be indicative of the limited sample size for certain Species-Gut_SubSection interactions. I need to look into this more. I am uncertain if interaction terms should be included in these models.
+
+```{r}
 #visualize the dispersion data (against gut_subsection and Species)
 ggplot(dispersion.gut.section2,aes(y=distances,x=Gut_SubSection,fill=Gut_SubSection))+
   geom_boxplot()+
@@ -367,4 +399,4 @@ dispersion.gut.section.plot=ggplot(dispersion.gut.section2,aes(y=distances,x=Gut
 dispersion.gut.section.plot
 ```
 
-There is a significant difference in distances to centroid for the various gut sections and fish species, as well as their interaction. Generally, HG(1-3) samples had the lowest dispersion while all the GI samples (1-4) had the highest. ST samples had low dispersion, close to that of the HG samples. There was substantial variation between species, with k. cinerascens and k. hawaiiensis having high dispersions than k. vaigiensis. In all species HG smaples had relativley low dispersion while GI samples had relativley high dispersion. In K. vaigiensis, ST dispersion was high (equal to that of GI) whereas in the other 2 species ST dispersion was much lower.
+Generally, HG(1-3) samples had the lowest dispersion while all the GI samples (1-4) had the highest. ST samples had low dispersion, close to that of the HG samples. There was substantial variation between species, with k. cinerascens and k. hawaiiensis having high dispersions than k. vaigiensis. In all species HG smaples had relativley low dispersion while GI samples had relativley high dispersion. In K. vaigiensis, ST dispersion was high (equal to that of GI) whereas in the other 2 species ST dispersion was much lower.
