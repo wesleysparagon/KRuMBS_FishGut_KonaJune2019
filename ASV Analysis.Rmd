@@ -18,6 +18,7 @@ library(lmerTest)
 library(multcomp)
 library(ggplot2)
 library(cowplot)
+library(gridExtra)
 
 #set up custom functions
 cull.otu=function(relabund.df, min.num, min.abund, min.single.abund) {
@@ -163,9 +164,85 @@ mixed.mod.pvals$Gut_SubSection.padjust=p.adjust(mixed.mod.pvals$Gut_SubSection,m
 mixed.mod.pvals$Species.padjust=p.adjust(mixed.mod.pvals$Species,method="BH") #Adjust p values for multiple comparisons
 rownames(mixed.mod.pvals)=colnames(relabund.t.fish.F4.F8.cull.trans)[1:692] #Change rownames to correspond with tested OTU names.
 mixed.mod.sig.otu.Gut_SubSection=mixed.mod.pvals[mixed.mod.pvals$Gut_SubSection.padjust<=.05,] #subset the mixed.mod.pvals df for significant (p<=.05) Gut_SubSection pvals. Save as new df.
-mixed.mod.sig.otu.Gut_SubSection=cbind(mixed.mod.sig.otu.Gut_SubSection,taxonomy.fish.F4.F8.cull[rownames(taxonomy.fish.F4.F8.cull) %in% rownames(mixed.mod.sig.otu.Gut_SubSection),]) #merge mixed.mod.sig.otu.Gut_SubSection with the associated OTU taxonomies.
+mixed.mod.sig.otu.Gut_SubSection=cbind(mixed.mod.sig.otu.Gut_SubSection,taxonomy.fish.F4.F8.cull[rownames(taxonomy.fish.F4.F8.cull) %in% rownames(mixed.mod.sig.otu.Gut_SubSection),],relabund.fish.F4.F8.cull[rownames(relabund.fish.F4.F8.cull) %in% rownames(mixed.mod.sig.otu.Gut_SubSection),]) #merge mixed.mod.sig.otu.Gut_SubSection with the associated OTU taxonomies.
 mixed.mod.sig.otu.Species=mixed.mod.pvals[mixed.mod.pvals$Species.padjust<=.05,] #subset the mixed.mod.pvals df for significant (p<=.05) Gut_SubSection pvals. Save as new df. It appears there are no significant Species pvals after padjustment. Will need to look into why this is. Perhaps if using the full sample set that includes F1-F3 GI/HG samples there would be enough replication to find significant species pvals.
+#create an output zscore df and calculate z score for each otu using the scale function.
+mixed.mod.sig.otu.Gut_SubSection_zscore=as.data.frame(t(mixed.mod.sig.otu.Gut_SubSection[,-1:-10]))
+
+for (i in 1:ncol(mixed.mod.sig.otu.Gut_SubSection_zscore)) { #calculate the zscore mixed.mod.sig.otu.Gut_SubSection_zscore[,i]=scale(mixed.mod.sig.otu.Gut_SubSection_zscore[,i],center=TRUE,scale=TRUE)
+}
+
+#export new dfs
+write.csv(mixed.mod.sig.otu.Gut_SubSection_zscore,file="mixed.mod.sig.otu.Gut_SubSection_zscore.csv")
+write.csv(mixed.mod.sig.otu.Gut_SubSection,file="mixed.mod.sig.otu.Gut_SubSection.csv")
 
 ```
 
-Exported mixed.mod.sig.otu.Gut_Subsection inspected in excel for promising ASVs. Now I will visualize the changes in relabund of these ASVs across the gut.
+Exported mixed.mod.sig.otu.Gut_Subsection inspected in excel for promising ASVs. In the exported "mixed.mod.sig.otu.Gut_SubSection.csv" file in excel, calculate the mean relabund for each significant ASV in each gut section and add them as new columns. Reformat the file as "long format", so that there is ONE column for Gut_SubSection, with the mean relabund for each ASV represented for each Gut_SubSection (so each ASV is repeated 7 times). Now I will visualize the changes in relabund of these ASVs across the gut.
+
+```{r}
+mixed.mod.sig.otu.Gut_SubSection.longformat=read.csv(file="mixed.mod.sig.otu.Gut_SubSection_longformat.csv") #read in the long format file
+
+#graph the relative abundance of significant ASVs across the gut subsections as stacked barcharts. Graph within family,fill by family ID but keep individual ASVs seperated by black lines. Lable ASV# on each portion of the barchart, with the size of the label proportional to the relabund of that ASV in that sample.
+proteo.sig.otus=ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Proteobacteria",],aes(x=Gut_SubSection,y=mean_relabund,fill=Family))+
+  geom_bar(stat="identity",col="black")+
+  geom_text(aes(label=OTU),size=sqrt((mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Proteobacteria",]$mean_relabund))*15,position = position_stack(vjust = 0.5))+
+  ggtitle(label="Proteobacteria") 
+
+unclassified.sig.otus=ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Bacteria_unclassified",],aes(x=Gut_SubSection,y=mean_relabund,fill=Family))+
+  geom_bar(stat="identity",col="black")+
+  geom_text(aes(label=OTU),size=sqrt((mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Bacteria_unclassified",]$mean_relabund))*30,position = position_stack(vjust = 0.5))+
+  ggtitle(label="Unclassified_Phylum") #save as landscape PDF
+
+bacteroidetes.sig.otus=ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Bacteroidetes",],aes(x=Gut_SubSection,y=mean_relabund,fill=Family))+
+  geom_bar(stat="identity",col="black")+
+  geom_text(aes(label=OTU),size=sqrt((mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Bacteroidetes",]$mean_relabund))*25,position = position_stack(vjust = 0.5))+
+  ggtitle(label="Bacteroidetes") #save as landscape PDF
+
+tenericutes.sig.otus=ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Tenericutes",],aes(x=Gut_SubSection,y=mean_relabund,fill=Family))+
+  geom_bar(stat="identity",col="black")+
+  geom_text(aes(label=OTU),size=sqrt((mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Tenericutes",]$mean_relabund))*25,position = position_stack(vjust = 0.5))+
+  ggtitle(label="Tenericutes") #save as landscape PDF
+
+actino.sig.otus=ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Actinobacteria",],aes(x=Gut_SubSection,y=mean_relabund,fill=Family))+
+  geom_bar(stat="identity",col="black")+
+  geom_text(aes(label=OTU),size=sqrt((mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Actinobacteria",]$mean_relabund))*80,position = position_stack(vjust = 0.5))+
+  ggtitle(label="Actinobacteria") #save as landscape PDF
+
+firmicutes.sig.otus=ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Firmicutes",],aes(x=Gut_SubSection,y=mean_relabund,fill=Family))+
+  geom_bar(stat="identity",col="black")+
+  geom_text(aes(label=OTU),size=sqrt((mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Firmicutes",]$mean_relabund))*15,position = position_stack(vjust = 0.5))+
+  ggtitle(label="Firmicutes")
+
+cyano.sig.otus=ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Cyanobacteria",],aes(x=Gut_SubSection,y=mean_relabund,fill=Family))+
+  geom_bar(stat="identity",col="black")+
+  geom_text(aes(label=OTU),size=sqrt((mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Cyanobacteria",]$mean_relabund))*75,position = position_stack(vjust = 0.5))+
+  ggtitle(label="Cyanobacteria")
+
+lentis.sig.otus=ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Lentisphaerae",],aes(x=Gut_SubSection,y=mean_relabund,fill=Family))+
+  geom_bar(stat="identity",col="black")+
+  geom_text(aes(label=OTU),size=sqrt((mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Lentisphaerae",]$mean_relabund))*50,position = position_stack(vjust = 0.5))+
+  ggtitle(label="Lentisphaerae")
+
+parabasalia.sig.otus=ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Parabasalia",],aes(x=Gut_SubSection,y=mean_relabund,fill=Family))+
+  geom_bar(stat="identity",col="black")+
+  geom_text(aes(label=OTU),size=sqrt((mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Parabasalia",]$mean_relabund))*40,position = position_stack(vjust = 0.5))+
+  ggtitle(label="Parabasalia")
+
+spirochaetes.sig.otus=ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Spirochaetes",],aes(x=Gut_SubSection,y=mean_relabund,fill=Family))+
+  geom_bar(stat="identity",col="black")+
+  geom_text(aes(label=OTU),size=sqrt((mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Spirochaetes",]$mean_relabund))*40,position = position_stack(vjust = 0.5))+
+  ggtitle(label="Spirochaetes")
+
+synergist.sig.otus=ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Synergistetes",],aes(x=Gut_SubSection,y=mean_relabund,fill=Family))+
+  geom_bar(stat="identity",col="black")+
+  geom_text(aes(label=OTU),size=sqrt((mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Synergistetes",]$mean_relabund))*200,position = position_stack(vjust = 0.5))+
+  ggtitle(label="Synergistetes")
+
+verruco.sig.otus=ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Verrucomicrobia",],aes(x=Gut_SubSection,y=mean_relabund,fill=Family))+
+  geom_bar(stat="identity",col="black")+
+  geom_text(aes(label=OTU),size=sqrt((mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Verrucomicrobia",]$mean_relabund))*30,position = position_stack(vjust = 0.5))+
+  ggtitle(label="Verrucomicrobia")
+
+```
+
