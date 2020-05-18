@@ -17,6 +17,7 @@ library(cowplot)
 library(lme4)
 library(lmerTest)
 library(multcomp)
+library(lsmeans)
 ```
 
 Read in metadata and unifrac data.
@@ -285,42 +286,43 @@ Sobs shows both ST and HG to have substantially higher alpha diversity compared 
 Next, plot the same alpha diversity metrics by Gut_SUBsection.
 
 ```{r}
-#Calculate means and SE of the sobs and shannon evenness alpha diversity metrics for each Gut_Section and save as a df
-alpha.diversity.2.mean.gut_subsection=aggregate(alpha.diversity.fish.F4.F8.2$sobs,by=list(alpha.diversity.fish.F4.F8.2$Gut_SubSection),FUN=mean)$x #aggregate (mean) sobs by Gut_SubSection, save in new df.
-alpha.diversity.2.mean.gut_subsection=as.data.frame(alpha.diversity.2.mean.gut_subsection)
-colnames(alpha.diversity.2.mean.gut_subsection)[1]="sobs" #rename column 1 to sobs.
-alpha.diversity.2.mean.gut_subsection$SE_sobs=aggregate(alpha.diversity.fish.F4.F8.2$sobs,by=list(alpha.diversity.fish.F4.F8.2$Gut_SubSection),FUN=stderror)$x #aggregate (stderror) sobs by Gut_SubSection, save as a new column in df.
-#repeat this for shannoneven
-alpha.diversity.2.mean.gut_subsection$shannoneven=aggregate(alpha.diversity.fish.F4.F8.2$shannoneven,by=list(alpha.diversity.fish.F4.F8.2$Gut_SubSection),FUN=mean)$x
-alpha.diversity.2.mean.gut_subsection$SE_shannoneven=aggregate(alpha.diversity.fish.F4.F8.2$shannoneven,by=list(alpha.diversity.fish.F4.F8.2$Gut_SubSection),FUN=stderror)$x
-#now add in a Gut_SubSection column
-alpha.diversity.2.mean.gut_subsection$Gut_SubSection=aggregate(alpha.diversity.fish.F4.F8.2$shannoneven,by=list(alpha.diversity.fish.F4.F8.2$Gut_SubSection),FUN=stderror)$Group.1
+  #Calculate means and SE of the sobs and shannon evenness alpha diversity metrics for each Gut_Section and save as a df
+  alpha.diversity.2.mean.gut_subsection=aggregate(alpha.diversity.fish.F4.F8.2$sobs,by=list(alpha.diversity.fish.F4.F8.2$Gut_SubSection),FUN=mean)$x #aggregate (mean) sobs by Gut_SubSection, save in new df.
+  alpha.diversity.2.mean.gut_subsection=as.data.frame(alpha.diversity.2.mean.gut_subsection)
+  colnames(alpha.diversity.2.mean.gut_subsection)[1]="sobs" #rename column 1 to sobs.
+  alpha.diversity.2.mean.gut_subsection$SE_sobs=aggregate(alpha.diversity.fish.F4.F8.2$sobs,by=list(alpha.diversity.fish.F4.F8.2$Gut_SubSection),FUN=stderror)$x #aggregate (stderror) sobs by Gut_SubSection, save as a new column in df.
+  #repeat this for shannoneven
+  alpha.diversity.2.mean.gut_subsection$shannoneven=aggregate(alpha.diversity.fish.F4.F8.2$shannoneven,by=list(alpha.diversity.fish.F4.F8.2$Gut_SubSection),FUN=mean)$x
+  alpha.diversity.2.mean.gut_subsection$SE_shannoneven=aggregate(alpha.diversity.fish.F4.F8.2$shannoneven,by=list(alpha.diversity.fish.F4.F8.2$Gut_SubSection),FUN=stderror)$x
+  #now add in a Gut_SubSection column
+  alpha.diversity.2.mean.gut_subsection$Gut_SubSection=aggregate(alpha.diversity.fish.F4.F8.2$shannoneven,by=list(alpha.diversity.fish.F4.F8.2$Gut_SubSection),FUN=stderror)$Group.1
 
 #Model the sobs data in response to Gut_SubSeciton, fish species, and fish ID
-adiv.mod.gut.subsection.sobs=lmer(sobs~Gut_SubSection*Species+(1|Fish_Number),data=alpha.diversity.fish.F4.F8.2) #I get this warning when running the model: "fixed-effect model matrix is rank deficient so dropping 2 columns / coefficients"
+adiv.mod.gut.subsection.sobs=lmer(sobs~Gut_SubSection+Species+(1|Fish_Number),data=alpha.diversity.fish.F4.F8.2) #interaction term has been removed to prevent errors.
 summary(adiv.mod.gut.subsection.sobs)
-anova(adiv.mod.gut.subsection.sobs,ddf="Kenward-Roger") #Gut_SubSection is significant. Some interaction terms for Species:Gut_SubSection are missing and the anova function tells me to interperet typeIII hypothesis with care. Potentially remove Species:Gut_SubSection interaction?
-summary(glht(adiv.mod.gut.subsection.sobs, linfct = mcp(Gut_SubSection = "Tukey")),test=adjusted("holm")) #GI_2 and ST are significanty different from each other, everything else is not. Most pairwise comparisons have a pval of 1, so there might be something wrong with the model.
+anova(adiv.mod.gut.subsection.sobs,ddf="Kenward-Roger") #Gut_SubSection is significant, Species is not significant.
+lsmeans(adiv.mod.gut.subsection.sobs, pairwise ~ Gut_SubSection, adjust="tukey") #Post Hoc analysis for the Gut_SubSection factor. This function averages across Species so that it is ONLY testing the differences between Gut_SubSection. 
 
 #Model the shannoneven data in response to Gut_subseciton, fish species, and fish ID
-adiv.mod.gut.subsection.shannoneven=lmer(shannoneven~Gut_SubSection*Species+(1|Fish_Number),data=alpha.diversity.fish.F4.F8.2) #I get this warning when running the model: "fixed-effect model matrix is rank deficient so dropping 2 columns / coefficients"
+adiv.mod.gut.subsection.shannoneven=lmer(shannoneven~Gut_SubSection+Species+(1|Fish_Number),data=alpha.diversity.fish.F4.F8.2)
 summary(adiv.mod.gut.subsection.shannoneven)
-anova(adiv.mod.gut.subsection.shannoneven,ddf="Kenward-Roger") #Gut_SubSection is significant. Some interaction terms for Species:Gut_SubSection are missing and the anova function tells me to interperet typeIII hypothesis with care. Potentially remove Species:Gut_SubSection interaction?
-summary(glht(adiv.mod.gut.subsection.shannoneven, linfct = mcp(Gut_SubSection = "Tukey")),test=adjusted("holm")) #Non of the gut sections are significantly different from each other. All the pvals=1 so I think something is wrong with the model.
-#If the Species:Gut_SubSection term is removed from the model, it runs without warnings and the post hoc pairwise comparisons yield interpretable/realistic results.
+anova(adiv.mod.gut.subsection.shannoneven,ddf="Kenward-Roger") #Gut_SubSection is significant, species is not.
+lsmeans(adiv.mod.gut.subsection.shannoneven, pairwise ~ Gut_SubSection, adjust="tukey")
 ```
 
-Gut_SubSection is a significant predictor of both sobs and shannoneven. The modes appear to struggle with certain Species:Gut_SubSection terms, likely because of limited sample size for certain species making it impossible to asses certain interactions. It may be necessary to not include interactions in these models.
+Gut_SubSection is a significant predictor of both sobs and shannoneven. The modes appear to struggle with certain Species:Gut_SubSection terms, likely because of limited sample size for certain species making it impossible to asses certain interactions. After removing the interactions, the models appear to perform fine.
 
 ```{r}
 #Graph sobs and shannoneven indices as a function of Gut_SubSection
 sobs.gut.subsection.plot=ggplot(alpha.diversity.2.mean.gut_subsection,aes(x=Gut_SubSection,y=sobs,fill=Gut_SubSection))+
+  ylim(0,670)+
   geom_bar(stat="identity")+
   scale_fill_manual(values=viridis(n=8))+
   geom_errorbar(aes(ymin=sobs-SE_sobs,ymax=sobs+SE_sobs),width=.5)+
   ggtitle("Observed Sequences")+
   theme_classic()+
-  theme(legend.position = "none")
+  theme(legend.position = "none")+
+  geom_text(x=1:8,y=c(655,275,240,275,440,625,595,570),aes(label=c("A/C","B","B","B","B/D","C/D","C/D","C/D")))
 
 #now repeat for shannoneven
 shannoneven.gut.subsection.plot=ggplot(alpha.diversity.2.mean.gut_subsection,aes(x=Gut_SubSection,y=shannoneven,fill=Gut_SubSection))+
@@ -329,7 +331,9 @@ shannoneven.gut.subsection.plot=ggplot(alpha.diversity.2.mean.gut_subsection,aes
   geom_errorbar(aes(ymin=shannoneven-SE_shannoneven,ymax=shannoneven+SE_shannoneven),width=.5)+
   ggtitle("Shannon Eveness")+
   theme_classic()+
-  theme(legend.position = "none")
+  ylim(0,.87)+
+  theme(legend.position = "none")+
+  geom_text(x=1:8,y=c(.6,.6,.6,.75,.75,.85,.85,.85),aes(label=c("A","A","A","A/B","A/B","B","B","B")))
 
 plot_grid(sobs.gut.subsection.plot,shannoneven.gut.subsection.plot) ##use the plot_grid function to plot the above 4 plots (par(mfrow=())) doesnt work with ggplot2. Save as PNG (1095 x 485).
 ```
@@ -357,20 +361,23 @@ dispersion.gut.section1$Gut_SubSection=metadata.fish.2.unifrac$Gut_SubSection
 dispersion.gut.section1$Species=metadata.fish.2.unifrac$Species
 dispersion.gut.section1$Fish_Number=metadata.fish.2.unifrac$Fish_Number
 dispersion.gut.section2=dispersion.gut.section1[c(-1:-2,-4:-7),] #remove F1-F3 GI and HG samples and save as new df.
+#convert dispersion.gut.section2 into df of means and SE so it can be graphed as a barplot.
+dispersion.gut.section3=as.data.frame(aggregate(dispersion.gut.section2$distances,by=list(dispersion.gut.section2$Gut_Section),FUN=mean))
+dispersion.gut.section3$se=aggregate(dispersion.gut.section2$distances,by=list(dispersion.gut.section2$Gut_Section),FUN=stderror)[[2]]
+colnames(dispersion.gut.section3)=c("Gut_Section","distance_to_centroid","se")
 
 #Model the sqrt distance values in response to Species, Gut_Section, and Fish_Number as a random effect.
-dispersion.mod.gut.section=lmer(sqrt.distances~Species*Gut_Section+(1|Fish_Number),data=dispersion.gut.section1)
+dispersion.mod.gut.section=lmer(sqrt.distances~Species+Gut_Section+(1|Fish_Number),data=dispersion.gut.section1)
 summary(dispersion.mod.gut.section)
-anova(dispersion.mod.gut.section,ddf="Kenward-Roger") #Gut_Section and Species:Gut_Section are both significant.
-summary(glht(dispersion.mod.gut.section, linfct = mcp(Gut_Section = "Tukey")),test=adjusted("holm"))
-#all 3 sections are significantly different from each other. However, this post hoc does not include the fact that the Species:Gut_Section term is significant, so it may be worth revisiting this.
+anova(dispersion.mod.gut.section,ddf="Kenward-Roger") #Gut_Section is significant. species is marginally significant. Note that the interaction was not included in this model.
+lsmeans(dispersion.mod.gut.section, pairwise ~ Gut_Section, adjust="tukey")
+#ST and HG are significantly different from GI but not from each other.
 
 #Model the sqrt distance values in response to Species, Gut_SubSection, and Fish_Number as a random effect.
-dispersion.mod.gut.subsection=lmer(sqrt.distances~Species*Gut_SubSection+(1|Fish_Number),data=dispersion.gut.section2) #Warning "fixed-effect model matrix is rank deficient so dropping 2 columns / coefficients"
+dispersion.mod.gut.subsection=lmer(sqrt.distances~Species+Gut_SubSection+(1|Fish_Number),data=dispersion.gut.section2) #Warning "fixed-effect model matrix is rank deficient so dropping 2 columns / coefficients" This error no longer appears once the interaction term was removed.
 summary(dispersion.mod.gut.subsection)
-anova(dispersion.mod.gut.subsection,ddf="Kenward-Roger") #Gut_Section, Species, and Species:Gut_Section are both significant.
-summary(glht(dispersion.mod.gut.subsection, linfct = mcp(Gut_SubSection = "Tukey")),test=adjusted("holm"))
-#This post hoc does not include the fact that the Species and Species:Gut_Section terms are significant, so it may be worth revisiting this.
+anova(dispersion.mod.gut.subsection,ddf="Kenward-Roger") #Gut_SubSectionis significant.
+lsmeans(dispersion.mod.gut.subsection, pairwise ~ Gut_SubSection, adjust="tukey")
 ```
 
 There is a significant difference in distances to centroid for the various gut sections and fish species, as well as their interaction. However, both models have "rank defficient" warnings which may be indicative of the limited sample size for certain Species-Gut_SubSection interactions. I need to look into this more. I am uncertain if interaction terms should be included in these models.
@@ -397,6 +404,15 @@ dispersion.gut.section.plot=ggplot(dispersion.gut.section2,aes(y=distances,x=Gut
   theme_classic()+
    facet_grid(~Species) 
 dispersion.gut.section.plot
+
+#visualize dispersion as a function of gut_section
+dispersion.gut.section.plot.v1=ggplot(dispersion.gut.section3,aes(y=distance_to_centroid,x=Gut_Section,fill=Gut_Section))+
+  geom_bar(stat="identity")+
+  scale_fill_manual(values=viridis(n=3,option="D"))+
+  theme_classic()+
+  geom_errorbar(aes(ymin=distance_to_centroid-se,ymax=distance_to_centroid+se),width=.5)+
+  geom_text(x=1:3,y=c(.37,.45,.33),aes(label=c("A","B","A")))+
+  ylim(0,.45)
 ```
 
 Generally, HG(1-3) samples had the lowest dispersion while all the GI samples (1-4) had the highest. ST samples had low dispersion, close to that of the HG samples. There was substantial variation between species, with k. cinerascens and k. hawaiiensis having high dispersions than k. vaigiensis. In all species HG smaples had relativley low dispersion while GI samples had relativley high dispersion. In K. vaigiensis, ST dispersion was high (equal to that of GI) whereas in the other 2 species ST dispersion was much lower.
