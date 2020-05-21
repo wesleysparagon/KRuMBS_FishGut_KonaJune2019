@@ -413,6 +413,8 @@ dispersion.gut.section.plot.v1=ggplot(dispersion.gut.section3,aes(y=distance_to_
   geom_errorbar(aes(ymin=distance_to_centroid-se,ymax=distance_to_centroid+se),width=.5)+
   geom_text(x=1:3,y=c(.37,.45,.33),aes(label=c("A","B","A")))+
   ylim(0,.45)
+
+dispersion.gut.section.plot.v1
 ```
 
 Generally, HG(1-3) samples had the lowest dispersion while all the GI samples (1-4) had the highest. ST samples had low dispersion, close to that of the HG samples. There was substantial variation between species, with k. cinerascens and k. hawaiiensis having high dispersions than k. vaigiensis. In all species HG smaples had relativley low dispersion while GI samples had relativley high dispersion. In K. vaigiensis, ST dispersion was high (equal to that of GI) whereas in the other 2 species ST dispersion was much lower.

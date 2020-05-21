@@ -181,20 +181,22 @@ write.csv(mixed.mod.sig.otu.Gut_SubSection,file="mixed.mod.sig.otu.Gut_SubSectio
 Check to see if various culling thresholds of the significant ASVs produce a better number of sig ASVs for visualization.
 
 ```{r}
+#subset the relabund.t.fish.F4.F8.cull df to select only the significant ASVs (by gut subsection).
+relabund.t.fish.F4.F8.cull.sig.subsection=relabund.t.fish.F4.F8.cull[,colnames(relabund.t.fish.F4.F8.cull) %in% rownames(mixed.mod.sig.otu.Gut_SubSection)]
+
 cull.otu(relabund.t.fish.F4.F8.cull.sig.subsection,1,.01,.01)
 relabund.t.fish.F4.F8.cull.sig.subsection.cull=relabund.df.cull
 ncol(relabund.t.fish.F4.F8.cull.sig.subsection.cull) #59 significant ASVs remain after culling at the threshold: .01 relabund (1%) in at least 1 sample.
 relabund.t.fish.F4.F8.cull.sig.subsection.cull=cbind(relabund.t.fish.F4.F8.cull.sig.subsection.cull,metadata.fish.F4.F8.noPC.noST.unifrac) #add in metadata
-colnames(relabund.t.fish.F4.F8.cull.sig.subsection.cull)[1:59]=paste(mixed.mod.sig.otu.Gut_SubSection.cull$Genus,rownames(mixed.mod.sig.otu.Gut_SubSection.cull),sep="_") #change colnames to correspond to ASV Family_ASVnumber
 
 #subset the mixed.mod.sig.otu.Gut_SubSection df for only these 59 ASvs.
 mixed.mod.sig.otu.Gut_SubSection.cull=mixed.mod.sig.otu.Gut_SubSection[rownames(mixed.mod.sig.otu.Gut_SubSection) %in% colnames(relabund.t.fish.F4.F8.cull.sig.subsection.cull),]
 
+#Updated colnames
+colnames(relabund.t.fish.F4.F8.cull.sig.subsection.cull)[1:59]=paste(mixed.mod.sig.otu.Gut_SubSection.cull$Genus,rownames(mixed.mod.sig.otu.Gut_SubSection.cull),sep="_") #change colnames to correspond to ASV Family_ASVnumber
+
 #subset the mixed.mod.sig.otu.Gut_SubSection_zscore df to select only the culled significant ASVs.
 mixed.mod.sig.otu.Gut_SubSection_zscore.cull=mixed.mod.sig.otu.Gut_SubSection_zscore[,colnames(mixed.mod.sig.otu.Gut_SubSection_zscore) %in% rownames(mixed.mod.sig.otu.Gut_SubSection.cull)]
-
-#subset the relabund.t.fish.F4.F8.cull df to select only the significant ASVs (by gut subsection).
-relabund.t.fish.F4.F8.cull.sig.subsection=relabund.t.fish.F4.F8.cull[,colnames(relabund.t.fish.F4.F8.cull) %in% rownames(mixed.mod.sig.otu.Gut_SubSection)]
 
 write.csv(mixed.mod.sig.otu.Gut_SubSection_zscore.cull,file="mixed.mod.sig.otu.Gut_SubSection_zscore.cull.csv")
 write.csv(relabund.t.fish.F4.F8.cull.sig.subsection.cull,file="relabund.t.fish.F4.F8.cull.sig.subsection.cull.csv")
