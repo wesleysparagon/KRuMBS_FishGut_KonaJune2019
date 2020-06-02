@@ -166,7 +166,8 @@ mixed.mod.sig.otu.Gut_SubSection=mixed.mod.pvals[mixed.mod.pvals$Gut_SubSection.
 mixed.mod.sig.otu.Gut_SubSection=cbind(mixed.mod.sig.otu.Gut_SubSection,taxonomy.fish.F4.F8.cull[rownames(taxonomy.fish.F4.F8.cull) %in% rownames(mixed.mod.sig.otu.Gut_SubSection),],relabund.fish.F4.F8.cull[rownames(relabund.fish.F4.F8.cull) %in% rownames(mixed.mod.sig.otu.Gut_SubSection),]) #merge mixed.mod.sig.otu.Gut_SubSection with the associated OTU taxonomies.
 mixed.mod.sig.otu.Species=mixed.mod.pvals[mixed.mod.pvals$Species.padjust<=.05,] #subset the mixed.mod.pvals df for significant (p<=.05) Gut_SubSection pvals. Save as new df. It appears there are no significant Species pvals after padjustment. Will need to look into why this is. Perhaps if using the full sample set that includes F1-F3 GI/HG samples there would be enough replication to find significant species pvals.
 #create an output zscore df and calculate z score for each otu using the scale function.
-mixed.mod.sig.otu.Gut_SubSection_zscore=as.data.frame(t(mixed.mod.sig.otu.Gut_SubSection[,-1:-10]))
+mixed.mod.sig.otu.Gut_SubSection.trans=cbind(mixed.mod.sig.otu.Gut_SubSection[,1:10],asin(sqrt(mixed.mod.sig.otu.Gut_SubSection[,-1:-10]))) #make a asinsqrt transfomred mixed mod sig otu gut subsection df. Normalizing ASVs is necessary for z scoring.
+mixed.mod.sig.otu.Gut_SubSection_zscore=as.data.frame(t(mixed.mod.sig.otu.Gut_SubSection.trans[,-1:-10]))
 
 for (i in 1:ncol(mixed.mod.sig.otu.Gut_SubSection_zscore)) { #calculate the zscore
   mixed.mod.sig.otu.Gut_SubSection_zscore[,i]=scale(mixed.mod.sig.otu.Gut_SubSection_zscore[,i],center=TRUE,scale=TRUE)
@@ -175,6 +176,7 @@ for (i in 1:ncol(mixed.mod.sig.otu.Gut_SubSection_zscore)) { #calculate the zsco
 #export new dfs
 write.csv(mixed.mod.sig.otu.Gut_SubSection_zscore,file="mixed.mod.sig.otu.Gut_SubSection_zscore.csv")
 write.csv(mixed.mod.sig.otu.Gut_SubSection,file="mixed.mod.sig.otu.Gut_SubSection.csv")
+write.csv(mixed.mod.sig.otu.Gut_SubSection.trans,file="mixed.mod.sig.otu.Gut_SubSection.trans.csv")
 
 ```
 
