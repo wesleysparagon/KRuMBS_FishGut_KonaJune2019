@@ -18,6 +18,8 @@ library(lme4)
 library(lmerTest)
 library(multcomp)
 library(lsmeans)
+library(pairwiseAdonis)
+
 ```
 
 Read in metadata and unifrac data.
@@ -111,11 +113,16 @@ permanova.gut.section.2 #Gut_Section and Species are significant. No significant
 permanova.gut.subsection.2=adonis.II(weighted.unifrac.F4.F8.2.dist~Species*Gut_SubSection,by="margin",strata=metadata.fish.F4.F8.2.unifrac$Fish_Number,data=metadata.fish.F4.F8.2.unifrac,permutations=999)
 permanova.gut.subsection.2 #Gut_SubSection and Species are both significant. Marginally significant interaction.
 
-#NEED TO RUN PAIRSWISE ADONIS ON EVERYTHING
+#Next run pairwise adonis and the 3rd and 4th models to identify which gut regions differ from each other.
+pairwise.gut.section.2=pairwise.adonis(weighted.unifrac.2.dist,metadata.fish.2.unifrac$Gut_Section)
+pairwise.gut.section.2
+
+pairwise.gut.subsection.3=pairwise.adonis(weighted.unifrac.F4.F8.2.dist,metadata.fish.F4.F8.2.unifrac$Gut_SubSection)
+pairwise.gut.subsection.3
 
 ```
 
-Both Gut Section/SubSection and Species have a significant effect on fish gut microbiome community structure, with no significant interaction, although there is a marinally significant interaction (p<.01) in the gut_subsection model. When Species and Gut_Section are the predictors, Gut_Section has a stronger effect on the fish gut microbiome then species. When Species and Gut_SubSection are the predictors, they have similar strength effects on the fish gut microbiome (Species has a slightly higher F value).
+Both Gut Section/SubSection and Species have a significant effect on fish gut microbiome community structure, with no significant interaction, although there is a marinally significant interaction (p<.01) in the gut_subsection model. When Species and Gut_Section are the predictors, Gut_Section has a stronger effect on the fish gut microbiome then species. When Species and Gut_SubSection are the predictors, they have similar strength effects on the fish gut microbiome (Species has a slightly higher F value). Pairwise comparisons reveal that all Gut Sections are significantly different from each other (after padjustment) and that no gut subsections are significantly different from each other (after p adjustment) although ST is marginally significantly different from GI_4, HG_1, and HG_2.
 
 Visualize the PERMANOVA results using NMDS. First, run NMDS.
 
@@ -380,6 +387,7 @@ anova(dispersion.mod.gut.subsection,ddf="Kenward-Roger") #Gut_SubSectionis signi
 lsmeans(dispersion.mod.gut.subsection, pairwise ~ Gut_SubSection, adjust="tukey")
 ```
 
+UPDATE THIS SECTION!!!
 There is a significant difference in distances to centroid for the various gut sections and fish species, as well as their interaction. However, both models have "rank defficient" warnings which may be indicative of the limited sample size for certain Species-Gut_SubSection interactions. I need to look into this more. I am uncertain if interaction terms should be included in these models.
 
 ```{r}
