@@ -63,16 +63,20 @@ rownames(abund)=abund$Group #make rownames correspond to OTU names
 abund=abund[,-1:-3] #remove columns 1-3 (non OTU columns)
 
 #subset relabund, relabund.t, and abund so they match with respective metadata
+relabund.fish.F4.F8.ST=relabund[,colnames(relabund) %in% metadata.fish.F4.F8.noPC.unifrac$SampleCode]
 relabund.fish=relabund[,colnames(relabund) %in% metadata.fish.noPC.noST.unifrac$SampleCode]
 relabund.fish.F4.F8=relabund.fish[,colnames(relabund.fish) %in% metadata.fish.F4.F8.noPC.noST.unifrac$SampleCode]
 relabund.fish=cbind(relabund.fish,relabund[,87:95]) #add back in taxonomy info
 relabund.fish.F4.F8=cbind(relabund.fish.F4.F8,relabund[,87:95]) #add back in taxonomy info
+relabund.fish.F4.F8.ST=cbind(relabund.fish.F4.F8.ST,relabund[,87:95]) #add back in taxonomy info
+relabund.t.fish.F4.F8.ST=relabund.t[rownames(relabund.t) %in% metadata.fish.F4.F8.noPC.unifrac$SampleCode,]
 relabund.t.fish=relabund.t[rownames(relabund.t) %in% metadata.fish.noPC.noST.unifrac$SampleCode,]
 relabund.t.fish.F4.F8=relabund.t.fish[rownames(relabund.t.fish) %in% metadata.fish.F4.F8.noPC.noST.unifrac$SampleCode,]
 abund.fish=abund[rownames(abund) %in% metadata.fish.noPC.noST.unifrac$SampleCode,]
 abund.fish.F4.F8=abund.fish[rownames(abund.fish) %in% metadata.fish.F4.F8.noPC.noST.unifrac$SampleCode,]
 
 taxonomy.fish=relabund.fish[,42:48] #make a taxonomy df for fish ASVs
+taxonomy.fish.F4.F8.ST=relabund.fish.F4.F8.ST[,42:48]
 ```
 
 Cull low abundance ASVs.
@@ -93,6 +97,8 @@ cull.otu(relabund.t.fish.F4.F8,3,.0005,.01) #repeat for the relabund.t.fish.F4.F
 relabund.t.fish.F4.F8.cull=relabund.df.cull #rename output
 relabund.fish.cull=as.data.frame(t(relabund.t.fish.cull)) #transpose culled relabund data
 relabund.fish.F4.F8.cull=as.data.frame(t(relabund.t.fish.F4.F8.cull)) #transpose culled relabund data
+cull.otu(relabund.t.fish.F4.F8.ST,3,.0005,.01)
+relabund.t.fish.F4.F8.ST.cull=relabund.df.cull
 
 #export relabund dfs as CSVs
 write.csv(relabund.fish.cull,file="relabund.fish.cull.csv")
@@ -101,38 +107,95 @@ write.csv(relabund.fish.F4.F8.cull,file="relabund.fish.F4.F8.cull.csv")
 #make a taxonomy df for culled fish ASVs
 taxonomy.fish.cull=taxonomy.fish[rownames(taxonomy.fish) %in% rownames(relabund.fish.cull),]
 taxonomy.fish.F4.F8.cull=taxonomy.fish[rownames(taxonomy.fish) %in% rownames(relabund.fish.F4.F8.cull),]
+taxonomy.fish.F4.F8.ST.cull=taxonomy.fish.F4.F8.ST[rownames(taxonomy.fish.F4.F8.ST) %in% colnames(relabund.t.fish.F4.F8.ST.cull),]
 colnames(taxonomy.fish.cull)[2]="Kingdom" #change name of column 1 to Kingdom. This is necessary for phyloseq.
 colnames(taxonomy.fish.F4.F8.cull)[2]="Kingdom" #change name of column 1 to Kingdom. This is necessary for phyloseq.
+colnames(taxonomy.fish.F4.F8.ST.cull)[2]="Kingdom" #change name of column 1 to Kingdom. This is necessary for phyloseq.
 taxonomy.fish.cull=taxonomy.fish.cull[,-1] #remove first column. This is necessary for phyloseq.
 taxonomy.fish.F4.F8.cull=taxonomy.fish.F4.F8.cull[,-1] #remove first column. This is necessary for phyloseq.
+taxonomy.fish.F4.F8.ST.cull=taxonomy.fish.F4.F8.ST.cull[,-1] #remove first column. This is necessary for phyloseq.
+
+#Now average every OTU relabund value from relabund.t.fish.F4.F8.ST.cull for each of the gut subsections.
+relabund.t.fish.F4.F8.ST.cull=cbind(relabund.t.fish.F4.F8.ST.cull,metadata.fish.F4.F8.noPC.unifrac) #first merge metadata
+relabund.t.fish.F4.F8.ST.cull.mean=as.data.frame(matrix(nrow=8,ncol=749)) #create a blank df to store averaged outputs
+for (i in 1:749){ #for each OTU column
+  relabund.t.fish.F4.F8.ST.cull.mean[,i]=aggregate(relabund.t.fish.F4.F8.ST.cull[,i],by=list(relabund.t.fish.F4.F8.ST.cull$Gut_SubSection),FUN=mean)[[2]] #aggregate by gut subsection, calculate means, and store means in bank df.
+}
+colnames(relabund.t.fish.F4.F8.ST.cull.mean)=colnames(relabund.t.fish.F4.F8.ST.cull)[1:749] #add in OTU names
+rownames(relabund.t.fish.F4.F8.ST.cull.mean)=aggregate(relabund.t.fish.F4.F8.ST.cull[,i],by=list(relabund.t.fish.F4.F8.ST.cull$Gut_SubSection),FUN=mean)[[1]] #add in gut subsections as rownames
+
+#Now average every OTU relabund value from relabund.t.fish.F4.F8.ST.cull for each of the species.
+relabund.t.fish.F4.F8.ST.cull=cbind(relabund.t.fish.F4.F8.ST.cull,metadata.fish.F4.F8.noPC.unifrac) #first merge metadata
+relabund.t.fish.F4.F8.ST.cull.species.mean=as.data.frame(matrix(nrow=3,ncol=749)) #create a blank df to store averaged outputs
+for (i in 1:749){ #for each OTU column
+  relabund.t.fish.F4.F8.ST.cull.species.mean[,i]=aggregate(relabund.t.fish.F4.F8.ST.cull[,i],by=list(relabund.t.fish.F4.F8.ST.cull$Species),FUN=mean)[[2]] #aggregate by gut subsection, calculate means, and store means in bank df.
+}
+colnames(relabund.t.fish.F4.F8.ST.cull.species.mean)=colnames(relabund.t.fish.F4.F8.ST.cull)[1:749] #add in OTU names
+rownames(relabund.t.fish.F4.F8.ST.cull.species.mean)=aggregate(relabund.t.fish.F4.F8.ST.cull[,i],by=list(relabund.t.fish.F4.F8.ST.cull$Species),FUN=mean)[[1]] #add in Species as rownames
+
+#create a metadata df for relabund.t.fish.F4.F8.ST.cull.mean that can be used in phyloseq.
+metadata.fish.F4.F8.noPC.unifrac.mean=as.data.frame(matrix(nrow=8,ncol=1))
+colnames(metadata.fish.F4.F8.noPC.unifrac.mean)="Gut_Subsection"
+rownames(metadata.fish.F4.F8.noPC.unifrac.mean)=rownames(relabund.t.fish.F4.F8.ST.cull.mean)
+metadata.fish.F4.F8.noPC.unifrac.mean$Gut_Subsection=rownames(relabund.t.fish.F4.F8.ST.cull.mean)
+
+#create a metadata df for relabund.t.fish.F4.F8.ST.cull.species.mean that can be used in phyloseq.
+metadata.fish.F4.F8.noPC.unifrac.species.mean=as.data.frame(matrix(nrow=3,ncol=1))
+colnames(metadata.fish.F4.F8.noPC.unifrac.species.mean)="Species"
+rownames(metadata.fish.F4.F8.noPC.unifrac.species.mean)=rownames(relabund.t.fish.F4.F8.ST.cull.species.mean)
+metadata.fish.F4.F8.noPC.unifrac.species.mean$Species=rownames(relabund.t.fish.F4.F8.ST.cull.species.mean)
+
 ```
 
 
 To visualize broad trends between gut subsections, we need to look at a higher taxonomic rank than ASVs. To do this, use phyloseq to glom ASVs by various taxonomic ranks and then export the data out of phyloseq.
 
 ```{r}
-#Convert relabund data, taxonomy data, and metadata to phyloseq objects and merge them. Use the F4.F8 PC and ST culled data.
-otu.phyloseq=otu_table(relabund.t.fish.F4.F8.cull,taxa_are_rows=FALSE) 
-taxonomy.phyloseq=tax_table(as.matrix(taxonomy.fish.F4.F8.cull))
-rownames(metadata.fish.F4.F8.noPC.noST.unifrac)=metadata.fish.F4.F8.noPC.noST.unifrac$SampleCode #need to make rownames correspond to sample names for phyloseq
-metadata.phyloseq=sample_data(metadata.fish.F4.F8.noPC.noST.unifrac)
-fish.cull.phyloseq=phyloseq(otu.phyloseq,taxonomy.phyloseq,metadata.phyloseq)
+#Convert relabund data, taxonomy data, and metadata to phyloseq objects and merge them. Use the F4.F8 PC culled data, averaged across gut subsections.
+otu.phyloseq=otu_table(relabund.t.fish.F4.F8.ST.cull.mean,taxa_are_rows=FALSE) #taxa are rows but for some reason i get an error unless i have it =FALSE
+taxonomy.phyloseq=tax_table(as.matrix(taxonomy.fish.F4.F8.ST.cull))
+metadata.phyloseq=sample_data(metadata.fish.F4.F8.noPC.unifrac.mean)
+fish.phyloseq=phyloseq(otu.phyloseq,taxonomy.phyloseq,metadata.phyloseq)
 
 #Use tax_glom() to glom relative abundance values by specific taxonomic ranks
-relabund.cull.phylum=tax_glom(fish.cull.phyloseq,taxrank="Phylum")
-relabund.cull.class=tax_glom(fish.cull.phyloseq,taxrank="Class")
-relabund.cull.order=tax_glom(fish.cull.phyloseq,taxrank="Order")
-relabund.cull.family=tax_glom(fish.cull.phyloseq,taxrank="Family")
-relabund.cull.genus=tax_glom(fish.cull.phyloseq,taxrank="Genus")
+relabund.phylum=tax_glom(fish.phyloseq,taxrank="Phylum")
+relabund.class=tax_glom(fish.phyloseq,taxrank="Class")
+relabund.order=tax_glom(fish.phyloseq,taxrank="Order")
+relabund.family=tax_glom(fish.phyloseq,taxrank="Family")
+relabund.genus=tax_glom(fish.phyloseq,taxrank="Genus")
 
 #Use psmelt() to convert these from phyloseq class objects to normals dfs.
-relabund.cull.phylum.df=psmelt(relabund.cull.phylum)
-relabund.cull.class.df=psmelt(relabund.cull.class)
-relabund.cull.order.df=psmelt(relabund.cull.order)
-relabund.cull.family.df=psmelt(relabund.cull.family)
-relabund.cull.genus.df=psmelt(relabund.cull.genus)
+relabund.phylum.df=psmelt(relabund.phylum)
+relabund.class.df=psmelt(relabund.class)
+relabund.order.df=psmelt(relabund.order)
+relabund.family.df=psmelt(relabund.family)
+relabund.genus.df=psmelt(relabund.genus)
 
-write.csv(relabund.cull.family.df,file="relabund.cull.family.df.csv") #Export the ralbund.cull.genus (or family) data as a CSV and open it in JMP. Use JMP to create stacked bar charts.
+write.csv(relabund.family.df,file="relabund.family.df.csv") #Export the ralbund.cull.genus (or family) data as a CSV and open it in JMP. Use JMP to create stacked bar charts.
+
+#Now do the same for the species averaged data
+#Convert relabund data, taxonomy data, and metadata to phyloseq objects and merge them. Use the F4.F8 PC culled data, averaged across gut subsections.
+otu.phyloseq.species=otu_table(relabund.t.fish.F4.F8.ST.cull.species.mean,taxa_are_rows=FALSE) #taxa are rows but for some reason i get an error unless i have it =FALSE
+taxonomy.phyloseq=tax_table(as.matrix(taxonomy.fish.F4.F8.ST.cull))
+metadata.phyloseq.species=sample_data(metadata.fish.F4.F8.noPC.unifrac.species.mean)
+fish.phyloseq.species=phyloseq(otu.phyloseq.species,taxonomy.phyloseq,metadata.phyloseq.species)
+
+#Use tax_glom() to glom relative abundance values by specific taxonomic ranks
+relabund.species.phylum=tax_glom(fish.phyloseq.species,taxrank="Phylum")
+relabund.species.class=tax_glom(fish.phyloseq.species,taxrank="Class")
+relabund.species.order=tax_glom(fish.phyloseq.species,taxrank="Order")
+relabund.species.family=tax_glom(fish.phyloseq.species,taxrank="Family")
+relabund.species.genus=tax_glom(fish.phyloseq.species,taxrank="Genus")
+
+#Use psmelt() to convert these from phyloseq class objects to normals dfs.
+relabund.species.phylum.df=psmelt(relabund.species.phylum)
+relabund.species.class.df=psmelt(relabund.species.class)
+relabund.species.order.df=psmelt(relabund.species.order)
+relabund.species.family.df=psmelt(relabund.species.family)
+relabund.species.genus.df=psmelt(relabund.species.genus)
+
+write.csv(relabund.species.family.df,file="relabund.species.family.df.csv") #Export the ralbund.cull.genus (or family) data as a CSV and open it in JMP. Use JMP to create stacked bar charts.
+
 ```
 
 Now model how individual ASVs respond to gut subsection and species and then use these results to pick specific ASVs for visualization.
@@ -158,7 +221,7 @@ anova.kw=function(x) { #make a function that performs anova (Kenward-Roger)
 mixed.mod.results=lapply(mixed.mod.relabund.t.fish.F4.F8.cull.trans,FUN=anova.kw) #perform an anova(ddf="Kenward-Roger") on all mixed models, save output.
 mixed.mod.pvals=as.data.frame(t(as.data.frame(mixed.mod.results))[seq(from=6,to=4152,by=6),]) #extract the pvas from the mixed.mod.results list. Do this by converting list to df, transposing it, and then extracting every 6th column (which correspond to the pvals from each model).
 
-#Work up p values
+#Work up p values. #NEED TO REDO PVALUE ADJUSTMENT, COMBINING PVALS FOR GUT_SUBSECTION AND SPCIES INTO 1 VECTOR PRIOR TO ADJUSTMENT?
 mixed.mod.pvals$Gut_SubSection.padjust=p.adjust(mixed.mod.pvals$Gut_SubSection,method="BH") #Adjust p values for multiple comparisons
 mixed.mod.pvals$Species.padjust=p.adjust(mixed.mod.pvals$Species,method="BH") #Adjust p values for multiple comparisons
 rownames(mixed.mod.pvals)=colnames(relabund.t.fish.F4.F8.cull.trans)[1:692] #Change rownames to correspond with tested OTU names.
@@ -211,8 +274,14 @@ Exported mixed.mod.sig.otu.Gut_Subsection inspected in excel for promising ASVs.
 mixed.mod.sig.otu.Gut_SubSection.longformat=read.csv(file="mixed.mod.sig.otu.Gut_SubSection_longformat.csv") #read in the long format file
 mixed.mod.sig.otu.Gut_SubSection.longformat.cull=mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$OTU %in% rownames(mixed.mod.sig.otu.Gut_SubSection.cull),] #subset the longformat df to select only the culled significant ASVs.
 
-#visualize these culled significant ASVs. Group (using facet_wrap) by family, color code by genus, and use black ines to divide different ASVs. Export as a 2000x1997 PNG.
-ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat.cull,aes(x=Gut_SubSection,y=mean_relabund,fill=Genus))+
+#subset the culled ASVs to remove bacteria that are classified at the family level as "uncultured", "Bacteria_unclassified", and "Bacteroidetes_unclassified"
+mixed.mod.sig.otu.Gut_SubSection.longformat.cull1=mixed.mod.sig.otu.Gut_SubSection.longformat.cull[mixed.mod.sig.otu.Gut_SubSection.longformat.cull$Family!="Bacteria_unclassified" & mixed.mod.sig.otu.Gut_SubSection.longformat.cull$Family!="Bacteroidales_unclassified" & mixed.mod.sig.otu.Gut_SubSection.longformat.cull$Family!="uncultured",]
+
+#adjust the levels of the family factor to order the graph correctly
+mixed.mod.sig.otu.Gut_SubSection.longformat.cull1$Family=factor(mixed.mod.sig.otu.Gut_SubSection.longformat.cull1$Family,levels=c("Pasteurellaceae","Peptostreptococcaceae","Vibrionaceae","Erysipelotrichaceae","Brevinemataceae","Clostridiaceae_1","Parabasalia_unclassified","DMI_fa","Akkermansiaceae","Christensenellaceae","Clostridiales_vadinBB60_group","Desulfovibrionaceae","Eggerthellaceae","Lachnospiraceae","Paludibacteraceae","Rikenellaceae","Ruminococcaceae","Victivallaceae","Alphaproteobacteria_unclassified","Bacteria_unclassified","Bacteroidales_unclassified","Bacteroidia_unclassified","Clostridiales_unclassified","Family_XIII","Gastranaerophilales_fa","Gf10_symbiont_group_fa","Mollicutes_RF39_fa","Mollicutes_unclassified","Peptococcaceae","Puniceicoccaceae","Rhodospirillales_unclassified","Synergistaceae","uncultured","Verrucomicrobiae_unclassified","Victivallales_unclassified"))
+
+#visualize these culled significant ASVs. Group (using facet_wrap) by family, color code by genus, and use black ines to divide different ASVs. Export as a 2000x1800 PNG.
+ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat.cull1,aes(x=Gut_SubSection,y=mean_relabund,fill=Genus))+
     geom_bar(stat="identity",col="black")+
     facet_wrap(~Family,scales="free")+
   theme(legend.position="bottom")

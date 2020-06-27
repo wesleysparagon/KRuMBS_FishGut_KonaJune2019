@@ -250,17 +250,17 @@ The shannoneven data appear to be (barely) normal. Thus I will not transform eit
 
 ```{r}
 #Model the sobs data in response to Gut_seciton, fish species, and fish ID
-adiv.mod.gut.section.sobs=lmer(sobs~Gut_Section*Species+(1|Fish_Number),data=alpha.diversity.fish.2)
+adiv.mod.gut.section.sobs=lmer(sobs~Gut_Section+Species+(1|Fish_Number),data=alpha.diversity.fish.2)
 summary(adiv.mod.gut.section.sobs)
 anova(adiv.mod.gut.section.sobs,ddf="Kenward-Roger") #Gut_Section is significant
-summary(glht(adiv.mod.gut.section.sobs, linfct = mcp(Gut_Section = "Tukey")),test=adjusted("holm")) #HG and ST are not significantly different from each other, both are significantly different from GI.
+lsmeans(adiv.mod.gut.section.sobs, pairwise ~ Gut_Section, adjust="tukey") #HG and ST are not significantly different from each other, both are significantly different from GI.
 
 #Model the shannoneven data in response to Gut_seciton, fish species, and fish ID
-adiv.mod.gut.section.shannoneven=lmer(shannoneven~Gut_Section*Species+(1|Fish_Number),data=alpha.diversity.fish.2)
+adiv.mod.gut.section.shannoneven=lmer(shannoneven~Gut_Section+Species+(1|Fish_Number),data=alpha.diversity.fish.2)
 summary(adiv.mod.gut.section.shannoneven)
 anova(adiv.mod.gut.section.shannoneven,ddf="Kenward-Roger") #Gut_Section is significant
-summary(glht(adiv.mod.gut.section.shannoneven, linfct = mcp(Gut_Section = "Tukey")),test=adjusted("holm")) 
-#None of the gut sections are significantly different from each other.
+lsmeans(adiv.mod.gut.section.shannoneven, pairwise ~ Gut_Section, adjust="tukey")
+#HG is significantly different from ST and GI. ST and GI are not significantly different from each other.
 ```
 
 For both sobs and shannoneven, Gut Section was a significant predictor while Species was not. Species will therefore be left out of the visualizations.
@@ -274,6 +274,7 @@ sobs.gut.section.plot=ggplot(alpha.diversity.2.mean.gut_section,aes(x=Gut_Sectio
   geom_errorbar(aes(ymin=sobs-SE_sobs,ymax=sobs+SE_sobs),width=.5)+
   ggtitle("Observed Sequences")+
   theme_classic()+
+  theme(legend.position = "none")+
   geom_text(x=1:3,y=c(650,275,550),label=c("A","B","A"))
 
 #now repeat for shannoneven
@@ -282,7 +283,10 @@ shannoneven.gut.section.plot=ggplot(alpha.diversity.2.mean.gut_section,aes(x=Gut
   scale_fill_manual(values=viridis(n=3))+
   geom_errorbar(aes(ymin=shannoneven-SE_shannoneven,ymax=shannoneven+SE_shannoneven),width=.5)+
   ggtitle("Shannon Eveness")+
-  theme_classic()
+  theme_classic()+
+  theme(legend.position = "none")+
+  geom_text(x=1:3,y=c(.625,.625,.84),label=c("A","A","B"))+
+  ylim(0,.85)
 
 plot_grid(sobs.gut.section.plot,shannoneven.gut.section.plot) #use the plot_grid function to plot the above 4 plots (par(mfrow=())) doesnt work with ggplot2. Export as PNG (800 x 455).
 ```
@@ -372,6 +376,11 @@ dispersion.gut.section2=dispersion.gut.section1[c(-1:-2,-4:-7),] #remove F1-F3 G
 dispersion.gut.section3=as.data.frame(aggregate(dispersion.gut.section2$distances,by=list(dispersion.gut.section2$Gut_Section),FUN=mean))
 dispersion.gut.section3$se=aggregate(dispersion.gut.section2$distances,by=list(dispersion.gut.section2$Gut_Section),FUN=stderror)[[2]]
 colnames(dispersion.gut.section3)=c("Gut_Section","distance_to_centroid","se")
+#do the same for gut subsection
+dispersion.gut.subsection4=as.data.frame(aggregate(dispersion.gut.section2$distances,by=list(dispersion.gut.section2$Gut_SubSection),FUN=mean))
+dispersion.gut.subsection4$se=aggregate(dispersion.gut.section2$distances,by=list(dispersion.gut.section2$Gut_SubSection),FUN=stderror)[[2]]
+colnames(dispersion.gut.subsection4)=c("Gut_SubSection","distance_to_centroid","se")
+
 
 #Model the sqrt distance values in response to Species, Gut_Section, and Fish_Number as a random effect.
 dispersion.mod.gut.section=lmer(sqrt.distances~Species+Gut_Section+(1|Fish_Number),data=dispersion.gut.section1)
@@ -399,11 +408,15 @@ ggplot(dispersion.gut.section2,aes(y=distances,x=Gut_SubSection,fill=Gut_SubSect
   facet_grid(~Species) 
 #It looks like including species as seperate subplots is not necessary.
 
-dispersion.gut.subsection.plot=ggplot(dispersion.gut.section2,aes(y=distances,x=Gut_SubSection,fill=Gut_SubSection))+
-  geom_boxplot()+
+dispersion.gut.subsection.plot.v1=ggplot(dispersion.gut.subsection4,aes(y=distance_to_centroid,x=Gut_SubSection,fill=Gut_SubSection))+
+  geom_bar(stat="identity")+
   scale_fill_manual(values=viridis(n=8,option="D"))+
-  theme_classic()
-dispersion.gut.subsection.plot
+  theme_classic()+
+  geom_errorbar(aes(ymin=distance_to_centroid-se,ymax=distance_to_centroid+se),width=.5)+
+  geom_text(x=1:8,y=c(.35,.45,.4,.5,.5,.325,.35,.35),aes(label=c("B/C","B/D","B/C","B","B","C","C/D","C")))+
+  ylim(0,.5)
+  
+dispersion.gut.subsection.plot.v1
 
 #Visualize dispersion as a function of gut section and species.
 dispersion.gut.section.plot=ggplot(dispersion.gut.section2,aes(y=distances,x=Gut_Section,fill=Gut_Section))+
