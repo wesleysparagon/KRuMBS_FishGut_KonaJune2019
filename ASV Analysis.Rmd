@@ -124,14 +124,14 @@ for (i in 1:749){ #for each OTU column
 colnames(relabund.t.fish.F4.F8.ST.cull.mean)=colnames(relabund.t.fish.F4.F8.ST.cull)[1:749] #add in OTU names
 rownames(relabund.t.fish.F4.F8.ST.cull.mean)=aggregate(relabund.t.fish.F4.F8.ST.cull[,i],by=list(relabund.t.fish.F4.F8.ST.cull$Gut_SubSection),FUN=mean)[[1]] #add in gut subsections as rownames
 
-#Now average every OTU relabund value from relabund.t.fish.F4.F8.ST.cull for each of the species.
-relabund.t.fish.F4.F8.ST.cull=cbind(relabund.t.fish.F4.F8.ST.cull,metadata.fish.F4.F8.noPC.unifrac) #first merge metadata
-relabund.t.fish.F4.F8.ST.cull.species.mean=as.data.frame(matrix(nrow=3,ncol=749)) #create a blank df to store averaged outputs
+#Now average every OTU relabund value from relabund.t.fish.F4.F8.ST.cull for each of the species and gut sections.
+relabund.t.fish.F4.F8.ST.cull$species.section=paste(relabund.t.fish.F4.F8.ST.cull$Species,relabund.t.fish.F4.F8.ST.cull$Gut_Section,sep="_") #create a new factor that merges species and section. this is what I will average across
+relabund.t.fish.F4.F8.ST.cull.species.mean=as.data.frame(matrix(nrow=9,ncol=749)) #create a blank df to store averaged outputs
 for (i in 1:749){ #for each OTU column
-  relabund.t.fish.F4.F8.ST.cull.species.mean[,i]=aggregate(relabund.t.fish.F4.F8.ST.cull[,i],by=list(relabund.t.fish.F4.F8.ST.cull$Species),FUN=mean)[[2]] #aggregate by gut subsection, calculate means, and store means in bank df.
+  relabund.t.fish.F4.F8.ST.cull.species.mean[,i]=aggregate(relabund.t.fish.F4.F8.ST.cull[,i],by=list(relabund.t.fish.F4.F8.ST.cull$species.section),FUN=mean)[[2]] #aggregate by gut subsection, calculate means, and store means in bank df.
 }
 colnames(relabund.t.fish.F4.F8.ST.cull.species.mean)=colnames(relabund.t.fish.F4.F8.ST.cull)[1:749] #add in OTU names
-rownames(relabund.t.fish.F4.F8.ST.cull.species.mean)=aggregate(relabund.t.fish.F4.F8.ST.cull[,i],by=list(relabund.t.fish.F4.F8.ST.cull$Species),FUN=mean)[[1]] #add in Species as rownames
+rownames(relabund.t.fish.F4.F8.ST.cull.species.mean)=aggregate(relabund.t.fish.F4.F8.ST.cull[,i],by=list(relabund.t.fish.F4.F8.ST.cull$species.section),FUN=mean)[[1]] #add in Species as rownames
 
 #create a metadata df for relabund.t.fish.F4.F8.ST.cull.mean that can be used in phyloseq.
 metadata.fish.F4.F8.noPC.unifrac.mean=as.data.frame(matrix(nrow=8,ncol=1))
@@ -140,10 +140,12 @@ rownames(metadata.fish.F4.F8.noPC.unifrac.mean)=rownames(relabund.t.fish.F4.F8.S
 metadata.fish.F4.F8.noPC.unifrac.mean$Gut_Subsection=rownames(relabund.t.fish.F4.F8.ST.cull.mean)
 
 #create a metadata df for relabund.t.fish.F4.F8.ST.cull.species.mean that can be used in phyloseq.
-metadata.fish.F4.F8.noPC.unifrac.species.mean=as.data.frame(matrix(nrow=3,ncol=1))
-colnames(metadata.fish.F4.F8.noPC.unifrac.species.mean)="Species"
+metadata.fish.F4.F8.noPC.unifrac.species.mean=as.data.frame(matrix(nrow=9,ncol=3))
+colnames(metadata.fish.F4.F8.noPC.unifrac.species.mean)=c("Species","Gut_Section","Species_Gut_Section")
 rownames(metadata.fish.F4.F8.noPC.unifrac.species.mean)=rownames(relabund.t.fish.F4.F8.ST.cull.species.mean)
-metadata.fish.F4.F8.noPC.unifrac.species.mean$Species=rownames(relabund.t.fish.F4.F8.ST.cull.species.mean)
+metadata.fish.F4.F8.noPC.unifrac.species.mean$Species=c("Kyphosus cinerascens","Kyphosus cinerascens","Kyphosus cinerascens","Kyphosus hawaiiensis","Kyphosus hawaiiensis","Kyphosus hawaiiensis","Kyphosus vaigiensis","Kyphosus vaigiensis","Kyphosus vaigiensis")
+metadata.fish.F4.F8.noPC.unifrac.species.mean$Gut_Section=c("GI","HG","ST","GI","HG","ST","GI","HG","ST")
+metadata.fish.F4.F8.noPC.unifrac.species.mean$Species_Gut_Section=rownames(metadata.fish.F4.F8.noPC.unifrac.species.mean)
 
 ```
 
@@ -171,9 +173,26 @@ relabund.order.df=psmelt(relabund.order)
 relabund.family.df=psmelt(relabund.family)
 relabund.genus.df=psmelt(relabund.genus)
 
+#For each sample, create a new OTU, "Other", whose relative abundance = the difference between the samples total relative abundance and one. This essentally makes all samples have a relative abundance of 1 by adding a "Other" OTU.
+other.otus=aggregate(relabund.family.df$Abundance,by=list(relabund.family.df$Sample),FUN=sum)
+other.otus$Abundance=1-other.otus$x
+other.otus$Gut_Subsection=other.otus$Group.1
+other.otus$Kingdom=rep("Other",times=8)
+other.otus$Phylum=rep("Other",times=8)
+other.otus$Class=rep("Other",times=8)
+other.otus$Order=rep("Other",times=8)
+other.otus$Family=rep("Other",times=8)
+other.otus=other.otus[,-2]
+other.otus$OTU=rep("Other",times=8)
+colnames(other.otus)[1]="Sample"
+other.otus=other.otus[,c(9,1:8)]
+
+#combine the other otus and relabund.family.df dfs
+relabund.family.df=rbind(relabund.family.df,other.otus) 
+
 write.csv(relabund.family.df,file="relabund.family.df.csv") #Export the ralbund.cull.genus (or family) data as a CSV and open it in JMP. Use JMP to create stacked bar charts.
 
-#Now do the same for the species averaged data
+#Now do the same for the species.section averaged data
 #Convert relabund data, taxonomy data, and metadata to phyloseq objects and merge them. Use the F4.F8 PC culled data, averaged across gut subsections.
 otu.phyloseq.species=otu_table(relabund.t.fish.F4.F8.ST.cull.species.mean,taxa_are_rows=FALSE) #taxa are rows but for some reason i get an error unless i have it =FALSE
 taxonomy.phyloseq=tax_table(as.matrix(taxonomy.fish.F4.F8.ST.cull))
@@ -193,6 +212,23 @@ relabund.species.class.df=psmelt(relabund.species.class)
 relabund.species.order.df=psmelt(relabund.species.order)
 relabund.species.family.df=psmelt(relabund.species.family)
 relabund.species.genus.df=psmelt(relabund.species.genus)
+
+other.otus1=aggregate(relabund.species.family.df$Abundance,by=list(relabund.species.family.df$Sample),FUN=sum)
+other.otus1$Abundance=1-other.otus1$x
+other.otus1$Species=c("Kyphosus cinerascens","Kyphosus cinerascens","Kyphosus cinerascens","Kyphosus hawaiiensis","Kyphosus hawaiiensis","Kyphosus hawaiiensis","Kyphosus vaigiensis","Kyphosus vaigiensis","Kyphosus vaigiensis")
+other.otus1$Gut_Section=c("GI","HG","ST","GI","HG","ST","GI","HG","ST")
+other.otus1$Species_Gut_Section=other.otus1$Group.1
+other.otus1$Kingdom=rep("Other",times=9)
+other.otus1$Phylum=rep("Other",times=9)
+other.otus1$Class=rep("Other",times=9)
+other.otus1$Order=rep("Other",times=9)
+other.otus1$Family=rep("Other",times=9)
+other.otus1=other.otus1[,-2]
+other.otus1$OTU=rep("Other",times=9)
+othcolnames(other.otus1)[1]="Sample"
+other.otus1=other.otus1[,c(11,1:10)]
+
+relabund.species.family.df=rbind(relabund.species.family.df,other.otus1)
 
 write.csv(relabund.species.family.df,file="relabund.species.family.df.csv") #Export the ralbund.cull.genus (or family) data as a CSV and open it in JMP. Use JMP to create stacked bar charts.
 
