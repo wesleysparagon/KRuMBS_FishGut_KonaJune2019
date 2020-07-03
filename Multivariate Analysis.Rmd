@@ -22,6 +22,7 @@ library(pairwiseAdonis)
 
 ```
 
+NOTE, NEED TO UPDATE ALL ANALYSIS FOR NEW GUT_SECTION
 Read in metadata and unifrac data.
 
 ```{r}
