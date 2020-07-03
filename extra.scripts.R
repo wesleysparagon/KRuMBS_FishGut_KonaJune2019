@@ -269,3 +269,92 @@ mixed.mod1.pvals$Gut_SubSection.padjust==mixed.mod2.pvals$Gut_SubSection.padjust
 
 #it looks like the full model has 285 significant ASVs, whereas the reduced models (both of them) have 283 significant ASVs.
 
+
+
+
+#Here is all the code to analyze Gut_Zone, which was originally called Gut_Zone but then had it's name changed
+
+permanova.gut.section=adonis.II(weighted.unifrac.dist~Species*Gut_Zone,by="margin",strata=metadata.fish.1$Fish_Number,data=metadata.fish.1,permutations=999)
+permanova.gut.section #Gut_Subsection and Species are both significant, no significant interaction.
+
+###ERRORS IN THIS PLOT
+plot(nmds.weighted.unifrac.2,type="n") #Set up the NMDS plot environment
+points(nmds.weighted.unifrac.2, #plot each sample as a point
+       cex=2,
+       pch=pointvec[metadata.fish.2.unifrac$Species], #point shape corresponds to fish Species
+       col=colvec[metadata.fish.2.unifrac$Gut_Zone]) #point color corresponds to Gut_Zone
+ordiellipse(nmds.weighted.unifrac.2,metadata.fish.2.unifrac$Gut_,kind="sd",draw="polygon",alpha=c(0,0),lwd=2.5,border=colvec) #add SD ellipses, colored by Gut_Zone
+legend(.2,-.22,legend = c("Stomach","Fore/midgut","Hindgut","K. cinerascens","K. hawaiiensis","K. vaigiensis"),cex=1,y.intersp=.25,bg="transparent",bty="o",col=c(colvec,"black","black","black"),pch=c(16,16,16,15,16,17),pt.cex=2) #Add legend. Save image as 8.5x11 PDF (landscape)
+
+#Calculate means and SE of the sobs and shannon evenness alpha diversity metrics for each Gut_Zone and save as a df
+alpha.diversity.2.mean.Gut_Zone=aggregate(alpha.diversity.fish.2$sobs,by=list(alpha.diversity.fish.2$Gut_Zone),FUN=mean)$x #aggregate (mean) sobs by Gut_Zone, save in new df.
+alpha.diversity.2.mean.Gut_Zone=as.data.frame(alpha.diversity.2.mean.Gut_Zone)
+colnames(alpha.diversity.2.mean.Gut_Zone)[1]="sobs" #rename column 1 to sobs.
+alpha.diversity.2.mean.Gut_Zone$SE_sobs=aggregate(alpha.diversity.fish.2$sobs,by=list(alpha.diversity.fish.2$Gut_Zone),FUN=stderror)$x #aggregate (stderror) sobs by Gut_Zone, save as a new column in df.
+#repeat this for shannoneven
+alpha.diversity.2.mean.Gut_Zone$shannoneven=aggregate(alpha.diversity.fish.2$shannoneven,by=list(alpha.diversity.fish.2$Gut_Zone),FUN=mean)$x
+alpha.diversity.2.mean.Gut_Zone$SE_shannoneven=aggregate(alpha.diversity.fish.2$shannoneven,by=list(alpha.diversity.fish.2$Gut_Zone),FUN=stderror)$x
+#now add in a Gut_Zone column
+alpha.diversity.2.mean.Gut_Zone$Gut_Zone=aggregate(alpha.diversity.fish.2$shannoneven,by=list(alpha.diversity.fish.2$Gut_Zone),FUN=stderror)$Group.1
+
+#Model the sobs data in response to Gut_seciton, fish species, and fish ID
+adiv.mod.gut.section.sobs=lmer(sobs~Gut_Zone+Species+(1|Fish_Number),data=alpha.diversity.fish.2)
+summary(adiv.mod.gut.section.sobs)
+anova(adiv.mod.gut.section.sobs,ddf="Kenward-Roger") #Gut_Zone is significant
+lsmeans(adiv.mod.gut.section.sobs, pairwise ~ Gut_Zone, adjust="tukey") #HG and ST are not significantly different from each other, both are significantly different from GI.
+
+#Model the shannoneven data in response to Gut_seciton, fish species, and fish ID
+adiv.mod.gut.section.shannoneven=lmer(shannoneven~Gut_Zone+Species+(1|Fish_Number),data=alpha.diversity.fish.2)
+summary(adiv.mod.gut.section.shannoneven)
+anova(adiv.mod.gut.section.shannoneven,ddf="Kenward-Roger") #Gut_Zone is significant
+lsmeans(adiv.mod.gut.section.shannoneven, pairwise ~ Gut_Zone, adjust="tukey")
+#HG is significantly different from ST and GI. ST and GI are not significantly different from each other.
+
+#Graph alpha diversity indices as a function of Gut_Zone
+sobs.gut.section.plot=ggplot(alpha.diversity.2.mean.Gut_Zone,aes(x=Gut_Zone,y=sobs,fill=Gut_Zone))+
+  ylim(0,675)+
+  geom_bar(stat="identity")+
+  scale_fill_manual(values=viridis(n=5))+
+  geom_errorbar(aes(ymin=sobs-SE_sobs,ymax=sobs+SE_sobs),width=.5)+
+  ggtitle("Observed Sequences")+
+  theme_classic()+
+  theme(legend.position = "none")+
+  geom_text(x=1:3,y=c(650,275,550),label=c("A","B","A"))
+
+#now repeat for shannoneven
+shannoneven.gut.section.plot=ggplot(alpha.diversity.2.mean.Gut_Zone,aes(x=Gut_Zone,y=shannoneven,fill=Gut_Zone))+
+  geom_bar(stat="identity")+
+  scale_fill_manual(values=viridis(n=3))+
+  geom_errorbar(aes(ymin=shannoneven-SE_shannoneven,ymax=shannoneven+SE_shannoneven),width=.5)+
+  ggtitle("Shannon Eveness")+
+  theme_classic()+
+  theme(legend.position = "none")+
+  geom_text(x=1:3,y=c(.625,.625,.84),label=c("A","A","B"))+
+  ylim(0,.85)
+
+plot_grid(sobs.gut.section.plot,shannoneven.gut.section.plot) #use the plot_grid function to plot the above 4 plots (par(mfrow=())) doesnt work with ggplot2. Export as PNG (800 x 455).
+
+dispersion.gut.section=betadisper(weighted.unifrac.2.dist,type="centroid",group=metadata.fish.2.unifrac$Gut_Zone)
+dispersion.gut.section
+hist(dispersion.gut.section$distances) #asses the distribution of the dispersion data
+shapiro.test(dispersion.gut.section$distances) #data is not normal and needs to be transformed.
+dispersion.gut.section$sqrt.distances=sqrt(dispersion.gut.section$distances) #square root transform the distance data
+hist(dispersion.gut.section$sqrt.distances) #asses distribution of sqrt transformed dispersion data
+shapiro.test(dispersion.gut.section$sqrt.distances) #the data appears (barely) normal
+dispersion.gut.section1=as.data.frame(dispersion.gut.section[[7]]) #make a new df with just the sqrt distances.
+dispersion.gut.section1$distances=dispersion.gut.section[[3]] #add the original distance values as well.
+colnames(dispersion.gut.section1)[1]="sqrt.distances"
+dispersion.gut.section1$samples=rownames(dispersion.gut.section1) #add in metadata
+dispersion.gut.section1$Gut_Zone=metadata.fish.2.unifrac$Gut_Zone
+dispersion.gut.section1$Gut_SubSection=metadata.fish.2.unifrac$Gut_SubSection
+dispersion.gut.section1$Species=metadata.fish.2.unifrac$Species
+dispersion.gut.section1$Fish_Number=metadata.fish.2.unifrac$Fish_Number
+dispersion.gut.section2=dispersion.gut.section1[c(-1:-2,-4:-7),] #remove F1-F3 GI and HG samples and save as new df.
+#convert dispersion.gut.section2 into df of means and SE so it can be graphed as a barplot.
+dispersion.gut.section3=as.data.frame(aggregate(dispersion.gut.section2$distances,by=list(dispersion.gut.section2$Gut_Zone),FUN=mean))
+dispersion.gut.section3$se=aggregate(dispersion.gut.section2$distances,by=list(dispersion.gut.section2$Gut_Zone),FUN=stderror)[[2]]
+colnames(dispersion.gut.section3)=c("Gut_Zone","distance_to_centroid","se")
+#do the same for gut subsection
+dispersion.gut.subsection4=as.data.frame(aggregate(dispersion.gut.section2$distances,by=list(dispersion.gut.section2$Gut_SubSection),FUN=mean))
+dispersion.gut.subsection4$se=aggregate(dispersion.gut.section2$distances,by=list(dispersion.gut.section2$Gut_SubSection),FUN=stderror)[[2]]
+colnames(dispersion.gut.subsection4)=c("Gut_SubSection","distance_to_centroid","se")
