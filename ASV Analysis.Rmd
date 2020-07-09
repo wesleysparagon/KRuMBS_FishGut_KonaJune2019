@@ -49,6 +49,7 @@ metadata=read.csv(file="metadata.csv")
 metadata.fish.noPC.unifrac=read.csv(file="metadata.fish.noPC.unifrac.csv")
 metadata.fish.F4.F8.noPC.unifrac=read.csv(file="metadata.fish.F4.F8.noPC.unifrac.csv")
 metadata.fish.F4.F8.noPC.unifrac$Gut_SubSection=factor(metadata.fish.F4.F8.noPC.unifrac$Gut_SubSection,levels=c("GI_1","GI_2","GI_3","GI_4","HG_1","HG_2","HG_3","ST","PC")) #reorder the levels of the Gut_SubSection factor. This will be useful later when making plots.
+metadata.fish.F4.F8.noPC.unifrac$Gut_Section=factor(metadata.fish.F4.F8.noPC.unifrac$Gut_Section,levels=c("Foregut","Midgut","Hindgut","Stomach")) #reorder the levels of the Gut_Section factor. This will be useful later when making plots.
 metadata.fish.noPC.noST.unifrac=metadata.fish.noPC.unifrac[metadata.fish.noPC.unifrac$Gut_Section!="ST",] #remove ST samples
 metadata.fish.F4.F8.noPC.noST.unifrac=metadata.fish.F4.F8.noPC.unifrac[metadata.fish.F4.F8.noPC.unifrac$Gut_SubSection!="ST",] #remove ST samples
 
@@ -101,8 +102,8 @@ cull.otu(relabund.t.fish.F4.F8.ST,3,.0005,.01)
 relabund.t.fish.F4.F8.ST.cull=relabund.df.cull
 
 #export relabund dfs as CSVs
-write.csv(relabund.fish.cull,file="relabund.fish.cull.csv")
-write.csv(relabund.fish.F4.F8.cull,file="relabund.fish.F4.F8.cull.csv")
+#write.csv(relabund.fish.cull,file="relabund.fish.cull.csv")
+#write.csv(relabund.fish.F4.F8.cull,file="relabund.fish.F4.F8.cull.csv")
 
 #make a taxonomy df for culled fish ASVs
 taxonomy.fish.cull=taxonomy.fish[rownames(taxonomy.fish) %in% rownames(relabund.fish.cull),]
@@ -273,9 +274,9 @@ for (i in 1:ncol(mixed.mod.sig.otu.Gut_SubSection_zscore)) { #calculate the zsco
 }
 
 #export new dfs
-write.csv(mixed.mod.sig.otu.Gut_SubSection_zscore,file="mixed.mod.sig.otu.Gut_SubSection_zscore.csv")
-write.csv(mixed.mod.sig.otu.Gut_SubSection,file="mixed.mod.sig.otu.Gut_SubSection.csv")
-write.csv(mixed.mod.sig.otu.Gut_SubSection.trans,file="mixed.mod.sig.otu.Gut_SubSection.trans.csv")
+#write.csv(mixed.mod.sig.otu.Gut_SubSection_zscore,file="mixed.mod.sig.otu.Gut_SubSection_zscore.csv")
+#write.csv(mixed.mod.sig.otu.Gut_SubSection,file="mixed.mod.sig.otu.Gut_SubSection.csv")
+#write.csv(mixed.mod.sig.otu.Gut_SubSection.trans,file="mixed.mod.sig.otu.Gut_SubSection.trans.csv")
 
 ```
 
@@ -299,9 +300,9 @@ colnames(relabund.t.fish.F4.F8.cull.sig.subsection.cull)[1:59]=paste(mixed.mod.s
 #subset the mixed.mod.sig.otu.Gut_SubSection_zscore df to select only the culled significant ASVs.
 mixed.mod.sig.otu.Gut_SubSection_zscore.cull=mixed.mod.sig.otu.Gut_SubSection_zscore[,colnames(mixed.mod.sig.otu.Gut_SubSection_zscore) %in% rownames(mixed.mod.sig.otu.Gut_SubSection.cull)]
 
-write.csv(mixed.mod.sig.otu.Gut_SubSection_zscore.cull,file="mixed.mod.sig.otu.Gut_SubSection_zscore.cull.csv")
-write.csv(relabund.t.fish.F4.F8.cull.sig.subsection.cull,file="relabund.t.fish.F4.F8.cull.sig.subsection.cull.csv")
-write.csv(mixed.mod.sig.otu.Gut_SubSection.cull,file="mixed.mod.sig.otu.Gut_SubSection.cull.csv")
+write.csv(mixed.mod.sig.otu.Gut_Section_zscore.cull,file="mixed.mod.sig.otu.Gut_Section_zscore.cull.csv")
+write.csv(relabund.t.fish.F4.F8.cull.sig.section.cull,file="relabund.t.fish.F4.F8.cull.sig.section.cull.csv")
+write.csv(mixed.mod.sig.otu.Gut_Section.cull,file="mixed.mod.sig.otu.Gut_Section.cull.csv")
 ```
 
 Exported mixed.mod.sig.otu.Gut_Subsection inspected in excel for promising ASVs. In the exported "mixed.mod.sig.otu.Gut_SubSection.csv" file in excel, calculate the mean relabund for each significant ASV in each gut section and add them as new columns. Reformat the file as "long format", so that there is ONE column for Gut_SubSection, with the mean relabund for each ASV represented for each Gut_SubSection (so each ASV is repeated 7 times). Now I will visualize the changes in relabund of these ASVs across the gut.
