@@ -22,7 +22,6 @@ library(pairwiseAdonis)
 
 ```
 
-NOTE, NEED TO UPDATE ALL ANALYSIS FOR NEW GUT_SECTION
 Read in metadata and unifrac data.
 
 ```{r}
@@ -31,18 +30,16 @@ weighted.unifrac=read.csv(file="weighted.unifrac.csv") #read in weighted unifrac
 metadata=read.csv(file="metadata.csv") #read in metadata
 metadata$Gut_Section=factor(metadata$Gut_Section,levels=c("Stomach","Foregut","Midgut","Hindgut","No_Inoc","","GI","Pyloric_caeca")) #reorder the levels of the Gut_Subsection factor. This will be usefu later when generating ordinations.
 metadata$Species=factor(metadata$Species,levels=c("Kyphosus cinerascens","Kyphosus hawaiiensis","Kyphosus vaigiensis","")) #reorder the levels of the Species factor. This will be usefu later when generating ordinations.
-metadata$Gut_SubSection=factor(metadata$Gut_SubSection,levels=c("ST","GI_1","GI_2","GI_3","GI_4","HG","HG_1","HG_2","HG_3","No_Inoc","","PC")) #reorder the levels of the Gut_SubSection factor. This will be useful later when generating ordinations.
+metadata$Gut_SubSection=factor(metadata$Gut_SubSection,levels=c("ST","GI_1","GI_2","GI_3","GI_4","HG","HG_1","HG_2","HG_3","No_Inoc","","PC","GI")) #reorder the levels of the Gut_SubSection factor. This will be useful later when generating ordinations.
 metadata$Gut_Zone=factor(metadata$Gut_Zone,levels=c("ST","GI","HG","PC","No_Inoc"))
 metadata.fish=metadata[metadata$Sample_Type_Broad=="Fish_Gut",] #subset metadata to include only fish gut samples
+metadata.fish=metadata.fish[metadata.fish$Gut_Zone!="PC",] #remove all PC samples
 metadata.fish.F4.F8=metadata.fish[metadata.fish$Gut_SubSection!="GI" & metadata.fish$Gut_SubSection!="HG",] #subset metadata removing Gut_SubSections GI and HG. This corresponds to the HG/GI samples from F1-F3, which were sampled differently and do not have gut_subsections compared to fish F4-F8.
-metadata.fish.2=metadata.fish[metadata.fish$Gut_SubSection!="PC",] #remove all PC samples
-metadata.fish.F4.F8.2=metadata.fish.F4.F8[metadata.fish.F4.F8$Gut_SubSection!="PC",] #remove all PC samples
+
 
 alpha.diversity=read.csv(file="all_alphaDiversity_100.summary.csv") #read in alpha diversity file
 alpha.diversity.fish=alpha.diversity[alpha.diversity$group %in% metadata.fish$SampleCode,] #subset alpha.diversity for only the fish gut samples.
 alpha.diversity.fish.F4.F8=alpha.diversity[alpha.diversity$group %in% metadata.fish.F4.F8$SampleCode,] #subset alpha.diversity for only fish gut samples F4-F8.
-alpha.diversity.fish.2=alpha.diversity.fish[alpha.diversity.fish$group %in% metadata.fish.2$SampleCode,] #remove PC samples
-alpha.diversity.fish.F4.F8.2=alpha.diversity.fish[alpha.diversity.fish$group %in% metadata.fish.F4.F8.2$SampleCode,] #remove PC samples
 
 #To work up the unifrac column data into a matrix, first split the "Groups" column into 2 columns so that each sample name in a pairwise comparison has a seperate column.
 unifrac.split.groups=strsplit(as.character(weighted.unifrac$Groups),split="-") #split the groups column by "-", moving the 2 samples that are being compared into seperate vectors within a list.
@@ -67,57 +64,45 @@ for (i in 1:nrow(weighted.unifrac.matrix)) { #for each column in the unifrac mat
 }
 weighted.unifrac.matrix[is.na(weighted.unifrac.matrix)]=0 #replace NAs with 0s
 weighted.unifrac.matrix=weighted.unifrac.matrix[as.logical(apply(weighted.unifrac.matrix,1,FUN=sum)),as.logical(apply(weighted.unifrac.matrix,2,FUN=sum))] #subset the weighted.unifrac.matrix so that any rows or columns whose sum=0 are removed. This removes samples which are in the metadata but failed to sequence and/or pass through the pipeline at 50k subsampling.
-weighted.unifrac.2.matrix=weighted.unifrac.matrix[c(-3,-7,-10,-19,-28,-36),c(-3,-7,-10,-19,-28,-36)] #remove the PC samples
-weighted.unifrac.F4.F8.matrix=weighted.unifrac.matrix[c(-1:-2,-5:-6,-8:-9),c(-1:-2,-5:-6,-8:-9)] #make a unifrac matrix without the F1-F3 GI and HG samples.. These are excluded do to differences in dissection methodology.
-weighted.unifrac.F4.F8.2.matrix=weighted.unifrac.F4.F8.matrix[c(-1,-3,-4,-13,-22,-30),c(-1,-3,-4,-13,-22,-30)] #remove PC samples
+weighted.unifrac.F4.F8.matrix=weighted.unifrac.matrix[c(-1:-2,-4:-7),c(-1:-2,-4:-7)] #make a unifrac matrix without the F1-F3 GI and HG samples.. These are excluded do to differences in dissection methodology.
 #write.csv(weighted.unifrac.matrix,file="weighted.unifrac.matrix.matrix.csv") #export unifrac matrices as CSVs
 #write.csv(weighted.unifrac.F4.F8.matrix,file="weighted.unifrac.matrix.F4.F8.matrix.csv")
 weighted.unifrac.dist=as.dist(weighted.unifrac.matrix) #convert to "dist" type
 weighted.unifrac.F4.F8.dist=as.dist(weighted.unifrac.F4.F8.matrix)
-weighted.unifrac.2.dist=as.dist(weighted.unifrac.2.matrix)
-weighted.unifrac.F4.F8.2.dist=as.dist(weighted.unifrac.F4.F8.2.matrix)
 
 #Make metadata files corresponding to only the samples in the unifrac matrices, eg. only the samples to pass through the sequencing pipeline.
-metadata.fish.1=metadata.fish[metadata.fish$SampleCode %in% rownames(weighted.unifrac.matrix),]
-metadata.fish.F4.F8.1=metadata.fish.F4.F8[metadata.fish.F4.F8$SampleCode %in% rownames(weighted.unifrac.F4.F8.matrix),]
-metadata.fish.2.unifrac=metadata.fish.2[metadata.fish.2$SampleCode %in% rownames(weighted.unifrac.2.matrix),]
-metadata.fish.F4.F8.2.unifrac=metadata.fish.F4.F8.2[metadata.fish.F4.F8.2$SampleCode %in% rownames(weighted.unifrac.F4.F8.2.matrix),]
+metadata.fish.unifrac=metadata.fish[metadata.fish$SampleCode %in% rownames(weighted.unifrac.matrix),]
+metadata.fish.F4.F8.unifrac=metadata.fish.F4.F8[metadata.fish.F4.F8$SampleCode %in% rownames(weighted.unifrac.F4.F8.matrix),]
 
-#write.csv(metadata.fish.2.unifrac,file="metadata.fish.noPC.unifrac.csv")
-#write.csv(metadata.fish.F4.F8.2.unifrac,file="metadata.fish.F4.F8.noPC.unifrac.csv")
-#write.csv(metadata.fish.1,file="metadata.fish.1.csv") #export updated metadata dfs as CSVs
-#write.csv(metadata.fish.F4.F8.1,file="metadata.fish.F4.F8.1.csv")
+#write.csv(metadata.fish.unifrac,file="metadata.fish.unifrac.csv") #export updated metadata dfs as CSVs
+#write.csv(metadata.fish.F4.F8.unifrac,file="metadata.fish.F4.F8.unifrac.csv")
 ```
 
 The unifrac data and metadata have been imported and worked up. Next, run PERMANOVAs on the dist matrices.
 
 ```{r}
-#First model: full distance matrix, variables of interest: Species, Gut_section, and Fish_Number as strata.
-permanova.gut.section=adonis.II(weighted.unifrac.dist~Species*Gut_Zone,by="margin",strata=metadata.fish.1$Fish_Number,data=metadata.fish.1,permutations=999)
-permanova.gut.section #Gut_Subsection and Species are both significant, no significant interaction.
+#First model: full distance matrix (without PC), variables of interest: Species, Gut_section, and Fish_Number as strata.
+permanova.gut.zone=adonis.II(weighted.unifrac.dist~Species*Gut_Zone,by="margin",strata=metadata.fish.unifrac$Fish_Number,data=metadata.fish.unifrac,permutations=999)
+permanova.gut.zone #Gut_Zone and Species are both significant, no significant interaction.Gut_Zone much more significant
 
 #Check if the strata=metadata.fish$Fish_Number term is influencing the results.
-test.no.strata=permanova.gut.section=adonis.II(weighted.unifrac.dist~Species*Gut_Zone,by="margin",data=metadata.fish.1,permutations=999)
+test.no.strata=adonis.II(weighted.unifrac.dist~Species*Gut_Zone,by="margin",data=metadata.fish.unifrac,permutations=999)
 test.no.strata #looks like the results are very similar, so the permanova.gut.section model wil be used. Note: Pseudo-F values are exactly the same whereas pvals do change slightly when the strata variable is changed.
 
-#Third (revised) model: distance matrix without PC, variables of interest: Species, Gut_section, and Fish_Number as strata.
-permanova.gut.section.2=adonis.II(weighted.unifrac.2.dist~Species*Gut_Zone,by="margin",strata=metadata.fish.2.unifrac$Fish_Number,data=metadata.fish.2.unifrac,permutations=999)
-permanova.gut.section.2 #Gut_Section, Species, and their interaction are significant.
+#Third model: F4-F8 distance matrix without PC samples, variables of interest: Species, Gut_subsection, and Fish_Number as strata. 
+permanova.gut.subsection=adonis.II(weighted.unifrac.F4.F8.dist~Species*Gut_SubSection,by="margin",strata=metadata.fish.F4.F8.unifrac$Fish_Number,data=metadata.fish.F4.F8.unifrac,permutations=999)
+permanova.gut.subsection #Gut_SubSection and Species are both significant and have similar F values. Marginally significant interaction.
 
-#Fourth (revised) model: F4-F8 distance matrix without PC samples, variables of interest: Species, Gut_subsection, and Fish_Number as strata. 
-permanova.gut.subsection.2=adonis.II(weighted.unifrac.F4.F8.2.dist~Species*Gut_SubSection,by="margin",strata=metadata.fish.F4.F8.2.unifrac$Fish_Number,data=metadata.fish.F4.F8.2.unifrac,permutations=999)
-permanova.gut.subsection.2 #Gut_SubSection and Species are both significant. Marginally significant interaction.
+#Next run pairwise adonis and the 3rd model to identify which gut regions differ from each other.
+pairwise.gut.zone=pairwise.adonis(weighted.unifrac.dist,metadata.fish.unifrac$Gut_Zone)
+pairwise.gut.zone
 
-#Next run pairwise adonis and the 3rd and 4th models to identify which gut regions differ from each other.
-pairwise.gut.section.2=pairwise.adonis(weighted.unifrac.2.dist,metadata.fish.2.unifrac$Gut_Section)
-pairwise.gut.section.2
-
-pairwise.gut.subsection.3=pairwise.adonis(weighted.unifrac.F4.F8.2.dist,metadata.fish.F4.F8.2.unifrac$Gut_SubSection)
-pairwise.gut.subsection.3
+pairwise.gut.subsection=pairwise.adonis(weighted.unifrac.F4.F8.dist,metadata.fish.F4.F8.unifrac$Gut_SubSection)
+pairwise.gut.subsection
 
 ```
 
-Both Gut Section/SubSection and Species have a significant effect on fish gut microbiome community structure, with no significant interaction, although there is a marinally significant interaction (p<.01) in the gut_subsection model. When Species and Gut_Section are the predictors, Gut_Section has a stronger effect on the fish gut microbiome then species. When Species and Gut_SubSection are the predictors, they have similar strength effects on the fish gut microbiome (Species has a slightly higher F value). Pairwise comparisons reveal that all Gut Sections are significantly different from each other (after padjustment) and that no gut subsections are significantly different from each other (after p adjustment) although ST is marginally significantly different from GI_4, HG_1, and HG_2.
+Both Gut Section/SubSection and Species have a significant effect on fish gut microbiome community structure, with no significant interaction, although there is a marinally significant interaction (p<.01) in the gut_subsection model. When Species and Gut_Section are the predictors, Gut_Section has a stronger effect on the fish gut microbiome then species. When Species and Gut_SubSection are the predictors, they have similar strength effects on the fish gut microbiome. adonis.II does not produce R2 values, but if adonis ir run, the R2 value for gut subsection is much higher (~.5) than the R2 alues for Species (~.15). Pairwise comparisons reveal that all Gut Sections are significantly different from each other (after padjustment) and that no gut subsections are significantly different from each other (after p adjustment). Craig and I have discussed lumping gut samples into gut sections based on the pairwise permanova results (see Figure SX). Further models will then nest "gut subsection" within "gut section." One other issue that needs to be dealt with is the justification of the treatment of species. Given that our explicit goal was not to test microbiome differences across species, as well as the fact that we have a very low sample size for certain species which makes it hard to fit a good model, I suggest we do not include species in subsequent models and address it at the end/in a supplement. However, in the gut subsection permanova species and subsection have similar p and F values (both significant), making it hard to justify dropping the term. Best approach would be to use the R2 values from a regular adonis (NOT adonis.II) and/or pairwise.adonis to suggest that Species epxlains much less variation and justify it's removal.
 
 Visualize the PERMANOVA results using NMDS. First, run NMDS.
 
