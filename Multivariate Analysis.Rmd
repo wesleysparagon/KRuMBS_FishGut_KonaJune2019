@@ -100,6 +100,14 @@ pairwise.gut.zone
 pairwise.gut.subsection=pairwise.adonis(weighted.unifrac.F4.F8.dist,metadata.fish.F4.F8.unifrac$Gut_SubSection)
 pairwise.gut.subsection
 
+pairwise.species=pairwise.adonis(weighted.unifrac.F4.F8.dist,metadata.fish.F4.F8.unifrac$Species)
+pairwise.species
+
+mean(pairwise.species$R2)
+
+mean(pairwise.gut.subsection$R2)
+
+#The mean R2 value for pairwise gut subsection comparisons is nearly triple that of pairise species comparisons.
 ```
 
 Both Gut Section/SubSection and Species have a significant effect on fish gut microbiome community structure, with no significant interaction, although there is a marinally significant interaction (p<.01) in the gut_subsection model. When Species and Gut_Section are the predictors, Gut_Section has a stronger effect on the fish gut microbiome then species. When Species and Gut_SubSection are the predictors, they have similar strength effects on the fish gut microbiome. adonis.II does not produce R2 values, but if adonis ir run, the R2 value for gut subsection is much higher (~.5) than the R2 alues for Species (~.15). Pairwise comparisons reveal that all Gut Sections are significantly different from each other (after padjustment) and that no gut subsections are significantly different from each other (after p adjustment). Craig and I have discussed lumping gut samples into gut sections based on the pairwise permanova results (see Figure SX). Further models will then nest "gut subsection" within "gut section." One other issue that needs to be dealt with is the justification of the treatment of species. Given that our explicit goal was not to test microbiome differences across species, as well as the fact that we have a very low sample size for certain species which makes it hard to fit a good model, I suggest we do not include species in subsequent models and address it at the end/in a supplement. However, in the gut subsection permanova species and subsection have similar p and F values (both significant), making it hard to justify dropping the term. Best approach would be to use the R2 values from a regular adonis (NOT adonis.II) and/or pairwise.adonis to suggest that Species epxlains much less variation and justify it's removal.
@@ -109,19 +117,11 @@ Visualize the PERMANOVA results using NMDS. First, run NMDS.
 ```{r}
 nmds.weighted.unifrac=metaMDS(weighted.unifrac.dist,k=2,trymax=200)
 nmds.weighted.unifrac 
-#no convergent solution but stress value is acceptable.
+#convergent solution reached and stress value is acceptable.
 
 nmds.weighted.unifrac.F4.F8=metaMDS(weighted.unifrac.F4.F8.dist,k=2,trymax=200)
 nmds.weighted.unifrac.F4.F8
-#no convergent solution but stress value is acceptable.
-
-nmds.weighted.unifrac.2=metaMDS(weighted.unifrac.2.dist,k=2,trymax=200)
-nmds.weighted.unifrac.2
-#convergent solution and stress value is acceptable
-
-nmds.weighted.unifrac.F4.F8.2=metaMDS(weighted.unifrac.F4.F8.2.dist,k=2,trymax=200)
-nmds.weighted.unifrac.F4.F8.2
-#convergent solution and stress value is acceptable
+#two convergent solutions and stress value is acceptable.
 ```
 
 NMDS results seem fine, so make ordinations of the NMDS results.
@@ -130,58 +130,32 @@ NMDS results seem fine, so make ordinations of the NMDS results.
 pointvec=c(15,16,17) #generate a vector of points to correspond to Species.
 colvec=viridis(n=3,option="D") #generate a vector of colors to correspond to Gut_Zone.
 
-###ERRORS IN THIS PLOT
-plot(nmds.weighted.unifrac.2,type="n") #Set up the NMDS plot environment
-points(nmds.weighted.unifrac.2, #plot each sample as a point
+plot(nmds.weighted.unifrac,type="n") #Set up the NMDS plot environment
+points(nmds.weighted.unifrac, #plot each sample as a point
        cex=2,
-       pch=pointvec[metadata.fish.2.unifrac$Species], #point shape corresponds to fish Species
-       col=colvec[metadata.fish.2.unifrac$Gut_Zone]) #point color corresponds to Gut_Zone
-ordiellipse(nmds.weighted.unifrac.2,metadata.fish.2.unifrac$Gut_,kind="sd",draw="polygon",alpha=c(0,0),lwd=2.5,border=colvec) #add SD ellipses, colored by Gut_Zone
+       pch=pointvec[metadata.fish.unifrac$Species], #point shape corresponds to fish Species
+       col=colvec[metadata.fish.unifrac$Gut_Zone]) #point color corresponds to Gut_Zone
+ordiellipse(nmds.weighted.unifrac,metadata.fish.unifrac$Gut_Zone,kind="sd",draw="polygon",alpha=c(0,0),lwd=2.5,border=colvec) #add SD ellipses, colored by Gut_Zone
 legend(.2,-.22,legend = c("Stomach","Fore/midgut","Hindgut","K. cinerascens","K. hawaiiensis","K. vaigiensis"),cex=1,y.intersp=.25,bg="transparent",bty="o",col=c(colvec,"black","black","black"),pch=c(16,16,16,15,16,17),pt.cex=2) #Add legend. Save image as 8.5x11 PDF (landscape)
 
 
 ```
 
-The gut sections all form relativley distinct clusters.
+The gut zoness all form relativley distinct clusters.
 
-Next, plot the same NMDS but color by Gut_SubSection instead of Gut_Section. Do this using the subset unifrac matrix and metadata that only contain F4-F8.
-
-```{r}
-#This graph will be made in ggplot2 since it can perform color gradients well.
-nmds.scores=as.data.frame(scores(nmds.weighted.unifrac.F4.F8)) #extract NMDS scores and save in new df
-nmds.scores$Gut_SubSection=metadata.fish.F4.F8.1$Gut_SubSection #add the Fish_GutSubsection to the new df
-nmds.scores$Ranked_Distance_from_Stomach=metadata.fish.F4.F8.1$Ranked_Gut_SubSection_Distance_from_Stomach #Add Ranked_Gut_SubSection_Distance_from_Stomach to df, give it a shorter name
-nmds.scores$Species=metadata.fish.F4.F8.1$Species #Add Species to the new df.
-nmds.scores$Fish_Number=metadata.fish.F4.F8.1$Fish_Number
-
-#repeat for the PC culled nmds
-nmds.scores.2=as.data.frame(scores(nmds.weighted.unifrac.F4.F8.2)) #extract NMDS scores and save in new df
-nmds.scores.2$Gut_SubSection=metadata.fish.F4.F8.2.unifrac$Gut_SubSection #add the Fish_GutSubsection to the new df
-nmds.scores.2$Ranked_Distance_from_Stomach=metadata.fish.F4.F8.2.unifrac$Ranked_Gut_SubSection_Distance_from_Stomach #Add Ranked_Gut_SubSection_Distance_from_Stomach to df, give it a shorter name
-nmds.scores.2$Species=metadata.fish.F4.F8.2.unifrac$Species #Add Species to the new df.
-nmds.scores.2$Fish_Number=metadata.fish.F4.F8.2.unifrac$Fish_Number
-nmds.scores.2$Gut_Section=metadata.fish.F4.F8.2.unifrac$Gut_Section
-
-ggplot(nmds.scores.2,aes(x=NMDS1,y=NMDS2,shape=Species,color=Gut_SubSection,size=2))+ #plot nmds.scores, specify x and y axis, shape corresponding to species, color corresponding to Ranked_Distance_from_Stomach
-  scale_color_manual(values=viridis(n=8,option="D"))+ #set gradient scale to desired viridis scale
-  geom_point(data=nmds.scores.2,aes(x=NMDS1,y=NMDS2))+ #add points
-  theme_classic() #export graphs as 8.5x11 PDF (landscape)
-```
-
-
-There is a clear gradient of microbial community structure as you transect the fish gut from ST to HG_3.
-
-Next, plot a NMDS in base R colored by Gut_SubSection but with ellipses by Gut_Section
+Next, plot the same NMDS but color by Gut_SubSection instead of Gut_Zone. Do this using the subset unifrac matrix and metadata that only contain F4-F8. Plot a NMDS in base R colored by Gut_SubSection but with ellipses by Gut_Section
 
 ```{r}
 colvec2=viridis(n=8,option="D")
 colvec3=viridis(n=4,option="D")
-plot(nmds.weighted.unifrac.F4.F8.2,type="n") #Set up the NMDS plot environment
-points(nmds.weighted.unifrac.F4.F8.2, #plot each sample as a point
+plot(nmds.weighted.unifrac.F4.F8,type="n") #Set up the NMDS plot environment
+points(nmds.weighted.unifrac.F4.F8, #plot each sample as a point
        cex=2,
-       pch=pointvec[metadata.fish.F4.F8.2.unifrac$Species], #point shape corresponds to fish Species
-       col=colvec2[as.factor(metadata.fish.F4.F8.2.unifrac$Gut_SubSection)]) 
-ordiellipse(nmds.weighted.unifrac.F4.F8.2,metadata.fish.F4.F8.2.unifrac$Gut_Section,kind="sd",draw="polygon",alpha=c(0,0),lwd=2.5,border=colvec3) #add SD ellipses, colored by Gut_Section. Export as 8.5x11 PDF
+       pch=pointvec[metadata.fish.F4.F8.unifrac$Species], #point shape corresponds to fish Species
+       col=colvec2[as.factor(metadata.fish.F4.F8.unifrac$Gut_SubSection)]) 
+ordiellipse(nmds.weighted.unifrac.F4.F8,metadata.fish.F4.F8.unifrac$Gut_Section,kind="sd",draw="polygon",alpha=c(0,0),lwd=2.5,border=colvec3) #add SD ellipses, colored by Gut_Section. 
+text(-.5,.3,label="Stress=.14")
+#Export as 8.5x11 PDF
 ```
 
 
@@ -206,10 +180,8 @@ Next, work up and visualize the alpha diversity data to see if there are any tre
 
 ```{r}
 #Combine metadata df with respective apha diversity df.
-alpha.diversity.fish=cbind(alpha.diversity.fish,metadata.fish.1)
-alpha.diversity.fish.F4.F8=cbind(alpha.diversity.fish.F4.F8,metadata.fish.F4.F8.1)
-alpha.diversity.fish.2=cbind(alpha.diversity.fish.2,metadata.fish.2.unifrac)
-alpha.diversity.fish.F4.F8.2=cbind(alpha.diversity.fish.F4.F8.2,metadata.fish.F4.F8.2.unifrac)
+alpha.diversity.fish=cbind(alpha.diversity.fish,metadata.fish.unifrac)
+alpha.diversity.fish.F4.F8=cbind(alpha.diversity.fish.F4.F8,metadata.fish.F4.F8.unifrac)
 
 #make a function to calculate standard error
 stderror=function(x) {
@@ -218,39 +190,39 @@ stderror=function(x) {
 }
 
 #Calculate means and SE of the sobs and shannon evenness alpha diversity metrics for each Gut_Section and save as a df
-alpha.diversity.2.mean.gut_section=aggregate(alpha.diversity.fish.2$sobs,by=list(alpha.diversity.fish.2$Gut_Section),FUN=mean)$x #aggregate (mean) sobs by Gut_Section, save in new df.
-alpha.diversity.2.mean.gut_section=as.data.frame(alpha.diversity.2.mean.gut_section)
-colnames(alpha.diversity.2.mean.gut_section)[1]="sobs" #rename column 1 to sobs.
-alpha.diversity.2.mean.gut_section$SE_sobs=aggregate(alpha.diversity.fish.2$sobs,by=list(alpha.diversity.fish.2$Gut_Section),FUN=stderror)$x #aggregate (stderror) sobs by Gut_section, save as a new column in df.
+alpha.diversity.mean.gut_Section=aggregate(alpha.diversity.fish$sobs,by=list(alpha.diversity.fish$Gut_Section),FUN=mean)$x #aggregate (mean) sobs by Gut_Section, save in new df.
+alpha.diversity.mean.gut_Section=as.data.frame(alpha.diversity.mean.gut_Section)
+colnames(alpha.diversity.mean.gut_Section)[1]="sobs" #rename column 1 to sobs.
+alpha.diversity.mean.gut_Section$SE_sobs=aggregate(alpha.diversity.fish$sobs,by=list(alpha.diversity.fish$Gut_Section),FUN=stderror)$x #aggregate (stderror) sobs by Gut_section, save as a new column in df.
 #repeat this for shannoneven
-alpha.diversity.2.mean.gut_section$shannoneven=aggregate(alpha.diversity.fish.2$shannoneven,by=list(alpha.diversity.fish.2$Gut_Section),FUN=mean)$x
-alpha.diversity.2.mean.gut_section$SE_shannoneven=aggregate(alpha.diversity.fish.2$shannoneven,by=list(alpha.diversity.fish.2$Gut_Section),FUN=stderror)$x
+alpha.diversity.mean.gut_Section$shannoneven=aggregate(alpha.diversity.fish$shannoneven,by=list(alpha.diversity.fish$Gut_Section),FUN=mean)$x
+alpha.diversity.mean.gut_Section$SE_shannoneven=aggregate(alpha.diversity.fish$shannoneven,by=list(alpha.diversity.fish$Gut_Section),FUN=stderror)$x
 #now add in a Gut_Section column
-alpha.diversity.2.mean.gut_section$Gut_Section=aggregate(alpha.diversity.fish.2$shannoneven,by=list(alpha.diversity.fish.2$Gut_Section),FUN=stderror)$Group.1
+alpha.diversity.mean.gut_Section$Gut_Section=aggregate(alpha.diversity.fish$shannoneven,by=list(alpha.diversity.fish$Gut_Section),FUN=stderror)$Group.1
 
 #Model the alpha diversity (sobs and shannoneven) metrics using mixed models with Gut_Section and Fish_Species as fixed effects and Fish_ID as a random effect.
 #First, check to see that the sobs and shannoneven data are normal
-hist(alpha.diversity.fish.2$sobs) #asses normality of sobs data
-shapiro.test(alpha.diversity.fish.2$sobs) 
+hist(alpha.diversity.fish$sobs) #asses normality of sobs data
+shapiro.test(alpha.diversity.fish$sobs) 
 ```
 
 The sobs data appearto be normal.
 
 ```{r}
-hist(alpha.diversity.fish.2$shannoneven) #asses normality of shannoneven data
-shapiro.test(alpha.diversity.fish.2$shannoneven)
+hist(alpha.diversity.fish$shannoneven) #asses normality of shannoneven data
+shapiro.test(alpha.diversity.fish$shannoneven)
 
 ```
 
 The shannoneven data appear to be (barely) normal. Thus I will not transform either the sobs or shannoneven data prior to running the mixed models.
 
 ```{r}
-#UPDATE FOR GUT_SECTION AND FIX MODELS
+#use the GI culled data!
 #Model the sobs data in response to Gut_seciton, fish species, and fish ID
-adiv.mod.gut.section.sobs=lmer(sobs~Gut_Section+Species+(1|Fish_Number),data=alpha.diversity.fish.2)
-summary(adiv.mod.gut.section.sobs) #Note that including the Fish_Number ranef yields a singularity error regardless of species
-anova(adiv.mod.gut.section.sobs,ddf="Kenward-Roger") #Gut_Section is significant
-lsmeans(adiv.mod.gut.section.sobs, pairwise ~ Gut_Section, adjust="tukey") #HG and ST are not significantly different from each other, both are significantly different from GI.
+adiv.mod.gut.nested.sobs=lmer(sobs~Gut_Section/Gut_SubSection+Species+(1|Fish_Number),data=alpha.diversity.fish)
+summary(adiv.mod.gut.nested.sobs) #Note that including the Fish_Number ranef yields a singularity error regardless of species
+anova(adiv.mod.gut.nested.sobs,ddf="Kenward-Roger") #Gut_Section is significant
+lsmeans(adiv.mod.gut.nested.sobs, pairwise ~ Gut_Section, adjust="tukey") #HG and ST are not significantly different from each other, both are significantly different from GI.
 
 #Model the shannoneven data in response to Gut_seciton, fish species, and fish ID
 adiv.mod.gut.section.shannoneven=lmer(shannoneven~Gut_Section+Species+(1|Fish_Number),data=alpha.diversity.fish.2)
@@ -353,41 +325,29 @@ Next, look at how the gut microbiome dispersion changes through the gut.
 
 ```{r}
 #Extract dispersion values from the unifrac data and asses their distribution.
-dispersion.gut.section=betadisper(weighted.unifrac.F4.F8.2.dist,type="centroid",group=metadata.fish.F4.F8.2.unifrac$Gut_Section)
-dispersion.gut.section
-hist(dispersion.gut.section$distances) #asses the distribution of the dispersion data
-shapiro.test(dispersion.gut.section$distances) #data is not normal and needs to be transformed.
-dispersion.gut.section$sqrt.distances=sqrt(dispersion.gut.section$distances) #square root transform the distance data
-hist(dispersion.gut.section$sqrt.distances) #asses distribution of sqrt transformed dispersion data
-shapiro.test(dispersion.gut.section$sqrt.distances) #the data appears (barely) normal
-dispersion.gut.section1=as.data.frame(dispersion.gut.section[[7]]) #make a new df with just the sqrt distances.
-dispersion.gut.section1$distances=dispersion.gut.section[[3]] #add the original distance values as well.
-colnames(dispersion.gut.section1)[1]="sqrt.distances"
-dispersion.gut.section1$samples=rownames(dispersion.gut.section1) #add in metadata
-dispersion.gut.section1$Gut_Section=metadata.fish.F4.F8.2.unifrac$Gut_Section
-dispersion.gut.section1$Gut_SubSection=metadata.fish.F4.F8.2.unifrac$Gut_SubSection
-dispersion.gut.section1$Species=metadata.fish.F4.F8.2.unifrac$Species
-dispersion.gut.section1$Fish_Number=metadata.fish.F4.F8.2.unifrac$Fish_Number
+dispersion.gut.subsection=betadisper(weighted.unifrac.F4.F8.dist,type="centroid",group=metadata.fish.F4.F8.unifrac$Gut_SubSection)
+dispersion.gut.subsection
+hist(dispersion.gut.subsection$distances) #asses the distribution of the dispersion data
+shapiro.test(dispersion.gut.subsection$distances) #data is not normal and needs to be transformed.
+dispersion.gut.subsection$sqrt.distances=sqrt(dispersion.gut.subsection$distances) #square root transform the distance data
+hist(dispersion.gut.subsection$sqrt.distances) #asses distribution of sqrt transformed dispersion data
+shapiro.test(dispersion.gut.subsection$sqrt.distances) #the data appears (barely) normal
+dispersion.gut.subsection1=as.data.frame(dispersion.gut.subsection[[7]]) #make a new df with just the sqrt distances.
+dispersion.gut.subsection1$distances=dispersion.gut.subsection[[3]] #add the original distance values as well.
+colnames(dispersion.gut.subsection1)[1]="sqrt.distances"
+dispersion.gut.subsection1$samples=rownames(dispersion.gut.subsection1) #add in metadata
+dispersion.gut.subsection1$Gut_SubSection=metadata.fish.F4.F8.unifrac$Gut_SubSection
+dispersion.gut.subsection1$Gut_Section=metadata.fish.F4.F8.unifrac$Gut_Section
+dispersion.gut.subsection1$Species=metadata.fish.F4.F8.unifrac$Species
+dispersion.gut.subsection1$Fish_Number=metadata.fish.F4.F8.unifrac$Fish_Number
 
-#convert dispersion.gut.section2 into df of means and SE so it can be graphed as a barplot.
-dispersion.gut.section3=as.data.frame(aggregate(dispersion.gut.section1$distances,by=list(dispersion.gut.section1$Gut_Section),FUN=mean))
-dispersion.gut.section3$se=aggregate(dispersion.gut.section1$distances,by=list(dispersion.gut.section1$Gut_Section),FUN=stderror)[[2]]
-colnames(dispersion.gut.section3)=c("Gut_Section","distance_to_centroid","se")
-#do the same for gut subsection
-dispersion.gut.subsection4=as.data.frame(aggregate(dispersion.gut.section1$distances,by=list(dispersion.gut.section1$Gut_SubSection),FUN=mean))
-dispersion.gut.subsection4$se=aggregate(dispersion.gut.section1$distances,by=list(dispersion.gut.section1$Gut_SubSection),FUN=stderror)[[2]]
-colnames(dispersion.gut.subsection4)=c("Gut_SubSection","distance_to_centroid","se")
+#convert dispersion.gut.section1 into df of means and SE so it can be graphed as a barplot.
+dispersion.gut.subsection2=as.data.frame(aggregate(dispersion.gut.subsection1$distances,by=list(dispersion.gut.subsection1$Gut_SubSection),FUN=mean))
+dispersion.gut.subsection2$se=aggregate(dispersion.gut.subsection1$distances,by=list(dispersion.gut.subsection1$Gut_SubSection),FUN=stderror)[[2]]
+colnames(dispersion.gut.subsection2)=c("Gut_SubSection","distance_to_centroid","se")
 
-##UPDATE THIS CODE CHUNK
-#Model the sqrt distance values in response to Species, Gut_Section, and Fish_Number as a random effect.
-dispersion.mod.gut.section=lmer(sqrt.distances~Species+Gut_Section+(1|Fish_Number),data=dispersion.gut.section1)
-summary(dispersion.mod.gut.section)
-anova(dispersion.mod.gut.section,ddf="Kenward-Roger") #Gut_Section is significant. species is marginally significant. Note that the interaction was not included in this model.
-lsmeans(dispersion.mod.gut.section, pairwise ~ Gut_Section, adjust="tukey")
-#ST and HG are significantly different from GI but not from each other.
-
-#Model the sqrt distance values in response to Species, Gut_SubSection, and Fish_Number as a random effect.
-dispersion.mod.gut.subsection=lmer(sqrt.distances~Species+Gut_SubSection+(1|Fish_Number),data=dispersion.gut.section2) #Warning "fixed-effect model matrix is rank deficient so dropping 2 columns / coefficients" This error no longer appears once the interaction term was removed.
+#Model the sqrt distance values in response to Gut_SubSection and Fish_Number as a random effect.
+dispersion.mod.gut.subsection=lmer(sqrt.distances~Gut_SubSection+(1|Fish_Number),data=dispersion.gut.subsection1)
 summary(dispersion.mod.gut.subsection)
 anova(dispersion.mod.gut.subsection,ddf="Kenward-Roger") #Gut_SubSectionis significant.
 lsmeans(dispersion.mod.gut.subsection, pairwise ~ Gut_SubSection, adjust="tukey")
@@ -397,43 +357,15 @@ UPDATE THIS SECTION!!!
 There is a significant difference in distances to centroid for the various gut sections and fish species, as well as their interaction. However, both models have "rank defficient" warnings which may be indicative of the limited sample size for certain Species-Gut_SubSection interactions. I need to look into this more. I am uncertain if interaction terms should be included in these models.
 
 ```{r}
-#UPDATE THIS SECTION
-#visualize the dispersion data (against gut_subsection and Species)
-ggplot(dispersion.gut.section2,aes(y=distances,x=Gut_SubSection,fill=Gut_SubSection))+
-  geom_boxplot()+
-  scale_fill_manual(values=viridis(n=8,option="D"))+
-  theme_minimal()+
-  facet_grid(~Species) 
-#It looks like including species as seperate subplots is not necessary.
 
-dispersion.gut.subsection.plot.v1=ggplot(dispersion.gut.subsection4,aes(y=distance_to_centroid,x=Gut_SubSection,fill=Gut_SubSection))+
+dispersion.gut.subsection.plot.v1=ggplot(dispersion.gut.subsection2,aes(y=distance_to_centroid,x=Gut_SubSection,fill=Gut_SubSection))+
   geom_bar(stat="identity")+
   scale_fill_manual(values=viridis(n=8,option="D"))+
   theme_classic()+
-  geom_errorbar(aes(ymin=distance_to_centroid-se,ymax=distance_to_centroid+se),width=.5)+
-  geom_text(x=1:8,y=c(.35,.45,.4,.5,.5,.325,.35,.35),aes(label=c("B/C","B/D","B/C","B","B","C","C/D","C")))+
-  ylim(0,.5)
+  geom_errorbar(aes(ymin=distance_to_centroid-se,ymax=distance_to_centroid+se),width=.5)
   
 dispersion.gut.subsection.plot.v1
 
-#Visualize dispersion as a function of gut section and species.
-dispersion.gut.section.plot=ggplot(dispersion.gut.section2,aes(y=distances,x=Gut_Section,fill=Gut_Section))+
-  geom_boxplot()+
-  scale_fill_manual(values=viridis(n=3,option="D"))+
-  theme_classic()+
-   facet_grid(~Species) 
-dispersion.gut.section.plot
-
-#visualize dispersion as a function of gut_section
-dispersion.gut.section.plot.v1=ggplot(dispersion.gut.section3,aes(y=distance_to_centroid,x=Gut_Section,fill=Gut_Section))+
-  geom_bar(stat="identity")+
-  scale_fill_manual(values=viridis(n=3,option="D"))+
-  theme_classic()+
-  geom_errorbar(aes(ymin=distance_to_centroid-se,ymax=distance_to_centroid+se),width=.5)+
-  geom_text(x=1:3,y=c(.37,.45,.33),aes(label=c("A","B","A")))+
-  ylim(0,.45)
-
-dispersion.gut.section.plot.v1
 ```
 
 Generally, HG(1-3) samples had the lowest dispersion while all the GI samples (1-4) had the highest. ST samples had low dispersion, close to that of the HG samples. There was substantial variation between species, with k. cinerascens and k. hawaiiensis having high dispersions than k. vaigiensis. In all species HG smaples had relativley low dispersion while GI samples had relativley high dispersion. In K. vaigiensis, ST dispersion was high (equal to that of GI) whereas in the other 2 species ST dispersion was much lower.

@@ -65,6 +65,7 @@ abund=abund[,-1:-3] #remove columns 1-3 (non OTU columns)
 
 #subset relabund, relabund.t, and abund so they match with respective metadata
 relabund.fish.F4.F8.ST=relabund[,colnames(relabund) %in% metadata.fish.F4.F8.noPC.unifrac$SampleCode]
+relabund.fish.ST=relabund[,colnames(relabund) %in% metadata.fish.unifrac$SampleCode]
 relabund.fish=relabund[,colnames(relabund) %in% metadata.fish.noPC.noST.unifrac$SampleCode]
 relabund.fish.F4.F8=relabund.fish[,colnames(relabund.fish) %in% metadata.fish.F4.F8.noPC.noST.unifrac$SampleCode]
 relabund.fish=cbind(relabund.fish,relabund[,87:95]) #add back in taxonomy info
@@ -75,6 +76,11 @@ relabund.t.fish=relabund.t[rownames(relabund.t) %in% metadata.fish.noPC.noST.uni
 relabund.t.fish.F4.F8=relabund.t.fish[rownames(relabund.t.fish) %in% metadata.fish.F4.F8.noPC.noST.unifrac$SampleCode,]
 abund.fish=abund[rownames(abund) %in% metadata.fish.noPC.noST.unifrac$SampleCode,]
 abund.fish.F4.F8=abund.fish[rownames(abund.fish) %in% metadata.fish.F4.F8.noPC.noST.unifrac$SampleCode,]
+
+#relabund.fish.ST represents the full sample set that was analyzed in the first (gut_zone) NMDS in the multivariate analysis. relabund.fish.F4.F8.ST represents the sample set that had the GI and HG samples removed and was able to be analyzed with gut_subsection. This is the one I will focus on.
+#calculate the gamma diversity (total # of OTUs) in the relabund.fish.F4.F8.ST dataset, first by removing all OTUs that are not present in these samples and then counting the total number of OTUs (rows)
+
+relabund.fish.F4.F8.ST.zerocull=relabund.fish.F4.F8.ST[apply(relabund.fish.F4.F8.ST[,1:39],1,FUN=sum)!=0,]
 
 taxonomy.fish=relabund.fish[,42:48] #make a taxonomy df for fish ASVs
 taxonomy.fish.F4.F8.ST=relabund.fish.F4.F8.ST[,42:48]

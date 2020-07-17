@@ -216,6 +216,7 @@ plot_grid(otu.19.relabund.plot,otu.25.relabund.plot,otu.40.relabund.plot,otu.60.
 
 
 
+
 #compare number of significant ASVs in full model vs. models without species
 #now run a mixed model on the transformed ASV data. Have relative abundance be a function of Species, Gut_SubSection, and Fish_Number be a random effect. Interaction term has been removed since it was not significant in the multivariate analysis. Could re-run model with Species also as a random effect.
 mixed.mod=function(x) { #create a function that performs the desired mixed model
@@ -358,3 +359,17 @@ colnames(dispersion.gut.section3)=c("Gut_Zone","distance_to_centroid","se")
 dispersion.gut.subsection4=as.data.frame(aggregate(dispersion.gut.section2$distances,by=list(dispersion.gut.section2$Gut_SubSection),FUN=mean))
 dispersion.gut.subsection4$se=aggregate(dispersion.gut.section2$distances,by=list(dispersion.gut.section2$Gut_SubSection),FUN=stderror)[[2]]
 colnames(dispersion.gut.subsection4)=c("Gut_SubSection","distance_to_centroid","se")
+
+#extra NMDS script
+#repeat for the PC culled nmds
+nmds.scores.2=as.data.frame(scores(nmds.weighted.unifrac.F4.F8)) #extract NMDS scores and save in new df
+nmds.scores.2$Gut_SubSection=metadata.fish.F4.F8.unifrac$Gut_SubSection #add the Fish_GutSubsection to the new df
+nmds.scores.2$Ranked_Distance_from_Stomach=metadata.fish.F4.F8.unifrac$Ranked_Gut_SubSection_Distance_from_Stomach #Add Ranked_Gut_SubSection_Distance_from_Stomach to df, give it a shorter name
+nmds.scores.2$Species=metadata.fish.F4.F8.unifrac$Species #Add Species to the new df.
+nmds.scores.2$Fish_Number=metadata.fish.F4.F8.unifrac$Fish_Number
+nmds.scores.2$Gut_Section=metadata.fish.F4.F8.unifrac$Gut_Section
+
+ggplot(nmds.scores.2,aes(x=NMDS1,y=NMDS2,shape=Species,color=Gut_SubSection,size=2))+ #plot nmds.scores, specify x and y axis, shape corresponding to species, color corresponding to Ranked_Distance_from_Stomach
+  scale_color_manual(values=viridis(n=8,option="D"))+ #set gradient scale to desired viridis scale
+  geom_point(data=nmds.scores.2,aes(x=NMDS1,y=NMDS2))+ #add points
+  theme_classic() #export graphs as 8.5x11 PDF (landscape)
