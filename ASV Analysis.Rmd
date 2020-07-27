@@ -194,8 +194,33 @@ other.otus$OTU=rep("Other",times=8)
 colnames(other.otus)[1]="Sample"
 other.otus=other.otus[,c(9,1:8)]
 
+other.otus1=aggregate(relabund.class.df$Abundance,by=list(relabund.class.df$Sample),FUN=sum)
+other.otus1$Abundance=1-other.otus1$x
+other.otus1$Gut_Subsection=other.otus1$Group.1
+other.otus1$Kingdom=rep("Other",times=8)
+other.otus1$Phylum=rep("Other",times=8)
+other.otus1$Class=rep("Other",times=8)
+other.otus1=other.otus1[,-2]
+other.otus1$OTU=rep("Other",times=8)
+colnames(other.otus1)[1]="Sample"
+other.otus1=other.otus1[,c(7,1:6)]
+
 #combine the other otus and relabund.family.df dfs
 relabund.family.df=rbind(relabund.family.df,other.otus) 
+relabund.class.df=rbind(relabund.class.df,other.otus1)
+
+#calculate the mean abundance for each bacterial Class and export document
+relabund.class.df.mean=aggregate(relabund.class.df$Abundance,by=list(relabund.class.df$Class),FUN=mean)
+write.csv(relabund.class.df.mean,file="relabund.class.df.mean.csv")
+
+#calculate the mean for each family and across eah gut subsection.
+relabund.family.df$family_subsection=paste(relabund.family.df$Gut_Subsection,relabund.family.df$Family,sep="_")
+relabund.family.df.subsection.mean=aggregate(relabund.family.df$Abundance,by=list(relabund.family.df$family_subsection),FUN=mean)
+write.csv(relabund.family.df.subsection.mean,file="relabund.family.df.subsection.mean.csv")
+
+
+
+
 
 write.csv(relabund.family.df,file="relabund.family.df.csv") #Export the ralbund.cull.genus (or family) data as a CSV and open it in JMP. Use JMP to create stacked bar charts.
 

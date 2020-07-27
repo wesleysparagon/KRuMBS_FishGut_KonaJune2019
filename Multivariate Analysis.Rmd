@@ -267,27 +267,39 @@ Next, plot the same alpha diversity metrics by Gut_SUBsection.
 
 ```{r}
   #Calculate means and SE of the sobs and shannon evenness alpha diversity metrics for each Gut_SubSection and save as a df
-  alpha.diversity.2.mean.gut_subsection=aggregate(alpha.diversity.fish.F4.F8.2$sobs,by=list(alpha.diversity.fish.F4.F8.2$Gut_SubSection),FUN=mean)$x #aggregate (mean) sobs by Gut_SubSection, save in new df.
-  alpha.diversity.2.mean.gut_subsection=as.data.frame(alpha.diversity.2.mean.gut_subsection)
-  colnames(alpha.diversity.2.mean.gut_subsection)[1]="sobs" #rename column 1 to sobs.
-  alpha.diversity.2.mean.gut_subsection$SE_sobs=aggregate(alpha.diversity.fish.F4.F8.2$sobs,by=list(alpha.diversity.fish.F4.F8.2$Gut_SubSection),FUN=stderror)$x #aggregate (stderror) sobs by Gut_SubSection, save as a new column in df.
+  alpha.diversity.mean.gut_subsection=aggregate(alpha.diversity.fish.F4.F8$sobs,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=mean)$x #aggregate (mean) sobs by Gut_SubSection, save in new df.
+  alpha.diversity.mean.gut_subsection=as.data.frame(alpha.diversity.mean.gut_subsection)
+  colnames(alpha.diversity.mean.gut_subsection)[1]="sobs" #rename column 1 to sobs.
+  alpha.diversity.mean.gut_subsection$SE_sobs=aggregate(alpha.diversity.fish.F4.F8$sobs,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=stderror)$x #aggregate (stderror) sobs by Gut_SubSection, save as a new column in df.
   #repeat this for shannoneven
-  alpha.diversity.2.mean.gut_subsection$shannoneven=aggregate(alpha.diversity.fish.F4.F8.2$shannoneven,by=list(alpha.diversity.fish.F4.F8.2$Gut_SubSection),FUN=mean)$x
-  alpha.diversity.2.mean.gut_subsection$SE_shannoneven=aggregate(alpha.diversity.fish.F4.F8.2$shannoneven,by=list(alpha.diversity.fish.F4.F8.2$Gut_SubSection),FUN=stderror)$x
+  alpha.diversity.mean.gut_subsection$shannoneven=aggregate(alpha.diversity.fish.F4.F8$shannoneven,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=mean)$x
+  alpha.diversity.mean.gut_subsection$SE_shannoneven=aggregate(alpha.diversity.fish.F4.F8$shannoneven,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=stderror)$x
   #now add in a Gut_SubSection column
-  alpha.diversity.2.mean.gut_subsection$Gut_SubSection=aggregate(alpha.diversity.fish.F4.F8.2$shannoneven,by=list(alpha.diversity.fish.F4.F8.2$Gut_SubSection),FUN=stderror)$Group.1
+  alpha.diversity.mean.gut_subsection$Gut_SubSection=aggregate(alpha.diversity.fish.F4.F8$shannoneven,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=stderror)$Group.1
 
 #Model the sobs data in response to Gut_SubSeciton, fish species, and fish ID
-adiv.mod.gut.subsection.sobs=lmer(sobs~Gut_SubSection+Species+(1|Fish_Number),data=alpha.diversity.fish.F4.F8.2) #interaction term has been removed to prevent errors.
+adiv.mod.gut.subsection.sobs=lmer(sobs~Gut_SubSection+Species+(1|Fish_Number),data=alpha.diversity.fish.F4.F8) #interaction term has been removed to prevent errors.
 summary(adiv.mod.gut.subsection.sobs)
 anova(adiv.mod.gut.subsection.sobs,ddf="Kenward-Roger") #Gut_SubSection is significant, Species is not significant.
 lsmeans(adiv.mod.gut.subsection.sobs, pairwise ~ Gut_SubSection, adjust="tukey") #Post Hoc analysis for the Gut_SubSection factor. This function averages across Species so that it is ONLY testing the differences between Gut_SubSection. 
 
 #Model the shannoneven data in response to Gut_subseciton, fish species, and fish ID
-adiv.mod.gut.subsection.shannoneven=lmer(shannoneven~Gut_SubSection+Species+(1|Fish_Number),data=alpha.diversity.fish.F4.F8.2)
+adiv.mod.gut.subsection.shannoneven=lmer(shannoneven~Gut_SubSection+Species+(1|Fish_Number),data=alpha.diversity.fish.F4.F8)
 summary(adiv.mod.gut.subsection.shannoneven)
 anova(adiv.mod.gut.subsection.shannoneven,ddf="Kenward-Roger") #Gut_SubSection is significant, species is not.
 lsmeans(adiv.mod.gut.subsection.shannoneven, pairwise ~ Gut_SubSection, adjust="tukey")
+
+#Repeat these models with Species and Fish_ID nested as randome effects. Model the sobs data in response to Gut_SubSeciton, fish species, and fish ID
+adiv.mod.gut.subsection.sobs1=lmer(sobs~Gut_SubSection+(1|Species/Fish_Number),data=alpha.diversity.fish.F4.F8) #interaction term has been removed to prevent errors.
+summary(adiv.mod.gut.subsection.sobs1)
+anova(adiv.mod.gut.subsection.sobs1,ddf="Kenward-Roger") #Gut_SubSection is significant, Species is not significant.
+lsmeans(adiv.mod.gut.subsection.sobs1, pairwise ~ Gut_SubSection, adjust="tukey") #Post Hoc analysis for the Gut_SubSection factor. This function averages across Species so that it is ONLY testing the differences between Gut_SubSection. 
+
+#Model the shannoneven data in response to Gut_subseciton, fish species, and fish ID
+adiv.mod.gut.subsection.shannoneven1=lmer(shannoneven~Gut_SubSection+(1|Species/Fish_Number),data=alpha.diversity.fish.F4.F8)
+summary(adiv.mod.gut.subsection.shannoneven1)
+anova(adiv.mod.gut.subsection.shannoneven1,ddf="Kenward-Roger") #Gut_SubSection is significant, species is not.
+lsmeans(adiv.mod.gut.subsection.shannoneven1, pairwise ~ Gut_SubSection, adjust="tukey")
 ```
 
 Gut_SubSection is a significant predictor of both sobs and shannoneven. The modes appear to struggle with certain Species:Gut_SubSection terms, likely because of limited sample size for certain species making it impossible to asses certain interactions. After removing the interactions, the models appear to perform fine.
