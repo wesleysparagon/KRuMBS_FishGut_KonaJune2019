@@ -65,7 +65,7 @@ abund=abund[,-1:-3] #remove columns 1-3 (non OTU columns)
 
 #subset relabund, relabund.t, and abund so they match with respective metadata
 relabund.fish.F4.F8.ST=relabund[,colnames(relabund) %in% metadata.fish.F4.F8.noPC.unifrac$SampleCode]
-relabund.fish.ST=relabund[,colnames(relabund) %in% metadata.fish.unifrac$SampleCode]
+relabund.fish.ST=relabund[,colnames(relabund) %in% metadata.fish.noPC.unifrac$SampleCode]
 relabund.fish=relabund[,colnames(relabund) %in% metadata.fish.noPC.noST.unifrac$SampleCode]
 relabund.fish.F4.F8=relabund.fish[,colnames(relabund.fish) %in% metadata.fish.F4.F8.noPC.noST.unifrac$SampleCode]
 relabund.fish=cbind(relabund.fish,relabund[,87:95]) #add back in taxonomy info
@@ -353,6 +353,12 @@ ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat.cull1,aes(x=Gut_SubSection,y=
     geom_bar(stat="identity",col="black")+
     facet_wrap(~Family,scales="free")+
   theme(legend.position="bottom")
+
+#repeat this graph except using geom_point and geom_line to better visualize individual ASV behavior (peaking at various subsections, etc). Export as 2500x1500 PNG.
+ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat.cull1,aes(x=Gut_SubSection,y=mean_relabund,color=Genus,group=OTU))+
+    geom_point(size=3)+geom_line(size=1.5)+
+    facet_wrap(~Family,scales="free")+
+    theme(legend.position="bottom")
 
 #graph the relative abundance of significant ASVs across the gut subsections as stacked barcharts. Graph within family,fill by family ID but keep individual ASVs seperated by black lines. Lable ASV# on each portion of the barchart, with the size of the label proportional to the relabund of that ASV in that sample.
 proteo.sig.otus=ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Proteobacteria",],aes(x=Gut_SubSection,y=mean_relabund,fill=Family))+
