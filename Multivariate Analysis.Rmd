@@ -257,7 +257,7 @@ shannoneven.gut.section.plot=ggplot(alpha.diversity.mean.gut_Section,aes(x=Gut_S
   geom_text(x=1:3,y=c(.625,.625,.84),label=c("A","A","B"))+
   ylim(0,.85)
 
-#plot_grid(sobs.gut.section.plot,shannoneven.gut.section.plot) #use the plot_grid function to plot the above 4 plots (par(mfrow=())) doesnt work with ggplot2. Export as PNG (800 x 455). This line now produces the error "Error: Aesthetics must be either length 1 or the same as the data (5): x, y and label". Since I am not using these graphs I am not going to deal with it right now.
+#plot_grid(sobs.gut.section.plot,shannoneven.gut.section.plot) #use the plot_grid function to plot the above 4 plots (par(mfrow=())) doesnt work with ggplot2. Export as PNG (800 x 455).  this is now producing an error saying aesthetics must be either length 1 or the same as the data (5). Since I am not using these graphs I am not going to deal with it right now.
 ```
 
 
@@ -359,7 +359,7 @@ dispersion.gut.subsection2$se=aggregate(dispersion.gut.subsection1$distances,by=
 colnames(dispersion.gut.subsection2)=c("Gut_SubSection","distance_to_centroid","se")
 
 #Model the sqrt distance values in response to Gut_SubSection and Fish_Number as a random effect.
-dispersion.mod.gut.subsection=lmer(sqrt.distances~Gut_SubSection+(1|Fish_Number),data=dispersion.gut.subsection1)
+dispersion.mod.gut.subsection=lmer(sqrt.distances~Gut_SubSection+Species+(1|Fish_Number),data=dispersion.gut.subsection1)
 summary(dispersion.mod.gut.subsection)
 anova(dispersion.mod.gut.subsection,ddf="Kenward-Roger") #Gut_SubSectionis significant.
 lsmeans(dispersion.mod.gut.subsection, pairwise ~ Gut_SubSection, adjust="tukey")
