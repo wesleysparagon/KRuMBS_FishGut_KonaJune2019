@@ -1,0 +1,109 @@
+---
+title: "Metabolomics Analysis"
+author: "Wesley Sparagon"
+date: "10/2/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(vegan)
+
+#read in data and metadata
+data=read.csv(file="KRuMBS_Fishguts_bothtrips_A_quant_filtered_withIDs.csv")
+metadata=read.csv(file="Metadata_KRuMBS_Fishguts_Seaweed_FULL.csv")
+
+#adjust appropriate varibles in metadata to be characters
+metadata$sample_name=as.character(metadata$sample_name)
+metadata$SampleCode=as.character(metadata$SampleCode)
+
+#add in string ".Peak.area" to sample_name in metadata so that the sample_name in metadata corresponds to the colnames in data
+metadata$sample_name2=paste(metadata$sample_name,".Peak.area",sep="")
+
+#subset data and metadata to contain only the June 2019 sampling trip. Be sure to add back in columns 1:6
+metadata.19.jun=metadata[metadata$ATTRIBUTE_SamplingTrip=="19-Jun",]
+data.19.jun=cbind(data[,1:6],data[,colnames(data) %in% metadata.19.jun$sample_name2])
+
+#subset data and metadata from jun 19 for only the samples (not the blanks)
+metadata.19.jun.samples=metadata.19.jun[metadata.19.jun$ATTRIBUTE_Sample_Type=="Fish_Gut",]
+data.19.jun.samples=cbind(data.19.jun[,1:6],data.19.jun[,colnames(data.19.jun) %in% metadata.19.jun.samples$sample_name2])
+
+#subset data.19.jun and metadata.19.jun for only the blanks
+metadata.19.jun.blank=metadata.19.jun[metadata.19.jun$ATTRIBUTE_Sample_Type=="blank",]
+data.19.jun.blank=cbind(data.19.jun[,1:6],data.19.jun[,colnames(data.19.jun) %in% metadata.19.jun.blank$sample_name2])
+
+```
+
+Now perform blank removal to get rid of contaminant features.
+
+```{r}
+
+blank.removal = function(data, blank.data, sample.cols, blank.cols, blank.factor) {
+  #data is the feature table with ONLY the samples
+  
+  #blank.data is the feature table with ONLY the blanks
+  
+  #sample.cols are the col numbers corresponding to the peak area of features in samples (no columns containing data on the feature)
+  
+  #blanks.cols are the col numbers corresponding to the peak area of features in blanks (no columns containing data on the feature)
+  
+  #blank.factor is the factor to multiply the max peak area of a feature in the blanks
+  
+  removal.vec=c() #create and empty vector 
+  
+  
+  for (i in 1:nrow(data)) {
+    removal.vec[i]=mean(unlist(data[i,sample.cols])) >= blank.factor*max(blank.data[i,blank.cols])
+    
+  }
+  
+  removal.vec<<-removal.vec
+  
+  data.clean=data[removal.vec,]
+  data.clean<<-data.clean
+  
+  return(data[removal.vec=="FALSE",5]) #return the names of the removed features.
+  
+}
+
+#Now run the function
+blank.removal(data.19.jun.samples,data.19.jun.blank,7:63,7:18,2)
+```
+
+31 features were removed.
+
+Next, remove low abundance peaks.
+
+```{r}
+abund.removal = function(data,sample.cols) {
+  
+  abund.threshold = function(x) {
+    ifelse(length(x[x>=0])>=3,TRUE,FALSE)
+  }
+  
+  abund.removal.vec=apply(data[,sample.cols],1,FUN=abund.threshold)
+  
+  data.clean2=cbind(data[abund.removal.vec,])
+  
+  data.clean2<<-data.clean2
+  
+  return(sum(abund.removal.vec))
+}
+
+#Run the function
+abund.removal(data.clean,7:63)
+```
+
+It looks like no low abundance samples were removed.
+
+Next, let's look at the raw data distribution and transform into relative abundance.
+
+```{r}
+data.19.jun.clean2=data.clean2
+
+hist(unlist(data.19.jun.clean2[,7:63])[unlist(data.19.jun.clean2[,7:63])!=0],xlim=c(0,200000),breaks=1000)
+```
+

@@ -1,0 +1,236 @@
+sample_name,SampleCode,ATTRIBUTE_Sample_Type,ATTRIBUTE_Fish_Number,ATTRIBUTE_Fish_Species,ATTRIBUTE_Gut_Section,ATTRIBUTE_Gut_SubSection,ATTRIBUTE_Diet,ATTRIBUTE_SamplingTrip
+F1_m_GI_GF6_01_56529.mzXML,F1_GI,Fish_Gut,F1,Kyphosus cinerascens,GI,GI,Wild,19-Jun
+F1_m_HG_GE4_01_56517.mzXML,F1_HG,Fish_Gut,F1,Kyphosus cinerascens,HG,HG,Wild,19-Jun
+F1_m_PC_RE6_01_56564.mzXML,F1_PC,Fish_Gut,F1,Kyphosus cinerascens,PC,PC,Wild,19-Jun
+F1_m_stom_GG4_01_56543.mzXML,F1_STOM,Fish_Gut,F1,Kyphosus cinerascens,ST,ST,Wild,19-Jun
+F2_m_GI_GE7_01_56520.mzXML,F2_GI,Fish_Gut,F2,Kyphosus vaigiensis,GI,GI,Wild,19-Jun
+F2_m_HG_GE5_01_56518.mzXML,F2_HG,Fish_Gut,F2,Kyphosus vaigiensis,HG,HG,Wild,19-Jun
+F2_m_PC_RD3_01_56561.mzXML,F2_PC,Fish_Gut,F2,Kyphosus vaigiensis,PC,PC,Wild,19-Jun
+F2_m_stom_GC6_01_56499.mzXML,F2_STOM,Fish_Gut,F2,Kyphosus vaigiensis,ST,ST,Wild,19-Jun
+F3_m_GI_GH4_01_56553.mzXML,F3_GI,Fish_Gut,F3,Kyphosus hawaiiensis,GI,GI,Wild,19-Jun
+F3_m_HG_GG1_01_56540.mzXML,F3_HG,Fish_Gut,F3,Kyphosus hawaiiensis,HG,HG,Wild,19-Jun
+F3_m_PC_RD5_01_56563.mzXML,F3_PC,Fish_Gut,F3,Kyphosus hawaiiensis,PC,PC,Wild,19-Jun
+F3_m_stom_GA2_01_56475.mzXML,F3_STOM,Fish_Gut,F3,Kyphosus hawaiiensis,ST,ST,Wild,19-Jun
+F4_m_GI.1_GF7_01_56530.mzXML,F4_GI_1,Fish_Gut,F4,Kyphosus vaigiensis,GI,GI_1,Wild,19-Jun
+F4_m_GI.2_GE2_01_56515.mzXML,F4_GI_2,Fish_Gut,F4,Kyphosus vaigiensis,GI,GI_2,Wild,19-Jun
+F4_m_GI.3_GF2_01_56525.mzXML,F4_GI_3,Fish_Gut,F4,Kyphosus vaigiensis,GI,GI_3,Wild,19-Jun
+F4_m_GI.4_GD7_01_56510.mzXML,F4_GI_4,Fish_Gut,F4,Kyphosus vaigiensis,GI,GI_4,Wild,19-Jun
+F4_m_HG.1_GC1_01_56494.mzXML,F4_HG_1,Fish_Gut,F4,Kyphosus vaigiensis,HG,HG_1,Wild,19-Jun
+F4_m_HG.2_GA4_01_56477.mzXML,F4_HG_2,Fish_Gut,F4,Kyphosus vaigiensis,HG,HG_2,Wild,19-Jun
+F4_m_HG.3_GF3_01_56526.mzXML,F4_HG_3,Fish_Gut,F4,Kyphosus vaigiensis,HG,HG_3,Wild,19-Jun
+F4_m_PC_RB7_01_56560.mzXML,F4_PC,Fish_Gut,F4,Kyphosus vaigiensis,PC,PC,Wild,19-Jun
+F4_m_stom_GH6_01_56555.mzXML,F4_STOM,Fish_Gut,F4,Kyphosus vaigiensis,ST,ST,Wild,19-Jun
+F5_m_GI.1_GD6_01_56509.mzXML,F5_GI_1,Fish_Gut,F5,Kyphosus vaigiensis,GI,GI_1,Wild,19-Jun
+F5_m_GI.2_GC5_01_56498.mzXML,F5_GI_2,Fish_Gut,F5,Kyphosus vaigiensis,GI,GI_2,Wild,19-Jun
+F5_m_GI.3_GH2_01_56551.mzXML,F5_GI_3,Fish_Gut,F5,Kyphosus vaigiensis,GI,GI_3,Wild,19-Jun
+F5_m_GI.4_GC4_01_56497.mzXML,F5_GI_4,Fish_Gut,F5,Kyphosus vaigiensis,GI,GI_4,Wild,19-Jun
+F5_m_HG.1_GB2_01_56485.mzXML,F5_HG_1,Fish_Gut,F5,Kyphosus vaigiensis,HG,HG_1,Wild,19-Jun
+F5_m_HG.2_GE3_01_56516.mzXML,F5_HG_2,Fish_Gut,F5,Kyphosus vaigiensis,HG,HG_2,Wild,19-Jun
+F5_m_HG.3_GH1_01_56550.mzXML,F5_HG_3,Fish_Gut,F5,Kyphosus vaigiensis,HG,HG_3,Wild,19-Jun
+F5_m_PC_RD4_01_56562.mzXML,F5_PC,Fish_Gut,F5,Kyphosus vaigiensis,PC,PC,Wild,19-Jun
+F5_m_stom_GG6_01_56545.mzXML,F5_STOM,Fish_Gut,F5,Kyphosus vaigiensis,ST,ST,Wild,19-Jun
+F6_m_GI.1_GA8_01_56481.mzXML,F6_GI_1,Fish_Gut,F6,Kyphosus cinerascens,GI,GI_1,Wild,19-Jun
+F6_m_GI.2_GH7_01_56556.mzXML,F6_GI_2,Fish_Gut,F6,Kyphosus cinerascens,GI,GI_2,Wild,19-Jun
+F6_m_GI.3_GB3_01_56486.mzXML,unknown,Fish_Gut,unknown,unknown,GI,GI_3,Wild,19-Jun
+F6_m_GI.4_GG3_01_56542.mzXML,F6_GI_4,Fish_Gut,F6,Kyphosus cinerascens,GI,GI_4,Wild,19-Jun
+F6_m_HG.1_GB1_01_56484.mzXML,F6_HG_1,Fish_Gut,F6,Kyphosus cinerascens,HG,HG_1,Wild,19-Jun
+F6_m_HG.2_GA3_01_56476.mzXML,F6_HG_2,Fish_Gut,F6,Kyphosus cinerascens,HG,HG_2,Wild,19-Jun
+F6_m_HG.3_GD1_01_56504.mzXML,F6_HG_3,Fish_Gut,F6,Kyphosus cinerascens,HG,HG_3,Wild,19-Jun
+F6_m_PC_RB6_01_56559.mzXML,F6_PC,Fish_Gut,F6,Kyphosus cinerascens,PC,PC,Wild,19-Jun
+F6_m_stom_GH5_01_56554.mzXML,F6_STOM,Fish_Gut,F6,Kyphosus cinerascens,ST,ST,Wild,19-Jun
+F7_m_GI.1_GC2_01_56495.mzXML,F7_GI_1,Fish_Gut,F7,Kyphosus hawaiiensis,GI,GI_1,Wild,19-Jun
+F7_m_GI.2_GD2_01_56505.mzXML,F7_GI_2,Fish_Gut,F7,Kyphosus hawaiiensis,GI,GI_2,Wild,19-Jun
+F7_m_GI.3_GG5_01_56544.mzXML,F7_GI_3,Fish_Gut,F7,Kyphosus hawaiiensis,GI,GI_3,Wild,19-Jun
+F7_m_GI.4_GB5_01_56488.mzXML,F7_GI_4,Fish_Gut,F7,Kyphosus hawaiiensis,GI,GI_4,Wild,19-Jun
+F7_m_HG.1_GG7_01_56546.mzXML,F7_HG_1,Fish_Gut,F7,Kyphosus hawaiiensis,HG,HG_1,Wild,19-Jun
+F7_m_HG.2_GE1_01_56514.mzXML,F7_HG_2,Fish_Gut,F7,Kyphosus hawaiiensis,HG,HG_2,Wild,19-Jun
+F7_m_HG.3_GF1_01_56524.mzXML,F7_HG_3,Fish_Gut,F7,Kyphosus hawaiiensis,HG,HG_3,Wild,19-Jun
+F7_m_PC_RF5_01_56566.mzXML,F7_PC,Fish_Gut,F7,Kyphosus hawaiiensis,PC,PC,Wild,19-Jun
+F7_m_stom_GC7_01_56500.mzXML,F7_STOM,Fish_Gut,F7,Kyphosus hawaiiensis,ST,ST,Wild,19-Jun
+F8_m_GI.1_GA5_01_56478.mzXML,F8_GI_1,Fish_Gut,F8,Kyphosus vaigiensis,GI,GI_1,Wild,19-Jun
+F8_m_GI.2_GG2_01_56541.mzXML,F8_GI_2,Fish_Gut,F8,Kyphosus vaigiensis,GI,GI_2,Wild,19-Jun
+F6_m_GI.3_GA7_01_56480.mzXML,unknown,Fish_Gut,unknown,unknown,GI,GI_3,Wild,19-Jun
+F8_m_GI.4_GA6_01_56479.mzXML,F8_GI_4,Fish_Gut,F8,Kyphosus vaigiensis,GI,GI_4,Wild,19-Jun
+F8_m_HG.1_GC3_01_56496.mzXML,F8_HG_1,Fish_Gut,F8,Kyphosus vaigiensis,HG,HG_1,Wild,19-Jun
+F8_m_HG.2_GH3_01_56552.mzXML,F8_HG_2,Fish_Gut,F8,Kyphosus vaigiensis,HG,HG_2,Wild,19-Jun
+F8_m_HG.3_GB4_01_56487.mzXML,F8_HG_3,Fish_Gut,F8,Kyphosus vaigiensis,HG,HG_3,Wild,19-Jun
+F8_m_PC_RF4_01_56565.mzXML,F8_PC,Fish_Gut,F8,Kyphosus vaigiensis,PC,PC,Wild,19-Jun
+F8_m_stom_GA1_01_56474.mzXML,F8_STOM,Fish_Gut,F8,Kyphosus vaigiensis,ST,ST,Wild,19-Jun
+extraction_blank_GA9_01_56482.mzXML,not applicable,blank,not applicable,not applicable,not applicable,not applicable,not applicable,19-Jun
+extraction_blank_GB9_01_56492.mzXML,not applicable,blank,not applicable,not applicable,not applicable,not applicable,not applicable,19-Jun
+extraction_blank_GC9_01_56502.mzXML,not applicable,blank,not applicable,not applicable,not applicable,not applicable,not applicable,19-Jun
+extraction_blank_GD9_01_56512.mzXML,not applicable,blank,not applicable,not applicable,not applicable,not applicable,not applicable,19-Jun
+extraction_blank_GE9_01_56522.mzXML,not applicable,blank,not applicable,not applicable,not applicable,not applicable,not applicable,19-Jun
+extraction_blank_GF9_01_56531.mzXML,not applicable,blank,not applicable,not applicable,not applicable,not applicable,not applicable,19-Jun
+extraction_blank_GF9_01_56535.mzXML,not applicable,blank,not applicable,not applicable,not applicable,not applicable,not applicable,19-Jun
+extraction_blank_GF9_01_56539.mzXML,not applicable,blank,not applicable,not applicable,not applicable,not applicable,not applicable,19-Jun
+extraction_blank_GG9_01_56547.mzXML,not applicable,blank,not applicable,not applicable,not applicable,not applicable,not applicable,19-Jun
+extraction_blank_GH9_01_56557.mzXML,not applicable,blank,not applicable,not applicable,not applicable,not applicable,not applicable,19-Jun
+extraction_blank_GH9_01_56567.mzXML,not applicable,blank,not applicable,not applicable,not applicable,not applicable,not applicable,19-Jun
+extraction_blank_GH9_01_56575.mzXML,not applicable,blank,not applicable,not applicable,not applicable,not applicable,not applicable,19-Jun
+extraction_blank_GA12_01_56589.mzXML,not applicable,blank,not applicable,not applicable,not applicable,not applicable,not applicable,20-Mar
+extraction_blank_GA12_01_56597.mzXML,not applicable,blank,not applicable,not applicable,not applicable,not applicable,not applicable,20-Mar
+extraction_blank_GB12_01_56604.mzXML,not applicable,blank,not applicable,not applicable,not applicable,not applicable,not applicable,20-Mar
+extraction_blank_GC12_01_56741.mzXML,not applicable,blank,not applicable,not applicable,not applicable,not applicable,not applicable,20-Mar
+extraction_blank_GC12_01_56748.mzXML,not applicable,blank,not applicable,not applicable,not applicable,not applicable,not applicable,20-Mar
+extraction_blank_GD12_01_56669.mzXML,not applicable,blank,not applicable,not applicable,not applicable,not applicable,not applicable,20-Mar
+extraction_blank_GD12_01_56755.mzXML,not applicable,blank,not applicable,not applicable,not applicable,not applicable,not applicable,20-Mar
+extraction_blank_GE12_01_56685.mzXML,not applicable,blank,not applicable,not applicable,not applicable,not applicable,not applicable,20-Mar
+extraction_blank_GE12_01_56762.mzXML,not applicable,blank,not applicable,not applicable,not applicable,not applicable,not applicable,20-Mar
+extraction_blank_GF12_01_56692.mzXML,not applicable,blank,not applicable,not applicable,not applicable,not applicable,not applicable,20-Mar
+extraction_blank_GF12_01_56700.mzXML,not applicable,blank,not applicable,not applicable,not applicable,not applicable,not applicable,20-Mar
+extraction_blank_GG12_01_56707.mzXML,not applicable,blank,not applicable,not applicable,not applicable,not applicable,not applicable,20-Mar
+extraction_blank_GG12_01_56715.mzXML,not applicable,blank,not applicable,not applicable,not applicable,not applicable,not applicable,20-Mar
+extraction_blank_GH12_01_56722.mzXML,not applicable,blank,not applicable,not applicable,not applicable,not applicable,not applicable,20-Mar
+extraction_blank_GH12_01_56730.mzXML,not applicable,blank,not applicable,not applicable,not applicable,not applicable,not applicable,20-Mar
+extraction_blank_GB6_01_56799.mzXML,not applicable,blank,not applicable,not applicable,not applicable,not applicable,not applicable,20-Mar
+extraction_blank_GC6_01_56806.mzXML,not applicable,blank,not applicable,not applicable,not applicable,not applicable,not applicable,20-Mar
+extraction_blank_GD6_01_56813.mzXML,not applicable,blank,not applicable,not applicable,not applicable,not applicable,not applicable,20-Mar
+extraction_blank_GE6_01_56821.mzXML,not applicable,blank,not applicable,not applicable,not applicable,not applicable,not applicable,20-Mar
+extraction_blank_GF5_01_56827.mzXML,not applicable,blank,not applicable,not applicable,not applicable,not applicable,not applicable,20-Mar
+extraction_blank_GG5_01_56833.mzXML,not applicable,blank,not applicable,not applicable,not applicable,not applicable,not applicable,20-Mar
+extraction_blank_GH5_01_56838.mzXML,not applicable,blank,not applicable,not applicable,not applicable,not applicable,not applicable,20-Mar
+G1_G1_M_GF8_01_56695.mzXML,G1_G1_M,Fish_Gut,G1,Kyphosus vaigiensis,GI,G1,Gracilaria,20-Mar
+G1_G2_M_GC8_01_56738.mzXML,G1_G2_M,Fish_Gut,G1,Kyphosus vaigiensis,GI,G2,Gracilaria,20-Mar
+G1_G3_M_GB4_01_56796.mzXML,G1_G3_M,Fish_Gut,G1,Kyphosus vaigiensis,GI,G3,Gracilaria,20-Mar
+G1_HG_M_GF6_01_56693.mzXML,G1_HG_M,Fish_Gut,G1,Kyphosus vaigiensis,HG,HG,Gracilaria,20-Mar
+G1_PC_M_RD9_01_56665.mzXML,G1_PC_M,Fish_Gut,G1,Kyphosus vaigiensis,PC,PC,Gracilaria,20-Mar
+G1_ST_M_GH7_01_56724.mzXML,G1_ST_M,Fish_Gut,G1,Kyphosus vaigiensis,ST,ST,Gracilaria,20-Mar
+G2_G1_M_GE10_01_56767.mzXML,G2_G1_M,Fish_Gut,G2,Kyphosus hawaiiensis,GI,G1,Gracilaria,20-Mar
+G2_G2_M_GG4_01_56831.mzXML,G2_G2_M,Fish_Gut,G2,Kyphosus hawaiiensis,GI,G2,Gracilaria,20-Mar
+G2_G3_M_GD1_01_56807.mzXML,G2_G3_M,Fish_Gut,G2,Kyphosus hawaiiensis,GI,G3,Gracilaria,20-Mar
+G2_HG_M_GC5_01_56804.mzXML,G2_HG_M,Fish_Gut,G2,Kyphosus hawaiiensis,HG,HG,Gracilaria,20-Mar
+G2_PC_M_GA2_01_56784.mzXML,G2_PC_M,Fish_Gut,G2,Kyphosus hawaiiensis,PC,PC,Gracilaria,20-Mar
+G2_ST_M_GA9_01_56593.mzXML,G2_ST_M,Fish_Gut,G2,Kyphosus hawaiiensis,ST,ST,Gracilaria,20-Mar
+G3_G1_M_GF7_01_56694.mzXML,G3_G1_M,Fish_Gut,G3,Kyphosus vaigiensis,GI,G1,Gracilaria,20-Mar
+G3_G2_M_GF10_01_56697.mzXML,G3_G2_M,Fish_Gut,G3,Kyphosus vaigiensis,GI,G2,Gracilaria,20-Mar
+G3_G3_M_GG11_01_56713.mzXML,G3_G3_M,Fish_Gut,G3,Kyphosus vaigiensis,GI,G3,Gracilaria,20-Mar
+G3_HG_M_GE4_01_56818.mzXML,G3_HG_M,Fish_Gut,G3,Kyphosus vaigiensis,HG,HG,Gracilaria,20-Mar
+G3_PC_M_RD7_01_56663.mzXML,G3_PC_M,Fish_Gut,G3,Kyphosus vaigiensis,PC,PC,Gracilaria,20-Mar
+G3_ST_M_GH9_01_56726.mzXML,G3_ST_M,Fish_Gut,G3,Kyphosus vaigiensis,ST,ST,Gracilaria,20-Mar
+G4_G1_M_GH11_01_56728.mzXML,G4_G1_M,Fish_Gut,G4,Kyphosus vaigiensis,GI,G1,Gracilaria,20-Mar
+G4_G2_M_GH4_01_56837.mzXML,G4_G2_M,Fish_Gut,G4,Kyphosus vaigiensis,GI,G2,Gracilaria,20-Mar
+G4_G3_M_GF3_01_56824.mzXML,G4_G3_M,Fish_Gut,G4,Kyphosus vaigiensis,GI,G3,Gracilaria,20-Mar
+G4_HG_M_GA5_01_56787.mzXML,G4_HG_M,Fish_Gut,G4,Kyphosus vaigiensis,HG,HG,Gracilaria,20-Mar
+G4_PC_M_GA3_01_56785.mzXML,G4_PC_M,Fish_Gut,G4,Kyphosus vaigiensis,PC,PC,Gracilaria,20-Mar
+G4_ST_M_GC11_01_56746.mzXML,G4_ST_M,Fish_Gut,G4,Kyphosus vaigiensis,ST,ST,Gracilaria,20-Mar
+G5_G1_M_GB9_01_56773.mzXML,G5_G1_M,Fish_Gut,G5,Kyphosus vaigiensis,GI,G1,Gracilaria,20-Mar
+G5_G2_M_GG1_01_56828.mzXML,G5_G2_M,Fish_Gut,G5,Kyphosus vaigiensis,GI,G2,Gracilaria,20-Mar
+G5_G3_M_GD4_01_56810.mzXML,G5_G3_M,Fish_Gut,G5,Kyphosus vaigiensis,GI,G3,Gracilaria,20-Mar
+G5_HG_M_GE7_01_56764.mzXML,G5_HG_M,Fish_Gut,G5,Kyphosus vaigiensis,HG,HG,Gracilaria,20-Mar
+G5_ST_M_GD10_01_56666.mzXML,G5_ST_M,Fish_Gut,G5,Kyphosus vaigiensis,ST,ST,Gracilaria,20-Mar
+M1_G1_M_GH10_01_56727.mzXML,M1_G1_M,Fish_Gut,M1,Kyphosus hawaiiensis,GI,G1,Mixed,20-Mar
+M1_G2_M_GD3_01_56809.mzXML,M1_G2_M,Fish_Gut,M1,Kyphosus hawaiiensis,GI,G2,Mixed,20-Mar
+M1_G3_M_GG8_01_56710.mzXML,M1_G3_M,Fish_Gut,M1,Kyphosus hawaiiensis,GI,G3,Mixed,20-Mar
+M1_HG_M_GF4_01_56825.mzXML,M1_HG_M,Fish_Gut,M1,Kyphosus hawaiiensis,HG,HG,Mixed,20-Mar
+M1_PC_M_GF2_01_56823.mzXML,M1_PC_M,Fish_Gut,M1,Kyphosus hawaiiensis,PC,PC,Mixed,20-Mar
+M1_ST_M_GG2_01_56829.mzXML,M1_ST_M,Fish_Gut,M1,Kyphosus hawaiiensis,ST,ST,Mixed,20-Mar
+M2_G1_M_GE2_01_56816.mzXML,M2_G1_M,Fish_Gut,M2,Kyphosus vaigiensis,GI,G1,Mixed,20-Mar
+M2_G2_M_GD2_01_56808.mzXML,M2_G2_M,Fish_Gut,M2,Kyphosus vaigiensis,GI,G2,Mixed,20-Mar
+M2_G3_M_GD5_01_56814.mzXML,M2_G3_M,Fish_Gut,M2,Kyphosus vaigiensis,GI,G3,Mixed,20-Mar
+M2_HG_M_GE8_01_56765.mzXML,M2_HG_M,Fish_Gut,M2,Kyphosus vaigiensis,HG,HG,Mixed,20-Mar
+M2_PC_M_GE3_01_56817.mzXML,M2_PC_M,Fish_Gut,M2,Kyphosus vaigiensis,PC,PC,Mixed,20-Mar
+M2_ST_M_GA4_01_56786.mzXML,M2_ST_M,Fish_Gut,M2,Kyphosus vaigiensis,ST,ST,Mixed,20-Mar
+M3_G1_M_GC2_01_56801.mzXML,M3_G1_M,Fish_Gut,M3,Kyphosus sandwicensis,GI,G1,Mixed,20-Mar
+M3_G2_M_GA1_01_56783.mzXML,M3_G2_M,Fish_Gut,M3,Kyphosus sandwicensis,GI,G2,Mixed,20-Mar
+M3_G3_M_GG10_01_56712.mzXML,M3_G3_M,Fish_Gut,M3,Kyphosus sandwicensis,GI,G3,Mixed,20-Mar
+M3_HG_M_GC4_01_56803.mzXML,M3_HG_M,Fish_Gut,M3,Kyphosus sandwicensis,HG,HG,Mixed,20-Mar
+M3_PC_M_RH8_01_56725.mzXML,M3_PC_M,Fish_Gut,M3,Kyphosus sandwicensis,PC,PC,Mixed,20-Mar
+M3_ST_M_GA7_01_56591.mzXML,M3_ST_M,Fish_Gut,M3,Kyphosus sandwicensis,ST,ST,Mixed,20-Mar
+M4_G1_M_GE1_01_56815.mzXML,M4_G1_M,Fish_Gut,M4,Kyphosus hawaiiensis,GI,G1,Mixed,20-Mar
+M4_G2_M_GB5_01_56602.mzXML,M4_G2_M,Fish_Gut,M4,Kyphosus hawaiiensis,GI,G2,Mixed,20-Mar
+M4_G3_M_GE3_01_56777.mzXML,M4_G3_M,Fish_Gut,M4,Kyphosus hawaiiensis,GI,G3,Mixed,20-Mar
+M4_HG_M_GC2_01_56734.mzXML,M4_HG_M,Fish_Gut,M4,Kyphosus hawaiiensis,HG,HG,Mixed,20-Mar
+M4_PC_M_GH3_01_56836.mzXML,M4_PC_M,Fish_Gut,M4,Kyphosus hawaiiensis,PC,PC,Mixed,20-Mar
+M4_ST_M_GD11_01_56667.mzXML,M4_ST_M,Fish_Gut,M4,Kyphosus hawaiiensis,ST,ST,Mixed,20-Mar
+M5_G1_M_GG1_01_56701.mzXML,M5_G1_M,Fish_Gut,M5,Kyphosus vaigiensis,GI,G1,Mixed,20-Mar
+M5_G2_M_GH2_01_56717.mzXML,M5_G2_M,Fish_Gut,M5,Kyphosus vaigiensis,GI,G2,Mixed,20-Mar
+M5_G3_M_GE5_01_56760.mzXML,M5_G3_M,Fish_Gut,M5,Kyphosus vaigiensis,GI,G3,Mixed,20-Mar
+M5_HG_M_GG2_01_56702.mzXML,M5_HG_M,Fish_Gut,M5,Kyphosus vaigiensis,HG,HG,Mixed,20-Mar
+M5_PC_M_RG5_01_56705.mzXML,M5_PC_M,Fish_Gut,M5,Kyphosus vaigiensis,PC,PC,Mixed,20-Mar
+M5_ST_M_GF1_01_56686.mzXML,M5_ST_M,Fish_Gut,M5,Kyphosus vaigiensis,ST,ST,Mixed,20-Mar
+S1_G1_M_GB6_01_56605.mzXML,S1_G1_M,Fish_Gut,S1,Kyphosus sandwicensis,GI,G1,Sargassum,20-Mar
+S1_G2_M_GG4_01_56704.mzXML,S1_G2_M,Fish_Gut,S1,Kyphosus sandwicensis,GI,G2,Sargassum,20-Mar
+S1_G3_M_GD6_01_56662.mzXML,S1_G3_M,Fish_Gut,S1,Kyphosus sandwicensis,GI,G3,Sargassum,20-Mar
+S1_HG_M_GE4_01_56759.mzXML,S1_HG_M,Fish_Gut,S1,Kyphosus sandwicensis,HG,HG,Sargassum,20-Mar
+S1_PC_M_RB2_01_56599.mzXML,S1_PC_M,Fish_Gut,S1,Kyphosus sandwicensis,PC,PC,Sargassum,20-Mar
+S1_ST_M_GC5_01_56737.mzXML,S1_ST_M,Fish_Gut,S1,Kyphosus sandwicensis,ST,ST,Sargassum,20-Mar
+S2_G1_M_GA3_01_56585.mzXML,S2_G1_M,Fish_Gut,S2,Kyphosus hawaiiensis,GI,G1,Sargassum,20-Mar
+S2_G2_M_GA6_01_56590.mzXML,S2_G2_M,Fish_Gut,S2,Kyphosus hawaiiensis,GI,G2,Sargassum,20-Mar
+S2_G3_M_GH3_01_56718.mzXML,S2_G3_M,Fish_Gut,S2,Kyphosus hawaiiensis,GI,G3,Sargassum,20-Mar
+S2_HG_M_GB3_01_56600.mzXML,S2_HG_M,Fish_Gut,S2,Kyphosus hawaiiensis,HG,HG,Sargassum,20-Mar
+S2_PC_M_RE2_01_56757.mzXML,S2_PC_M,Fish_Gut,S2,Kyphosus hawaiiensis,PC,PC,Sargassum,20-Mar
+S2_ST_M_GG3_01_56703.mzXML,S2_ST_M,Fish_Gut,S2,Kyphosus hawaiiensis,ST,ST,Sargassum,20-Mar
+S3_G1_M_GH1_01_56716.mzXML,S3_G1_M,Fish_Gut,S3,Kyphosus vaigiensis,GI,G1,Sargassum,20-Mar
+S3_G2_M_2_GD2_01_56776.mzXML,S3_G2_M,Fish_Gut,S3,Kyphosus vaigiensis,GI,G2,Sargassum,20-Mar
+S3_G3_M_RF4_01_56689.mzXML,S3_G3_M,Fish_Gut,S3,Kyphosus vaigiensis,GI,G3,Sargassum,20-Mar
+S3_HG_M_GF2_01_56687.mzXML,S3_HG_M,Fish_Gut,S3,Kyphosus vaigiensis,HG,HG,Sargassum,20-Mar
+S3_PC_M_RA5_01_56587.mzXML,S3_PC_M,Fish_Gut,S3,Kyphosus vaigiensis,PC,PC,Sargassum,20-Mar
+S3_ST_M_GD4_01_56752.mzXML,S3_ST_M,Fish_Gut,S3,Kyphosus vaigiensis,ST,ST,Sargassum,20-Mar
+S4_G1_M_GB4_01_56601.mzXML,S4_G1_M,Fish_Gut,S4,Kyphosus vaigiensis,GI,G1,Sargassum,20-Mar
+S4_G2_M_GC3_01_56735.mzXML,S4_G2_M,Fish_Gut,S4,Kyphosus vaigiensis,GI,G2,Sargassum,20-Mar
+S4_G3_M_GF5_01_56690.mzXML,S4_G3_M,Fish_Gut,S4,Kyphosus vaigiensis,GI,G3,Sargassum,20-Mar
+S4_HG_M_GH4_01_56719.mzXML,S4_HG_M,Fish_Gut,S4,Kyphosus vaigiensis,HG,HG,Sargassum,20-Mar
+S4_PC_M_RH5_01_56720.mzXML,S4_PC_M,Fish_Gut,S4,Kyphosus vaigiensis,PC,PC,Sargassum,20-Mar
+S4_ST_M_GC1_01_56739.mzXML,S4_ST_M,Fish_Gut,S4,Kyphosus vaigiensis,ST,ST,Sargassum,20-Mar
+S5_G1_M_GC6_01_56742.mzXML,S5_G1_M,Fish_Gut,S5,Kyphosus hawaiiensis,GI,G1,Sargassum,20-Mar
+S5_G2_M_GF3_01_56688.mzXML,S5_G2_M,Fish_Gut,S5,Kyphosus hawaiiensis,GI,G2,Sargassum,20-Mar
+S5_G3_M_RD5_01_56753.mzXML,S5_G3_M,Fish_Gut,S5,Kyphosus hawaiiensis,GI,G3,Sargassum,20-Mar
+S5_HG_M_GA2_01_56584.mzXML,S5_HG_M,Fish_Gut,S5,Kyphosus hawaiiensis,HG,HG,Sargassum,20-Mar
+S5_PC_M_2_RD1_01_56749.mzXML,S5_PC_M,Fish_Gut,S5,Kyphosus hawaiiensis,PC,PC,Sargassum,20-Mar
+S5_ST_M_GA1_01_56583.mzXML,S5_ST_M,Fish_Gut,S5,Kyphosus hawaiiensis,ST,ST,Sargassum,20-Mar
+S6_G1_M_RD3_01_56751.mzXML,S6_G1_M,Fish_Gut,S6,Kyphosus hawaiiensis,GI,G1,Sargassum,20-Mar
+S6_G2_M_GC4_01_56736.mzXML,S6_G2_M,Fish_Gut,S6,Kyphosus hawaiiensis,GI,G2,Sargassum,20-Mar
+S6_G3_M_GE6_01_56763.mzXML,S6_G3_M,Fish_Gut,S6,Kyphosus hawaiiensis,GI,G3,Sargassum,20-Mar
+S6_HG_M_GE1_01_56756.mzXML,S6_HG_M,Fish_Gut,S6,Kyphosus hawaiiensis,HG,HG,Sargassum,20-Mar
+S6_PC_M_RA4_01_56586.mzXML,S6_PC_M,Fish_Gut,S6,Kyphosus hawaiiensis,PC,PC,Sargassum,20-Mar
+S6_ST_M_GB1_01_56598.mzXML,S6_ST_M,Fish_Gut,S6,Kyphosus hawaiiensis,ST,ST,Sargassum,20-Mar
+W1_G1_M_GC1_01_56800.mzXML,W1_G1_M,Fish_Gut,W1,Kyphosus cinerascens,GI,G1,Wild,20-Mar
+W1_G2_M_GG3_01_56830.mzXML,W1_G2_M,Fish_Gut,W1,Kyphosus cinerascens,GI,G2,Wild,20-Mar
+W1_G3_M_GH2_01_56835.mzXML,W1_G3_M,Fish_Gut,W1,Kyphosus cinerascens,GI,G3,Wild,20-Mar
+W1_HG_M_GC7_01_56743.mzXML,W1_HG_M,Fish_Gut,W1,Kyphosus cinerascens,HG,HG,Wild,20-Mar
+W1_PC_M_GE5_01_56819.mzXML,W1_PC_M,Fish_Gut,W1,Kyphosus cinerascens,PC,PC,Wild,20-Mar
+W1_ST_M_GB7_01_56606.mzXML,W1_ST_M,Fish_Gut,W1,Kyphosus cinerascens,ST,ST,Wild,20-Mar
+W2_G1_M_GA8_01_56592.mzXML,W2_G1_M,Fish_Gut,W2,Kyphosus cinerascens,GI,G1,Wild,20-Mar
+W2_G2_M_GA10_01_56594.mzXML,W2_G2_M,Fish_Gut,W2,Kyphosus cinerascens,GI,G2,Wild,20-Mar
+W2_G3_M_GF11_01_56698.mzXML,W2_G3_M,Fish_Gut,W2,Kyphosus cinerascens,GI,G3,Wild,20-Mar
+W2_HG_M_GB1_01_56793.mzXML,W2_HG_M,Fish_Gut,W2,Kyphosus cinerascens,HG,HG,Wild,20-Mar
+W2_PC_M_RB8_01_56607.mzXML,W2_PC_M,Fish_Gut,W2,Kyphosus cinerascens,PC,PC,Wild,20-Mar
+W2_ST_M_GB2_01_56794.mzXML,W2_ST_M,Fish_Gut,W2,Kyphosus cinerascens,ST,ST,Wild,20-Mar
+W3_G1_M_GC3_01_56802.mzXML,W3_G1_M,Fish_Gut,W3,Kyphosus hawaiiensis,GI,G1,Wild,20-Mar
+W3_G2_M_GB11_01_56775.mzXML,W3_G2_M,Fish_Gut,W3,Kyphosus hawaiiensis,GI,G2,Wild,20-Mar
+W3_G3_M_GC10_01_56745.mzXML,W3_G3_M,Fish_Gut,W3,Kyphosus hawaiiensis,GI,G3,Wild,20-Mar
+W3_HG_M_GE11_01_56683.mzXML,W3_HG_M,Fish_Gut,W3,Kyphosus hawaiiensis,HG,HG,Wild,20-Mar
+W3_PC_M_RC9_01_56744.mzXML,W3_PC_M,Fish_Gut,W3,Kyphosus hawaiiensis,PC,PC,Wild,20-Mar
+W3_ST_M_GE9_01_56766.mzXML,W3_ST_M,Fish_Gut,W3,Kyphosus hawaiiensis,ST,ST,Wild,20-Mar
+W4_G1_M_GB10_01_56774.mzXML,W4_G1_M,Fish_Gut,W4,Kyphosus hawaiiensis,GI,G1,Wild,20-Mar
+W4_G2_M_GD8_01_56664.mzXML,W4_G2_M,Fish_Gut,W4,Kyphosus hawaiiensis,GI,G2,Wild,20-Mar
+W4_G3_M_GB5_01_56797.mzXML,W4_G3_M,Fish_Gut,W4,Kyphosus hawaiiensis,GI,G3,Wild,20-Mar
+W4_HG_M_GB3_01_56795.mzXML,W4_HG_M,Fish_Gut,W4,Kyphosus hawaiiensis,HG,HG,Wild,20-Mar
+W4_PC_M_RG7_01_56709.mzXML,W4_PC_M,Fish_Gut,W4,Kyphosus hawaiiensis,PC,PC,Wild,20-Mar
+W4_ST_M_GG9_01_56711.mzXML,W4_ST_M,Fish_Gut,W4,Kyphosus hawaiiensis,ST,ST,Wild,20-Mar
+W5_G1_M_GF9_01_56696.mzXML,W5_G1_M,Fish_Gut,W5,Kyphosus vaigiensis,GI,G1,Wild,20-Mar
+W5_G2_M_GA11_01_56595.mzXML,W5_G2_M,Fish_Gut,W5,Kyphosus vaigiensis,GI,G2,Wild,20-Mar
+W5_G3_M_GF1_01_56822.mzXML,W5_G3_M,Fish_Gut,W5,Kyphosus vaigiensis,GI,G3,Wild,20-Mar
+W5_HG_M_GH1_01_56834.mzXML,W5_HG_M,Fish_Gut,W5,Kyphosus vaigiensis,HG,HG,Wild,20-Mar
+W5_PC_M_RG6_01_56708.mzXML,W5_PC_M,Fish_Gut,W5,Kyphosus vaigiensis,PC,PC,Wild,20-Mar
+W5_ST_M_GH6_01_56723.mzXML,W5_ST_M,Fish_Gut,W5,Kyphosus vaigiensis,ST,ST,Wild,20-Mar
+Asparagopsis_armata_Aa_BB8_01_56848.mzXML,not applicable,seaweed,not applicable,not applicable,not applicable,not applicable,not applicable,not applicable
+Asparagopsis_taxiformis_At_BB3_01_56842.mzXML,not applicable,seaweed,not applicable,not applicable,not applicable,not applicable,not applicable,not applicable
+Halymeria_HK0_BB6_01_56845.mzXML,not applicable,seaweed,not applicable,not applicable,not applicable,not applicable,not applicable,not applicable
+Gracilaria_G_BB1_01_56840.mzXML,not applicable,seaweed,not applicable,not applicable,not applicable,not applicable,not applicable,not applicable
+Ulva_U_BB5_01_56844.mzXML,not applicable,seaweed,not applicable,not applicable,not applicable,not applicable,not applicable,not applicable
+Gracilaria_G3K0_BB4_01_56843.mzXML,not applicable,seaweed,not applicable,not applicable,not applicable,not applicable,not applicable,not applicable
+GP190605_111_BC2_01_56850.mzXML,not applicable,seaweed,not applicable,not applicable,not applicable,not applicable,not applicable,not applicable
+Macrocystis_M_BC7_01_56856.mzXML,not applicable,seaweed,not applicable,not applicable,not applicable,not applicable,not applicable,not applicable
+Uf190521_111_BC3_01_56851.mzXML,not applicable,seaweed,not applicable,not applicable,not applicable,not applicable,not applicable,not applicable
+GP190521_111_BC5_01_56854.mzXML,not applicable,seaweed,not applicable,not applicable,not applicable,not applicable,not applicable,not applicable
+Uf190605_111_BD3_01_56860.mzXML,not applicable,seaweed,not applicable,not applicable,not applicable,not applicable,not applicable,not applicable
+Macrocystis_M2_BC8_01_56857.mzXML,not applicable,seaweed,not applicable,not applicable,not applicable,not applicable,not applicable,not applicable
+Sargassum_S4PR_BC6_01_56855.mzXML,not applicable,seaweed,not applicable,not applicable,not applicable,not applicable,not applicable,not applicable
+Sargassum_S_BB7_01_56847.mzXML,not applicable,seaweed,not applicable,not applicable,not applicable,not applicable,not applicable,not applicable
+GP191019_211_BD2_01_56859.mzXML,not applicable,seaweed,not applicable,not applicable,not applicable,not applicable,not applicable,not applicable
+Se190521_111_BC4_01_56852.mzXML,not applicable,seaweed,not applicable,not applicable,not applicable,not applicable,not applicable,not applicable
+Se190605_111_BC1_01_56849.mzXML,not applicable,seaweed,not applicable,not applicable,not applicable,not applicable,not applicable,not applicable
+Sargassum_S2K0_BB2_01_56841.mzXML,not applicable,seaweed,not applicable,not applicable,not applicable,not applicable,not applicable,not applicable
+Se191019_211_BD1_01_56858.mzXML,not applicable,seaweed,not applicable,not applicable,not applicable,not applicable,not applicable,not applicable
