@@ -11,10 +11,20 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(vegan)
+library(viridis)
+library(RVAideMemoire)
 
 #read in data and metadata
 data=read.csv(file="KRuMBS_Fishguts_bothtrips_A_quant_filtered_withIDs.csv")
 metadata=read.csv(file="Metadata_KRuMBS_Fishguts_Seaweed_FULL.csv")
+
+#adjust order of factors for gut section and gut subsection to help with graphing
+metadata$ATTRIBUTE_Gut_Section=factor(metadata$ATTRIBUTE_Gut_Section,levels=c("ST","PC","GI","HG","not applicable"))
+metadata$ATTRIBUTE_Gut_SubSection=factor(metadata$ATTRIBUTE_Gut_SubSection,levels=c("ST","GI_1","GI_2","GI_3","GI_4","HG_1","HG_2","HG_3","HG","G1","G2","G3","GI","not applicable","PC"))
+metadata$ATTRIBUTE_Fish_Species=factor(metadata$ATTRIBUTE_Fish_Species,levels=c("Kyphosus cinerascens","Kyphosus hawaiiensis","Kyphosus vaigiensis","Kyphosus sandwicensis","not applicable","unknown"))
+colnames(metadata)[5]="Species"
+colnames(metadata)[6]="Gut_Section"
+colnames(metadata)[7]="Gut_SubSection"
 
 #adjust appropriate varibles in metadata to be characters
 metadata$sample_name=as.character(metadata$sample_name)
@@ -81,7 +91,7 @@ Next, remove low abundance peaks.
 abund.removal = function(data,sample.cols) {
   
   abund.threshold = function(x) {
-    ifelse(length(x[x>=0])>=3,TRUE,FALSE)
+    ifelse(sum(x>0)>=3,TRUE,FALSE)
   }
   
   abund.removal.vec=apply(data[,sample.cols],1,FUN=abund.threshold)
@@ -97,13 +107,223 @@ abund.removal = function(data,sample.cols) {
 abund.removal(data.clean,7:63)
 ```
 
-It looks like no low abundance samples were removed.
+659 low abundance features were removed.
 
 Next, let's look at the raw data distribution and transform into relative abundance.
 
 ```{r}
 data.19.jun.clean2=data.clean2
 
-hist(unlist(data.19.jun.clean2[,7:63])[unlist(data.19.jun.clean2[,7:63])!=0],xlim=c(0,200000),breaks=1000)
+#make a histogram of the feature peak area values EXCLUDING 0s. The data is very 0 inflated.
+hist(unlist(data.19.jun.clean2[,7:63])[unlist(data.19.jun.clean2[,7:63])!=0],xlim=c(0,500000),breaks=10000)
+
+#Looks like the distribtion of peak area vlaues has a substantial right hand skew, with a peak frequency at between 40,000 and 50,000.
+
+#Next, look at the minimum peak area value in the dataset. Consider this a threshold that Emily applied.
+min(unlist(data.19.jun.clean2[,7:63])[unlist(data.19.jun.clean2[,7:63])!=0])
+#Minimum peak area is 13,246.03
+
+#now transform each feature peak area to realtive abundance.
+#First creat blanks dfs and vectors to store for loop outputs.
+relabund=as.data.frame(matrix(nrow=1133,ncol=63))
+sample.col.relabund=c()
+
+for (i in 7:63) { #for each column (sample)
+  
+  sample.col=data.clean2[,i] #extract the peak abundance values for said sample and save them in empty vector.
+  
+  for (j in 1:1133) { #for each element (peak area) in said vector
+    
+    sample.col.relabund[j]=sample.col[j]/sum(sample.col) #calculate it's relative abundance by dividing it by the sum of all peak area values in said vector. Save this in corresponding position in new storage vector.
+    
+  }
+  
+  relabund[,i]=sample.col.relabund #store the feature.col.relabund vector in the appropriate row (feature) in the storage df.
+  
+}
+
+#rename rows, columns, and add back in metadata to relabund df.
+colnames(relabund)=colnames(data.clean2)
+rownames(relabund)=rownames(data.clean2)
+relabund[,1:6]=data.clean2[,1:6]
+
+#Rename relabund df.
+relabund.19.jun.clean2=relabund 
+
+#Visualize the distribution of the data. The relabund data is also 0 inflated.
+
+hist(unlist(relabund.19.jun.clean2[,7:63])[unlist(relabund.19.jun.clean2[,7:63])!=0],xlim=c(0,.02),breaks=1000)
+
+hist(unlist(relabund.19.jun.clean2[,7:63])[unlist(relabund.19.jun.clean2[,7:63])!=0],xlim=c(0,.01),breaks=1000)
+#The highest relabund freq is very low, between .0004 and .0008. The data has a strong right skew.
 ```
 
+The data structure is similar to that of 16S data. Highly zero inflated, most features have low abundance/relative abundance, and there is a large right hand skew as a few features are highly abundant.
+
+Next, let's convert to the relabund data to a bray curtis distance matrix, run a NMDS and PERMANOVA. We will then compare to the same process with raw abundance data data.
+
+```{r}
+#work up relabund data for vegdist
+rownames(relabund.19.jun.clean2)=relabund.19.jun.clean2$row.ID
+relabund.19.jun.clean2.dist=relabund.19.jun.clean2[,7:63]
+relabund.19.jun.clean2.dist.t=as.data.frame(t(relabund.19.jun.clean2.dist))
+
+#work up the abund data for vegdist
+rownames(data.19.jun.clean2)=data.19.jun.clean2$row.ID
+data.19.jun.clean2.dist=data.19.jun.clean2[,7:63]
+data.19.jun.clean2.dist.t=as.data.frame(t(data.19.jun.clean2.dist))
+
+bray.relabund.19.jun.clean2=vegdist(relabund.19.jun.clean2.dist.t,method="bray")
+bray.19.jun.clean2=vegdist(data.19.jun.clean2.dist.t,method="bray")
+
+nmds.relabund=metaMDS(bray.relabund.19.jun.clean2,k=2,trymax=100)
+#Convergent solutions were reached and stress was ok (~.17)
+
+nmds=metaMDS(bray.19.jun.clean2,k=2,trymax=100)
+#Convergent solutions were reached and stress was good (~.13)
+
+pointvec=c(15,16,17) #generate a vector of points to correspond to Species.
+colvec=viridis(n=4,option="D")
+
+#adjust the oder of the metadata samples to correspond to the order of samples in the dist matrix
+metadata.19.jun.samples1=metadata.19.jun.samples[match(rownames(data.19.jun.clean2.dist.t),metadata.19.jun.samples$sample_name2),]
+
+plot(nmds.relabund,type="n",main="relabund",xlim=c(-.8,.5))
+points(nmds.relabund, #plot each sample as a point
+       cex=2,
+       pch=pointvec[metadata.19.jun.samples1$Species], #point shape corresponds to fish Species
+       col=colvec[metadata.19.jun.samples1$Gut_Section]) 
+legend(-1,0,legend = c("ST","PC","GI","HG","K. cinerascens","K. hawaiiensis","K. vaigiensis"),cex=1,y.intersp=.75,bg="transparent",bty="n",col=c(colvec,"black","black","black"),pch=c(16,16,16,16,15,16,17),pt.cex=1)
+
+plot(nmds,type="n",main="raw abundance",xlim=c(-.8,.5))
+points(nmds, #plot each sample as a point
+       cex=2,
+       pch=pointvec[metadata.19.jun.samples1$Species], #point shape corresponds to fish Species
+       col=colvec[metadata.19.jun.samples1$Gut_Section]) 
+legend(-.8,0,legend = c("ST","PC","GI","HG","K. cinerascens","K. hawaiiensis","K. vaigiensis"),cex=1,y.intersp=.75,bg="transparent",bty="n",col=c(colvec,"black","black","black"),pch=c(16,16,16,16,15,16,17),pt.cex=1)
+
+```
+
+Regardless of if I use raw abundance or relative abundance data, the NMDS shows clear distinction in metabolomic communities by gut section. Hard to tell if species has an effect. Now I will run permanovas on the relabund dist matrix to asses the effects of Gut_Section and Species on metabolomic communities. Looks like the dispersion patterns here do not reflect the microbial community patterns. ST and HG have highest dispersion while GI and especially PC have low dispersion. I cannot explain the ST, GI, and HG patterns but it is likely that the PC has such low dispersion because we didn't sample any digesta from that section (or very little), so the signal is mostly fish tissue which is likely more uniform between individuals?
+
+```{r}
+permanova.gut.section=adonis(relabund.19.jun.clean2.dist.t~Gut_Section*Species,by="margin",strata=metadata.19.jun.samples1$ATTRIBUTE_Fish_Number,data=metadata.19.jun.samples1)
+permanova.gut.section
+
+permanova.gut.section.II=adonis.II(relabund.19.jun.clean2.dist.t~Gut_Section*Species,by="margin",strata=metadata.19.jun.samples1$ATTRIBUTE_Fish_Number,data=metadata.19.jun.samples1)
+permanova.gut.section.II
+```
+
+Gut Section is the most significant predictor of metabolomic community structure, followed by Species and a barely significant interaction between the two. Gut_Section explained the most variability.
+
+Now I will analyze only the dataset that corresponds to the 16S multivariate dataset, looking at gut subsection instead of gut section.
+
+```{r}
+#read in unifrac metadata
+metadata.fish.F4.F8.unifrac=read.csv(file="metadata.fish.F4.F8.unifrac.csv")
+metadata.19.jun.samples2=merge(metadata.19.jun.samples1,metadata.fish.F4.F8.unifrac,by.x="SampleCode",by.y="SampleCode")
+
+relabund.19.jun.clean2.dist.t.2=relabund.19.jun.clean2.dist.t[rownames(relabund.19.jun.clean2.dist.t) %in% metadata.19.jun.samples2$sample_name2,]
+
+#There are 2 samples in the metadata.fish.F4.F8.unifrac df that are not in the metadata.19.jun.samples1 df. These are "F8_GI_3" and "F6_GI_3". Confirm with Emily what happened to them.
+
+#Generate dist matrix
+bray.relabund.19.jun.clean2.2=vegdist(relabund.19.jun.clean2.dist.t.2,method="bray")
+
+#reorder the metadata so it lines up with the distance matrix
+metadata.19.jun.samples2=metadata.19.jun.samples2[match(rownames(relabund.19.jun.clean2.dist.t.2),metadata.19.jun.samples2$sample_name2),]
+colnames(metadata.19.jun.samples2)[5]="Species"
+colnames(metadata.19.jun.samples2)[6]="Gut_Section"
+colnames(metadata.19.jun.samples2)[7]="Gut_SubSection"
+
+
+nmds.relabund.2=metaMDS(bray.relabund.19.jun.clean2.2,k=2,trymax=100)
+#convergent solution reached, decent stress (.17)
+
+colvec3=viridis(n=8,option="D")
+
+plot(nmds.relabund.2,type="n")
+points(nmds.relabund.2, #plot each sample as a point
+       cex=2,
+       pch=pointvec[metadata.19.jun.samples2$Species], #point shape corresponds to fish Species
+       col=colvec3[metadata.19.jun.samples2$Gut_SubSection]) 
+legend(-.75,-.045,legend = c("ST","GI_1","GI_2","GI_3","GI_4","HG_1","HG_2","HG_3","K. cinerascens","K. hawaiiensis","K. vaigiensis"),cex=1,y.intersp=.75,bg="transparent",bty="n",col=c(colvec3,"black","black","black"),pch=c(16,16,16,16,16,16,16,16,15,16,17),pt.cex=.75)
+```
+
+We can see a clear succesional gradient from ST -> HG_3, and also more clearly see that species cluster distinctly, especially K. hawaiiensis.
+
+Now, I will run a permanova on this dataset.
+
+```{r}
+permanova.gut.subsection=adonis(relabund.19.jun.clean2.dist.t.2~Gut_SubSection*Species,by="margin",strata=metadata.19.jun.samples2$ATTRIBUTE_Fish_Number,data=metadata.19.jun.samples2,permutations=999)
+permanova.gut.subsection
+
+permanova.gut.subsection.II=adonis.II(relabund.19.jun.clean2.dist.t.2~Gut_SubSection*Species,by="margin",strata=metadata.19.jun.samples2$ATTRIBUTE_Fish_Number,data=metadata.19.jun.samples2,permutations=999)
+permanova.gut.subsection.II
+```
+
+Gut subsection and Species are both very significant, whereas the interaction term is less (but still noticably) significant. Gut subsection explains double the variation of species or their interaction. Interestingly, the interaction term explains more variation than species alone, despite the low effect size (F value).
+
+Next, I will import the parallel 16S distance matrix, and compare the 2 using procrustes and mantel tests.
+
+```{r}
+#Read in the 16S dist matrix, and subset it so it only includes the corresponding metabolomic samples
+weighted.unifrac.F4.F8.matrix=read.csv(file="weighted.unifrac.matrix.F4.F8.matrix.csv")
+rownames(weighted.unifrac.F4.F8.matrix)=weighted.unifrac.F4.F8.matrix$X
+weighted.unifrac.F4.F8.matrix=weighted.unifrac.F4.F8.matrix[,-1]
+weighted.unifrac.F4.F8.matrix1=weighted.unifrac.F4.F8.matrix[rownames(weighted.unifrac.F4.F8.matrix)!="F6_GI_3"&rownames(weighted.unifrac.F4.F8.matrix)!="F8_GI_3",colnames(weighted.unifrac.F4.F8.matrix)!="F6_GI_3"&rownames(weighted.unifrac.F4.F8.matrix)!="F8_GI_3"]
+#re order the matrix so samples are in the same order as the metabolomic dist matrix
+weighted.unifrac.F4.F8.matrix1=weighted.unifrac.F4.F8.matrix1[match(metadata.19.jun.samples2$SampleCode,rownames(weighted.unifrac.F4.F8.matrix1)),match(metadata.19.jun.samples2$SampleCode,rownames(weighted.unifrac.F4.F8.matrix1))]
+weighted.unifrac.F4.F8.dist1=as.dist(weighted.unifrac.F4.F8.matrix1) #convert to dist
+
+mantel(weighted.unifrac.F4.F8.dist1,bray.relabund.19.jun.clean2.2)
+```
+
+Interestingly, it appears as though the mantel test is not significant? Next, run procrustes.
+
+```{r}
+#Generate a nmds from the 16S dist matrix
+nmds.16s=metaMDS(weighted.unifrac.F4.F8.dist1,k=2,trymax=10)
+
+#plot the 16S nmds
+plot(nmds.16s,type="n",main="16S")
+points(nmds.16s, #plot each sample as a point
+       cex=2,
+       pch=pointvec[metadata.19.jun.samples2$Species], #point shape corresponds to fish Species
+       col=colvec3[metadata.19.jun.samples2$Gut_SubSection]) 
+
+#replot the metabolomics nmds for comparison
+plot(nmds.relabund.2,type="n",main="Metabolomics")
+points(nmds.relabund.2, #plot each sample as a point
+       cex=2,
+       pch=pointvec[metadata.19.jun.samples2$Species], #point shape corresponds to fish Species
+       col=colvec3[metadata.19.jun.samples2$Gut_SubSection]) 
+#as you can see, it looks like there is potential to align the two nmds plots pretty well.
+
+#run procrustes on the two nmds objects
+pro=procrustes(nmds.16s,nmds.relabund.2,scale=FALSE,symmetric=TRUE,scores="sites")
+summary(pro)
+
+#first do the simple plots
+plot(pro,kind=1)
+plot(pro,kind=2) #Not sure how to interperet this.
+
+pointvec2=c(21,22,24)
+
+#next plot a more detailed procrustes plot, with the filled points representing the rotated (metabolomic) samples and the open points representing the target (16S) samples.
+plot(pro,kind=1,lwd=1.5,len=.06)
+points(pro, display="rotated",#plot each sample as a point
+       cex=1,
+       pch=pointvec[metadata.19.jun.samples2$Species], #point shape corresponds to fish Species
+       col=colvec3[metadata.19.jun.samples2$Gut_SubSection]) 
+points(pro, display="target",#plot each sample as a point
+       cex=1,
+       lwd=2,
+       pch=pointvec2[metadata.19.jun.samples2$Species], #point shape corresponds to fishSpecies
+       col=colvec3[metadata.19.jun.samples2$Gut_SubSection]) 
+
+pro.test=protest(nmds.16s,nmds.relabund.2,scores="sites")
+pro.test
+```
+
+The protest comes out as "significant", but I am not sure how useful the pvalue is. Need to read up more on the procrustes SS and correlation statistics.
