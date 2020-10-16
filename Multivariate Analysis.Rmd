@@ -99,8 +99,11 @@ permanova.gut.subsection #Gut_SubSection and Species are both significant and ha
 pairwise.gut.zone=pairwise.adonis(weighted.unifrac.dist,metadata.fish.unifrac$Gut_Zone)
 pairwise.gut.zone
 
-pairwise.gut.subsection=pairwise.adonis(weighted.unifrac.F4.F8.dist,metadata.fish.F4.F8.unifrac$Gut_SubSection,p.adjust.m = "BH")
+pairwise.gut.subsection=pairwise.adonis(weighted.unifrac.F4.F8.dist,metadata.fish.F4.F8.unifrac$Gut_SubSection)
 pairwise.gut.subsection
+
+pairwise.gut.subsection1=pairwise.adonis(weighted.unifrac.F4.F8.dist,metadata.fish.F4.F8.unifrac$Gut_SubSection,p.adjust.m = "BH")
+pairwise.gut.subsection1
 
 #write.csv(pairwise.gut.subsection,file="pairwise.gut.subsection.csv") export pairwsie adonis results as CSV and use for Table SX in manuscript. 
 
