@@ -93,12 +93,16 @@ test.no.strata #looks like the results are very similar, so the permanova.gut.se
 permanova.gut.subsection=adonis.II(weighted.unifrac.F4.F8.dist~Species*Gut_SubSection,by="margin",strata=metadata.fish.F4.F8.unifrac$Fish_Number,data=metadata.fish.F4.F8.unifrac,permutations=999)
 permanova.gut.subsection #Gut_SubSection and Species are both significant and have similar F values. Marginally significant interaction.
 
+#write.csv(permanova.gut.subsection,file="permanova.gut.subsection.csv") export permanova results and save as CSV to be used for Table X2 in manuscript.
+
 #Next run pairwise adonis and the 3rd model to identify which gut regions differ from each other.
 pairwise.gut.zone=pairwise.adonis(weighted.unifrac.dist,metadata.fish.unifrac$Gut_Zone)
 pairwise.gut.zone
 
-pairwise.gut.subsection=pairwise.adonis(weighted.unifrac.F4.F8.dist,metadata.fish.F4.F8.unifrac$Gut_SubSection)
+pairwise.gut.subsection=pairwise.adonis(weighted.unifrac.F4.F8.dist,metadata.fish.F4.F8.unifrac$Gut_SubSection,p.adjust.m = "BH")
 pairwise.gut.subsection
+
+#write.csv(pairwise.gut.subsection,file="pairwise.gut.subsection.csv") export pairwsie adonis results as CSV and use for Table SX in manuscript. 
 
 pairwise.species=pairwise.adonis(weighted.unifrac.F4.F8.dist,metadata.fish.F4.F8.unifrac$Species)
 pairwise.species
@@ -153,9 +157,11 @@ points(nmds.weighted.unifrac.F4.F8, #plot each sample as a point
        cex=2,
        pch=pointvec[metadata.fish.F4.F8.unifrac$Species], #point shape corresponds to fish Species
        col=colvec2[as.factor(metadata.fish.F4.F8.unifrac$Gut_SubSection)]) 
-ordiellipse(nmds.weighted.unifrac.F4.F8,metadata.fish.F4.F8.unifrac$Gut_Section,kind="sd",draw="polygon",alpha=c(0,0),lwd=2.5,border=colvec3) #add SD ellipses, colored by Gut_Section. 
-text(-.5,.3,label="Stress=.14")
-#Export as 8.5x11 PDF
+text(-.5,.275,label="Stress=.14")
+
+#ordiellipse(nmds.weighted.unifrac.F4.F8,metadata.fish.F4.F8.unifrac$Gut_Section,kind="sd",draw="polygon",alpha=c(0,0),lwd=2.5,border=colvec3) #add SD ellipses, colored by Gut_Section. For now I will not use this.
+
+#Export as 8.5x11 PDF. merge with a legend and use that as Figure X3 for manuscript.
 ```
 
 
@@ -163,15 +169,14 @@ Next, draw arrows from ST->HG for individual fish to further visualize this succ
 
 ```{r}
 colvec2=viridis(n=8,option="D")
-plot(nmds.weighted.unifrac.F4.F8,type="n",xlim=c(-.5,.53),ylim=c(-.4,.4)) #Set up the NMDS plot environment
+plot(nmds.weighted.unifrac.F4.F8,type="n") #Set up the NMDS plot environment
 points(nmds.weighted.unifrac.F4.F8, #plot each sample as a point
        cex=2,
        pch=pointvec[metadata.fish.F4.F8.unifrac$Species], #point shape corresponds to fish Species
        col=colvec2[as.factor(metadata.fish.F4.F8.unifrac$Gut_SubSection)]) 
 ordiarrows(nmds.weighted.unifrac.F4.F8,group=metadata.fish.F4.F8.unifrac$Fish_Number,order.by=metadata.fish.F4.F8.unifrac$Gut_SubSection,show.groups=c("F4","F7","F8"),lwd=2,col="black")
 
-legend(.3,.45,legend = c("ST","GI_1","GI_2","GI_3","GI_4","HG_1","HG_2","HG_3","K. cinerascens","K. hawaiiensis","K. vaigiensis"),cex=1,y.intersp=.2,bg="transparent",bty="o",col=c(colvec2,"black","black","black"),pch=c(16,16,16,16,16,16,16,16,15,16,17),pt.cex=1.5) #Add legend. Save image as 8.5x11 PDF (landscape)
-
+#Export as 8.5x11 landscape PDF, merge with legend PNG to generate Figure SX2 for manuscript.
 ```
 
 These arrows track changes in 3 individual fishes' (F4, F7, F8) gut microbiomes. Each arrow connects the ordinated gut microbial communities in the correct order (St->HG_3). This further elucidates the consisten microbial community gradient we see through the fish gut.
@@ -300,6 +305,8 @@ adiv.mod.gut.subsection.shannoneven1=lmer(shannoneven~Gut_SubSection+(1|Species/
 summary(adiv.mod.gut.subsection.shannoneven1)
 anova(adiv.mod.gut.subsection.shannoneven1,ddf="Kenward-Roger") #Gut_SubSection is significant, species is not.
 lsmeans(adiv.mod.gut.subsection.shannoneven1, pairwise ~ Gut_SubSection, adjust="tukey")
+
+#write.csv(alpha.diversity.mean.gut_subsection,file="alpha.diversity.mean.gut_subsection.csv") export this df as a csv for Table X in manuscript.
 ```
 
 Gut_SubSection is a significant predictor of both sobs and shannoneven. The modes appear to struggle with certain Species:Gut_SubSection terms, likely because of limited sample size for certain species making it impossible to asses certain interactions. After removing the interactions, the models appear to perform fine.
@@ -311,17 +318,17 @@ sobs.gut.subsection.plot=ggplot(alpha.diversity.mean.gut_subsection,aes(x=Gut_Su
   geom_bar(stat="identity")+
   scale_fill_manual(values=viridis(n=8))+
   geom_errorbar(aes(ymin=sobs-SE_sobs,ymax=sobs+SE_sobs),width=.5)+
-  ggtitle("Observed Sequences")+
+  ggtitle("A")+
   theme_classic()+
   theme(legend.position = "none")+
-  geom_text(x=1:8,y=c(655,275,240,275,440,625,595,570),aes(label=c("A/C","B","B","B","B/D","C/D","C/D","C/D")))
+  geom_text(x=1:8,y=c(655,275,240,275,440,625,595,570),aes(label=c("A","B","B","B","B/C","A/C","A/C","A/C")))
 
 #now repeat for shannoneven
 shannoneven.gut.subsection.plot=ggplot(alpha.diversity.mean.gut_subsection,aes(x=Gut_SubSection,y=shannoneven,fill=Gut_SubSection))+
   geom_bar(stat="identity")+
   scale_fill_manual(values=viridis(n=8))+
   geom_errorbar(aes(ymin=shannoneven-SE_shannoneven,ymax=shannoneven+SE_shannoneven),width=.5)+
-  ggtitle("Shannon Eveness")+
+  ggtitle("B")+
   theme_classic()+
   ylim(0,.87)+
   theme(legend.position = "none")+
