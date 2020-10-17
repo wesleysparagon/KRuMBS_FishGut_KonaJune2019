@@ -247,7 +247,7 @@ points(nmds.relabund.2, #plot each sample as a point
        cex=2,
        pch=pointvec[metadata.19.jun.samples2$Species], #point shape corresponds to fish Species
        col=colvec3[metadata.19.jun.samples2$Gut_SubSection]) 
-legend(-.75,-.045,legend = c("ST","GI_1","GI_2","GI_3","GI_4","HG_1","HG_2","HG_3","K. cinerascens","K. hawaiiensis","K. vaigiensis"),cex=1,y.intersp=.75,bg="transparent",bty="n",col=c(colvec3,"black","black","black"),pch=c(16,16,16,16,16,16,16,16,15,16,17),pt.cex=.75)
+legend(-.75,-.022,legend = c("ST","GI_1","GI_2","GI_3","GI_4","HG_1","HG_2","HG_3","K. cinerascens","K. hawaiiensis","K. vaigiensis"),cex=1,y.intersp=.8,bg="transparent",bty="n",col=c(colvec3,"black","black","black"),pch=c(16,16,16,16,16,16,16,16,15,16,17),pt.cex=.75)
 ```
 
 We can see a clear succesional gradient from ST -> HG_3, and also more clearly see that species cluster distinctly, especially K. hawaiiensis.
@@ -311,7 +311,7 @@ plot(pro,kind=2) #Not sure how to interperet this.
 pointvec2=c(21,22,24)
 
 #next plot a more detailed procrustes plot, with the filled points representing the rotated (metabolomic) samples and the open points representing the target (16S) samples.
-plot(pro,kind=1,lwd=1.5,len=.06)
+plot(pro,kind=1,lwd=1.5,len=.06,ar.col=colvec3[metadata.19.jun.samples2$Gut_SubSection])
 points(pro, display="rotated",#plot each sample as a point
        cex=1,
        pch=pointvec[metadata.19.jun.samples2$Species], #point shape corresponds to fish Species
