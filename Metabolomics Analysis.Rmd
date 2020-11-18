@@ -114,7 +114,16 @@ Next, let's look at the raw data distribution and transform into relative abunda
 ```{r}
 data.19.jun.clean2=data.clean2
 
-#make a histogram of the feature peak area values EXCLUDING 0s. The data is very 0 inflated.
+#make a histogram of the feature peak areas.
+hist(unlist(data.19.jun.clean2[,7:63]),breaks=10000)
+
+#data look HIGHLY 0 inflated and with a long right tail. Let's look at the more common values.
+hist(unlist(data.19.jun.clean2[,7:63]),xlim=c(0,500000),breaks=10000)
+
+#Again, very 0 inflated, Most common peak areas appear to be under 4E05. Now, exclude 0s from the histogram
+hist(unlist(data.19.jun.clean2[,7:63])[unlist(data.19.jun.clean2[,7:63])!=0],breaks=10000)
+
+#Looks like there is a strong right skew, but most peak area values are under 5E06, with a few that are close to 3.5E07. Now look at only the more common values.
 hist(unlist(data.19.jun.clean2[,7:63])[unlist(data.19.jun.clean2[,7:63])!=0],xlim=c(0,500000),breaks=10000)
 
 #Looks like the distribtion of peak area vlaues has a substantial right hand skew, with a peak frequency at between 40,000 and 50,000.
@@ -155,7 +164,7 @@ relabund.19.jun.clean2=relabund
 hist(unlist(relabund.19.jun.clean2[,7:63])[unlist(relabund.19.jun.clean2[,7:63])!=0],xlim=c(0,.02),breaks=1000)
 
 hist(unlist(relabund.19.jun.clean2[,7:63])[unlist(relabund.19.jun.clean2[,7:63])!=0],xlim=c(0,.01),breaks=1000)
-#The highest relabund freq is very low, between .0004 and .0008. The data has a strong right skew.
+#The highest relabund freq is very low, between .0004 and .0008. The data has a strong right skew. Generallt the width of the peak is tighter with the relabund vs. abund data.
 ```
 
 The data structure is similar to that of 16S data. Highly zero inflated, most features have low abundance/relative abundance, and there is a large right hand skew as a few features are highly abundant.
@@ -225,13 +234,18 @@ metadata.19.jun.samples2=merge(metadata.19.jun.samples1,metadata.fish.F4.F8.unif
 
 relabund.19.jun.clean2.dist.t.2=relabund.19.jun.clean2.dist.t[rownames(relabund.19.jun.clean2.dist.t) %in% metadata.19.jun.samples2$sample_name2,]
 
+#adjust the row order of relabund.19.jun.clean2.dist.t.2 to match the metadata order
+relabund.19.jun.clean2.dist.t.3=relabund.19.jun.clean2.dist.t.2[match(metadata.19.jun.samples2$sample_name2,rownames(relabund.19.jun.clean2.dist.t.2)),]
+
+#adjust rownames so that they will line up with the 16S sample names that will be imported later
+rownames(relabund.19.jun.clean2.dist.t.3)=metadata.19.jun.samples2$SampleCode
+
 #There are 2 samples in the metadata.fish.F4.F8.unifrac df that are not in the metadata.19.jun.samples1 df. These are "F8_GI_3" and "F6_GI_3". Confirm with Emily what happened to them.
 
 #Generate dist matrix
-bray.relabund.19.jun.clean2.2=vegdist(relabund.19.jun.clean2.dist.t.2,method="bray")
+bray.relabund.19.jun.clean2.2=vegdist(relabund.19.jun.clean2.dist.t.3,method="bray")
 
 #reorder the metadata so it lines up with the distance matrix
-metadata.19.jun.samples2=metadata.19.jun.samples2[match(rownames(relabund.19.jun.clean2.dist.t.2),metadata.19.jun.samples2$sample_name2),]
 colnames(metadata.19.jun.samples2)[5]="Species"
 colnames(metadata.19.jun.samples2)[6]="Gut_Section"
 colnames(metadata.19.jun.samples2)[7]="Gut_SubSection"
@@ -272,14 +286,14 @@ weighted.unifrac.F4.F8.matrix=read.csv(file="weighted.unifrac.matrix.F4.F8.matri
 rownames(weighted.unifrac.F4.F8.matrix)=weighted.unifrac.F4.F8.matrix$X
 weighted.unifrac.F4.F8.matrix=weighted.unifrac.F4.F8.matrix[,-1]
 weighted.unifrac.F4.F8.matrix1=weighted.unifrac.F4.F8.matrix[rownames(weighted.unifrac.F4.F8.matrix)!="F6_GI_3"&rownames(weighted.unifrac.F4.F8.matrix)!="F8_GI_3",colnames(weighted.unifrac.F4.F8.matrix)!="F6_GI_3"&rownames(weighted.unifrac.F4.F8.matrix)!="F8_GI_3"]
-#re order the matrix so samples are in the same order as the metabolomic dist matrix
-weighted.unifrac.F4.F8.matrix1=weighted.unifrac.F4.F8.matrix1[match(metadata.19.jun.samples2$SampleCode,rownames(weighted.unifrac.F4.F8.matrix1)),match(metadata.19.jun.samples2$SampleCode,rownames(weighted.unifrac.F4.F8.matrix1))]
+#re order the matrix so samples are in the same order as the metabolomic dist matrix. In this case, the row/colnames of the other dist matrix are the metabolomic long format, whereas the row/colnames of the 16s dist matrix are the shortened "SampleCode." So we have to match the 16S unifrac matrix against the metadata.19.jun.samples2$SampleCode, since this will be in the order that the samples are in in the metabolomic dist matrix. Ugh
+weighted.unifrac.F4.F8.matrix1=weighted.unifrac.F4.F8.matrix1[match(metadata.19.jun.samples2$SampleCode,rownames(weighted.unifrac.F4.F8.matrix1)),match(metadata.19.jun.samples2$SampleCode,colnames(weighted.unifrac.F4.F8.matrix1))]
 weighted.unifrac.F4.F8.dist1=as.dist(weighted.unifrac.F4.F8.matrix1) #convert to dist
 
 mantel(weighted.unifrac.F4.F8.dist1,bray.relabund.19.jun.clean2.2)
 ```
 
-Interestingly, it appears as though the mantel test is not significant? Next, run procrustes.
+Mantel test is significant.
 
 ```{r}
 #Generate a nmds from the 16S dist matrix
@@ -308,7 +322,7 @@ summary(pro)
 plot(pro,kind=1)
 plot(pro,kind=2) #Not sure how to interperet this.
 
-pointvec2=c(21,22,24)
+pointvec2=c(22,21,24)
 
 #next plot a more detailed procrustes plot, with the filled points representing the rotated (metabolomic) samples and the open points representing the target (16S) samples.
 plot(pro,kind=1,lwd=1.5,len=.06,ar.col=colvec3[metadata.19.jun.samples2$Gut_SubSection])
