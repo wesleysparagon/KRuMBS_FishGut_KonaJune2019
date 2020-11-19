@@ -30,7 +30,7 @@ weighted.unifrac=read.csv(file="weighted.unifrac.csv") #read in weighted unifrac
 metadata=read.csv(file="metadata.csv") #read in metadata
 metadata$Gut_Section=factor(metadata$Gut_Section,levels=c("Stomach","Foregut","Midgut","Hindgut","No_Inoc","","GI","Pyloric_caeca")) #reorder the levels of the Gut_Subsection factor. This will be usefu later when generating ordinations.
 metadata$Species=factor(metadata$Species,levels=c("Kyphosus cinerascens","Kyphosus hawaiiensis","Kyphosus vaigiensis","")) #reorder the levels of the Species factor. This will be usefu later when generating ordinations.
-metadata$Gut_SubSection=factor(metadata$Gut_SubSection,levels=c("ST","GI_1","GI_2","GI_3","GI_4","HG","HG_1","HG_2","HG_3","No_Inoc","","PC","GI")) #reorder the levels of the Gut_SubSection factor. This will be useful later when generating ordinations.
+metadata$Gut_SubSection=factor(metadata$Gut_SubSection,levels=c("ST","GI_1","GI_2","GI_3","GI_4","HG_1","HG_2","HG_3","HG","No_Inoc","","PC","GI")) #reorder the levels of the Gut_SubSection factor. This will be useful later when generating ordinations.
 metadata$Gut_Zone=factor(metadata$Gut_Zone,levels=c("ST","GI","HG","PC","No_Inoc"))
 metadata.fish=metadata[metadata$Sample_Type_Broad=="Fish_Gut",] #subset metadata to include only fish gut samples
 metadata.fish=metadata.fish[metadata.fish$Gut_Zone!="PC",] #remove all PC samples
@@ -105,7 +105,7 @@ pairwise.gut.subsection
 pairwise.gut.subsection1=pairwise.adonis(weighted.unifrac.F4.F8.dist,metadata.fish.F4.F8.unifrac$Gut_SubSection,p.adjust.m = "BH")
 pairwise.gut.subsection1
 
-write.csv(pairwise.gut.subsection1,file="pairwise.gut.subsection1.csv") 
+#write.csv(pairwise.gut.subsection1,file="pairwise.gut.subsection1.csv") 
 #export pairwsie adonis results as CSV and use for Table SX in manuscript. 
 
 pairwise.species=pairwise.adonis(weighted.unifrac.F4.F8.dist,metadata.fish.F4.F8.unifrac$Species)
@@ -136,7 +136,7 @@ NMDS results seem fine, so make ordinations of the NMDS results.
 
 ```{r}
 pointvec=c(15,16,17) #generate a vector of points to correspond to Species.
-colvec=viridis(n=3,option="D") #generate a vector of colors to correspond to Gut_Zone.
+colvec=c("mediumpurple1",viridis(n=3,option="D")[2:3]) #generate a vector of colors to correspond to Gut_Zone.
 
 plot(nmds.weighted.unifrac,type="n") #Set up the NMDS plot environment
 points(nmds.weighted.unifrac, #plot each sample as a point
@@ -154,16 +154,15 @@ The gut zoness all form relativley distinct clusters.
 Next, plot the same NMDS but color by Gut_SubSection instead of Gut_Zone. Do this using the subset unifrac matrix and metadata that only contain F4-F8. Plot a NMDS in base R colored by Gut_SubSection but with ellipses by Gut_Section
 
 ```{r}
-colvec2=viridis(n=8,option="D")
-colvec3=viridis(n=4,option="D")
+colvec2=c("mediumpurple1",viridis(n=7,option="D",begin=.15))
+
 plot(nmds.weighted.unifrac.F4.F8,type="n") #Set up the NMDS plot environment
 points(nmds.weighted.unifrac.F4.F8, #plot each sample as a point
        cex=2,
        pch=pointvec[metadata.fish.F4.F8.unifrac$Species], #point shape corresponds to fish Species
        col=colvec2[as.factor(metadata.fish.F4.F8.unifrac$Gut_SubSection)]) 
 text(-.5,.275,label="Stress=.14")
-
-#ordiellipse(nmds.weighted.unifrac.F4.F8,metadata.fish.F4.F8.unifrac$Gut_Section,kind="sd",draw="polygon",alpha=c(0,0),lwd=2.5,border=colvec3) #add SD ellipses, colored by Gut_Section. For now I will not use this.
+ordiellipse(nmds.weighted.unifrac.F4.F8,metadata.fish.F4.F8.unifrac$Gut_Zone,kind="sd",draw="polygon",alpha=c(0,0),lwd=2.5,border=c("mediumpurple1",viridis(n=3,option="D")[2:3])) #add SD ellipses, colored by Gut_Section.
 
 #Export as 8.5x11 PDF. merge with a legend and use that as Figure X3 for manuscript.
 ```
@@ -199,15 +198,15 @@ stderror=function(x) {
 }
 
 #Calculate means and SE of the sobs and shannon evenness alpha diversity metrics for each Gut_Section and save as a df
-alpha.diversity.mean.gut_Section=aggregate(alpha.diversity.fish$sobs,by=list(alpha.diversity.fish$Gut_Section),FUN=mean)$x #aggregate (mean) sobs by Gut_Section, save in new df.
-alpha.diversity.mean.gut_Section=as.data.frame(alpha.diversity.mean.gut_Section)
-colnames(alpha.diversity.mean.gut_Section)[1]="sobs" #rename column 1 to sobs.
-alpha.diversity.mean.gut_Section$SE_sobs=aggregate(alpha.diversity.fish$sobs,by=list(alpha.diversity.fish$Gut_Section),FUN=stderror)$x #aggregate (stderror) sobs by Gut_section, save as a new column in df.
+alpha.diversity.mean.gut_Zone=aggregate(alpha.diversity.fish$sobs,by=list(alpha.diversity.fish$Gut_Zone),FUN=mean)$x #aggregate (mean) sobs by Gut_Section, save in new df.
+alpha.diversity.mean.gut_Zone=as.data.frame(alpha.diversity.mean.gut_Zone)
+colnames(alpha.diversity.mean.gut_Zone)[1]="sobs" #rename column 1 to sobs.
+alpha.diversity.mean.gut_Zone$SE_sobs=aggregate(alpha.diversity.fish$sobs,by=list(alpha.diversity.fish$Gut_Zone),FUN=stderror)$x #aggregate (stderror) sobs by Gut_Zone, save as a new column in df.
 #repeat this for shannoneven
-alpha.diversity.mean.gut_Section$shannoneven=aggregate(alpha.diversity.fish$shannoneven,by=list(alpha.diversity.fish$Gut_Section),FUN=mean)$x
-alpha.diversity.mean.gut_Section$SE_shannoneven=aggregate(alpha.diversity.fish$shannoneven,by=list(alpha.diversity.fish$Gut_Section),FUN=stderror)$x
-#now add in a Gut_Section column
-alpha.diversity.mean.gut_Section$Gut_Section=aggregate(alpha.diversity.fish$shannoneven,by=list(alpha.diversity.fish$Gut_Section),FUN=stderror)$Group.1
+alpha.diversity.mean.gut_Zone$shannoneven=aggregate(alpha.diversity.fish$shannoneven,by=list(alpha.diversity.fish$Gut_Zone),FUN=mean)$x
+alpha.diversity.mean.gut_Zone$SE_shannoneven=aggregate(alpha.diversity.fish$shannoneven,by=list(alpha.diversity.fish$Gut_Zone),FUN=stderror)$x
+#now add in a Gut_Zone column
+alpha.diversity.mean.gut_Zone$Gut_Zone=aggregate(alpha.diversity.fish$shannoneven,by=list(alpha.diversity.fish$Gut_Zone),FUN=stderror)$Group.1
 
 #Model the alpha diversity (sobs and shannoneven) metrics using mixed models with Gut_Section and Fish_Species as fixed effects and Fish_ID as a random effect.
 #First, check to see that the sobs and shannoneven data are normal
@@ -228,16 +227,16 @@ The shannoneven data appear to be (barely) normal. Thus I will not transform eit
 ```{r}
 #use the GI culled data!
 #Model the sobs data in response to Gut_seciton, fish species, and fish ID
-adiv.mod.gut.nested.sobs=lmer(sobs~Gut_Section/Gut_SubSection+Species+(1|Fish_Number),data=alpha.diversity.fish)
+adiv.mod.gut.nested.sobs=lmer(sobs~Gut_Zone/Gut_SubSection+Species+(1|Fish_Number),data=alpha.diversity.fish)
 summary(adiv.mod.gut.nested.sobs) #Note that including the Fish_Number ranef yields a singularity error regardless of species
 anova(adiv.mod.gut.nested.sobs,ddf="Kenward-Roger") #Gut_Section is significant
-lsmeans(adiv.mod.gut.nested.sobs, pairwise ~ Gut_Section, adjust="tukey") #HG and ST are not significantly different from each other, both are significantly different from GI.
+lsmeans(adiv.mod.gut.nested.sobs, pairwise ~ Gut_Zone, adjust="tukey") #HG and ST are not significantly different from each other, both are significantly different from GI.
 
 #Model the shannoneven data in response to Gut_seciton, fish species, and fish ID
-adiv.mod.gut.section.shannoneven=lmer(shannoneven~Gut_Section+Species+(1|Fish_Number),data=alpha.diversity.fish)
-summary(adiv.mod.gut.section.shannoneven)
-anova(adiv.mod.gut.section.shannoneven,ddf="Kenward-Roger") #Gut_Section is significant
-lsmeans(adiv.mod.gut.section.shannoneven, pairwise ~ Gut_Section, adjust="tukey")
+adiv.mod.gut.Zone.shannoneven=lmer(shannoneven~Gut_Zone+Species+(1|Fish_Number),data=alpha.diversity.fish)
+summary(adiv.mod.gut.Zone.shannoneven)
+anova(adiv.mod.gut.Zone.shannoneven,ddf="Kenward-Roger") #Gut_Zone is significant
+lsmeans(adiv.mod.gut.Zone.shannoneven, pairwise ~ Gut_Zone, adjust="tukey")
 #HG is significantly different from ST and GI. ST and GI are not significantly different from each other.
 ```
 
@@ -245,10 +244,10 @@ For both sobs and shannoneven, Gut Section was a significant predictor while Spe
 
 ```{r}
 #Graph alpha diversity indices as a function of Gut_Section
-sobs.gut.section.plot=ggplot(alpha.diversity.mean.gut_Section,aes(x=Gut_Section,y=sobs,fill=Gut_Section))+
+sobs.gut.section.plot=ggplot(alpha.diversity.mean.gut_Zone,aes(x=Gut_Zone,y=sobs,fill=Gut_Zone))+
   ylim(0,675)+
   geom_bar(stat="identity")+
-  scale_fill_manual(values=viridis(n=5))+
+  scale_fill_manual(values=colvec)+
   geom_errorbar(aes(ymin=sobs-SE_sobs,ymax=sobs+SE_sobs),width=.5)+
   ggtitle("Observed Sequences")+
   theme_classic()+
@@ -256,9 +255,9 @@ sobs.gut.section.plot=ggplot(alpha.diversity.mean.gut_Section,aes(x=Gut_Section,
   geom_text(x=1:3,y=c(650,275,550),label=c("A","B","A"))
 
 #now repeat for shannoneven
-shannoneven.gut.section.plot=ggplot(alpha.diversity.mean.gut_Section,aes(x=Gut_Section,y=shannoneven,fill=Gut_Section))+
+shannoneven.gut.Zone.plot=ggplot(alpha.diversity.mean.gut_Zone,aes(x=Gut_Zone,y=shannoneven,fill=Gut_Zone))+
   geom_bar(stat="identity")+
-  scale_fill_manual(values=viridis(n=3))+
+  scale_fill_manual(values=colvec)+
   geom_errorbar(aes(ymin=shannoneven-SE_shannoneven,ymax=shannoneven+SE_shannoneven),width=.5)+
   ggtitle("Shannon Eveness")+
   theme_classic()+
@@ -320,7 +319,7 @@ Gut_SubSection is a significant predictor of both sobs and shannoneven. The mode
 sobs.gut.subsection.plot=ggplot(alpha.diversity.mean.gut_subsection,aes(x=Gut_SubSection,y=sobs,fill=Gut_SubSection))+
   ylim(0,670)+
   geom_bar(stat="identity")+
-  scale_fill_manual(values=viridis(n=8))+
+  scale_fill_manual(values=colvec2)+
   geom_errorbar(aes(ymin=sobs-SE_sobs,ymax=sobs+SE_sobs),width=.5)+
   ggtitle("A")+
   theme_classic()+
@@ -330,7 +329,7 @@ sobs.gut.subsection.plot=ggplot(alpha.diversity.mean.gut_subsection,aes(x=Gut_Su
 #now repeat for shannoneven
 shannoneven.gut.subsection.plot=ggplot(alpha.diversity.mean.gut_subsection,aes(x=Gut_SubSection,y=shannoneven,fill=Gut_SubSection))+
   geom_bar(stat="identity")+
-  scale_fill_manual(values=viridis(n=8))+
+  scale_fill_manual(values=colvec2)+
   geom_errorbar(aes(ymin=shannoneven-SE_shannoneven,ymax=shannoneven+SE_shannoneven),width=.5)+
   ggtitle("B")+
   theme_classic()+
@@ -381,12 +380,11 @@ There is a significant difference in distances to centroid for the various gut s
 
 ```{r}
 
-dispersion.gut.subsection.plot.v1=ggplot(dispersion.gut.subsection2,aes(y=distance_to_centroid,x=Gut_SubSection,fill=Gut_SubSection))+
-  geom_bar(stat="identity")+
-  scale_fill_manual(values=viridis(n=8,option="D"))+
-  theme_classic()+
-  geom_errorbar(aes(ymin=distance_to_centroid-se,ymax=distance_to_centroid+se),width=.5)
-  
+dispersion.gut.subsection.plot.v1=ggplot(dispersion.gut.subsection1,aes(y=sqrt.distances,x=Gut_SubSection,fill=Gut_SubSection))+
+  geom_boxplot()+
+  scale_fill_manual(values=colvec2)+
+  theme_classic()
+
 dispersion.gut.subsection.plot.v1
 
 ```

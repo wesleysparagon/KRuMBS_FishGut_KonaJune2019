@@ -369,7 +369,57 @@ nmds.scores.2$Species=metadata.fish.F4.F8.unifrac$Species #Add Species to the ne
 nmds.scores.2$Fish_Number=metadata.fish.F4.F8.unifrac$Fish_Number
 nmds.scores.2$Gut_Section=metadata.fish.F4.F8.unifrac$Gut_Section
 
+#test different color gradients
+colvectest=c("#7b5804",viridis(n=7,option="D",begin=.15))
+colvectest2=c("mediumpurple1",viridis(n=7,option="D",begin=.15))
+pointvectest=c(22,21,24)
+
 ggplot(nmds.scores.2,aes(x=NMDS1,y=NMDS2,shape=Species,color=Gut_SubSection,size=2))+ #plot nmds.scores, specify x and y axis, shape corresponding to species, color corresponding to Ranked_Distance_from_Stomach
-  scale_color_manual(values=viridis(n=8,option="D"))+ #set gradient scale to desired viridis scale
+  scale_color_manual(values=colvectest2)+ #set gradient scale to desired viridis scale
   geom_point(data=nmds.scores.2,aes(x=NMDS1,y=NMDS2))+ #add points
-  theme_classic() #export graphs as 8.5x11 PDF (landscape)
+  theme_classic()+
+  ggtitle("new gradient1")#export graphs as 8.5x11 PDF (landscape)
+
+plot(nmds.weighted.unifrac.F4.F8,type="n") #Set up the NMDS plot environment
+points(nmds.weighted.unifrac.F4.F8, #plot each sample as a point
+       cex=2,
+       pch=pointvec[metadata.fish.F4.F8.unifrac$Species], #point shape corresponds to fish Species
+       col=colvectest2[as.factor(metadata.fish.F4.F8.unifrac$Gut_SubSection)]) 
+text(-.5,.275,label="Stress=.14")
+ordiellipse(nmds.weighted.unifrac.F4.F8,metadata.fish.F4.F8.unifrac$Gut_Zone,kind="sd",draw="polygon",alpha=c(0,0),lwd=2.5,border=c("mediumpurple1",viridis(n=3,option="D")[2:3])) #add SD ellipses, colored by Gut_Section. For now I will not use this.
+
+plot(nmds.weighted.unifrac.F4.F8,type="n") #Set up the NMDS plot environment
+points(nmds.weighted.unifrac.F4.F8, #plot each sample as a point
+       cex=2,
+       pch=pointvectest[metadata.fish.F4.F8.unifrac$Species], #point shape corresponds to fish Species
+       bg=colvec2[as.factor(metadata.fish.F4.F8.unifrac$Gut_SubSection)],
+       col=colvec[as.factor(metadata.fish.F4.F8.unifrac$Gut_Zone)],
+       lwd=2.5)
+
+ggplot(nmds.scores.2,aes(x=NMDS1,y=NMDS2,shape=Species,color=Gut_SubSection,size=2))+ #plot nmds.scores, specify x and y axis, shape corresponding to species, color corresponding to Ranked_Distance_from_Stomach
+  scale_color_manual(values=colvec2)+ #set gradient scale to desired viridis scale
+  geom_point(data=nmds.scores.2,aes(x=NMDS1,y=NMDS2))+ #add points
+  theme_classic()+
+  ggtitle("old gradient")
+
+ggplot(alpha.diversity.mean.gut_subsection,aes(x=Gut_SubSection,y=sobs,fill=Gut_SubSection))+
+  ylim(0,670)+
+  geom_bar(stat="identity")+
+  scale_fill_manual(values=viridis(n=8))+
+  geom_errorbar(aes(ymin=sobs-SE_sobs,ymax=sobs+SE_sobs),width=.5)+
+  ggtitle("A")+
+  theme_classic()+
+  theme(legend.position = "none")+
+  ggtitle("old gradient")+
+  geom_text(x=1:8,y=c(655,275,240,275,440,625,595,570),aes(label=c("A","B","B","B","B/C","A/C","A/C","A/C")))
+
+ggplot(alpha.diversity.mean.gut_subsection,aes(x=Gut_SubSection,y=sobs,fill=Gut_SubSection))+
+  ylim(0,670)+
+  geom_bar(stat="identity")+
+  scale_fill_manual(values=colvectest)+
+  geom_errorbar(aes(ymin=sobs-SE_sobs,ymax=sobs+SE_sobs),width=.5)+
+  ggtitle("A")+
+  theme_classic()+
+  theme(legend.position = "none")+
+  ggtitle("new gradient1")+
+  geom_text(x=1:8,y=c(655,275,240,275,440,625,595,570),aes(label=c("A","B","B","B","B/C","A/C","A/C","A/C")))
