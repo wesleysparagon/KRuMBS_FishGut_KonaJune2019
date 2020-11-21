@@ -1,6 +1,4 @@
 "","SampleCode","Sample_Type_Broad","RobCode","Fish_Number","Species","Gut_Zone","Gut_SubSection","Culture_Media","Gut_Section"
-"4","F1_STOM","Fish_Gut","","F1","Kyphosus cinerascens","ST","ST","Fish_Gut","Stomach"
-"11","F3_STOM","Fish_Gut","","F3","Kyphosus hawaiiensis","ST","ST","Fish_Gut","Stomach"
 "12","F4_GI_1","Fish_Gut","","F4","Kyphosus vaigiensis","GI","GI_1","Fish_Gut","Foregut"
 "13","F4_GI_2","Fish_Gut","","F4","Kyphosus vaigiensis","GI","GI_2","Fish_Gut","Foregut"
 "14","F4_GI_3","Fish_Gut","","F4","Kyphosus vaigiensis","GI","GI_3","Fish_Gut","Midgut"

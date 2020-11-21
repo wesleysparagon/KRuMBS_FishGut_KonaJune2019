@@ -231,6 +231,7 @@ anova.kw=function(x) { #make a function that performs anova (Kenward-Roger)
   results=anova(x,ddf="Kenward-Roger")
   return(results)
 }
+
 mixed.mod.results=lapply(mixed.mod.relabund.t.fish.F4.F8.cull.trans,FUN=anova.kw) #perform an anova(ddf="Kenward-Roger") on all mixed models, save output.
 mixed.mod.pvals=as.data.frame(t(as.data.frame(mixed.mod.results))[seq(from=6,to=4152,by=6),]) #extract the pvas from the mixed.mod.results list. Do this by converting list to df, transposing it, and then extracting every 6th column (which correspond to the pvals from each model).
 #Work up p values
@@ -375,7 +376,7 @@ colvectest2=c("mediumpurple1",viridis(n=7,option="D",begin=.15))
 pointvectest=c(22,21,24)
 
 ggplot(nmds.scores.2,aes(x=NMDS1,y=NMDS2,shape=Species,color=Gut_SubSection,size=2))+ #plot nmds.scores, specify x and y axis, shape corresponding to species, color corresponding to Ranked_Distance_from_Stomach
-  scale_color_manual(values=colvectest2)+ #set gradient scale to desired viridis scale
+  scale_color_manual(values=colvec2)+ #set gradient scale to desired viridis scale
   geom_point(data=nmds.scores.2,aes(x=NMDS1,y=NMDS2))+ #add points
   theme_classic()+
   ggtitle("new gradient1")#export graphs as 8.5x11 PDF (landscape)
@@ -423,3 +424,12 @@ ggplot(alpha.diversity.mean.gut_subsection,aes(x=Gut_SubSection,y=sobs,fill=Gut_
   theme(legend.position = "none")+
   ggtitle("new gradient1")+
   geom_text(x=1:8,y=c(655,275,240,275,440,625,595,570),aes(label=c("A","B","B","B","B/C","A/C","A/C","A/C")))
+
+plot(nmds.weighted.unifrac.F4.F8,type="n") #Set up the NMDS plot environment
+points(nmds.weighted.unifrac.F4.F8, #plot each sample as a point
+       cex=2,
+       pch=pointvec[metadata.fish.F4.F8.unifrac$Species], #point shape corresponds to fish Species
+       col=colvec2[as.factor(metadata.fish.F4.F8.unifrac$Gut_SubSection)]) 
+text(-.5,.275,label="Stress=.14")
+ordiellipse(nmds.weighted.unifrac.F4.F8,metadata.fish.F4.F8.unifrac$Gut_Zone,kind="sd",draw="polygon",alpha=c(0,0),lwd=2.5,border=c("mediumpurple1",viridis(n=3,option="D")[2:3])) #add SD ellipses, colored by Gut_Section.
+ordiarrows(nmds.weighted.unifrac.F4.F8,group=metadata.fish.F4.F8.unifrac$Fish_Number,order.by=metadata.fish.F4.F8.unifrac$Gut_SubSection,lwd=2,col="black")

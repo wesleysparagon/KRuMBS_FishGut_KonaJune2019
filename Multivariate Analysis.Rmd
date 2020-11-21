@@ -34,7 +34,7 @@ metadata$Gut_SubSection=factor(metadata$Gut_SubSection,levels=c("ST","GI_1","GI_
 metadata$Gut_Zone=factor(metadata$Gut_Zone,levels=c("ST","GI","HG","PC","No_Inoc"))
 metadata.fish=metadata[metadata$Sample_Type_Broad=="Fish_Gut",] #subset metadata to include only fish gut samples
 metadata.fish=metadata.fish[metadata.fish$Gut_Zone!="PC",] #remove all PC samples
-metadata.fish.F4.F8=metadata.fish[metadata.fish$Gut_SubSection!="GI" & metadata.fish$Gut_SubSection!="HG",] #subset metadata removing Gut_SubSections GI and HG. This corresponds to the HG/GI samples from F1-F3, which were sampled differently and do not have gut_subsections compared to fish F4-F8.
+metadata.fish.F4.F8=metadata.fish[metadata.fish$Fish_Number!="F1" & metadata.fish$Fish_Number!="F2" & metadata.fish$Fish_Number!="F3",] #subset metadata removing F1-F3, which were sampled differently and do not have gut_subsections compared to fish F4-F8.
 
 
 alpha.diversity=read.csv(file="all_alphaDiversity_100.summary.csv") #read in alpha diversity file
@@ -64,7 +64,7 @@ for (i in 1:nrow(weighted.unifrac.matrix)) { #for each column in the unifrac mat
 }
 weighted.unifrac.matrix[is.na(weighted.unifrac.matrix)]=0 #replace NAs with 0s
 weighted.unifrac.matrix=weighted.unifrac.matrix[as.logical(apply(weighted.unifrac.matrix,1,FUN=sum)),as.logical(apply(weighted.unifrac.matrix,2,FUN=sum))] #subset the weighted.unifrac.matrix so that any rows or columns whose sum=0 are removed. This removes samples which are in the metadata but failed to sequence and/or pass through the pipeline at 50k subsampling.
-weighted.unifrac.F4.F8.matrix=weighted.unifrac.matrix[c(-1:-2,-4:-7),c(-1:-2,-4:-7)] #make a unifrac matrix without the F1-F3 GI and HG samples.. These are excluded do to differences in dissection methodology.
+weighted.unifrac.F4.F8.matrix=weighted.unifrac.matrix[-1:-8,-1:-8] #make a unifrac matrix without the F1-F3 samples. These are excluded do to differences in dissection methodology.
 #write.csv(weighted.unifrac.matrix,file="weighted.unifrac.matrix.matrix.csv") #export unifrac matrices as CSVs
 #write.csv(weighted.unifrac.F4.F8.matrix,file="weighted.unifrac.matrix.F4.F8.matrix.csv")
 weighted.unifrac.dist=as.dist(weighted.unifrac.matrix) #convert to "dist" type
@@ -90,10 +90,10 @@ test.no.strata=adonis.II(weighted.unifrac.dist~Species*Gut_Zone,by="margin",data
 test.no.strata #looks like the results are very similar, so the permanova.gut.section model wil be used. Note: Pseudo-F values are exactly the same whereas pvals do change slightly when the strata variable is changed.
 
 #Third model: F4-F8 distance matrix without PC samples, variables of interest: Species, Gut_subsection, and Fish_Number as strata. 
-permanova.gut.subsection=adonis.II(weighted.unifrac.F4.F8.dist~Species*Gut_SubSection,by="margin",strata=metadata.fish.F4.F8.unifrac$Fish_Number,data=metadata.fish.F4.F8.unifrac,permutations=999)
-permanova.gut.subsection #Gut_SubSection and Species are both significant and have similar F values. Marginally significant interaction.
+permanova.gut.subsection=adonis(weighted.unifrac.F4.F8.dist~Gut_SubSection*Species,by="margin",strata=metadata.fish.F4.F8.unifrac$Fish_Number,data=metadata.fish.F4.F8.unifrac,permutations=999)
+permanova.gut.subsection #Gut_SubSection and Species are both significant and have similar F values. Non significant significant interaction.
 
-#write.csv(permanova.gut.subsection,file="permanova.gut.subsection.csv") export permanova results and save as CSV to be used for Table X2 in manuscript.
+write.csv(as.matrix(permanova.gut.subsection),file="permanova.gut.subsection.csv") #export permanova results and save as CSV to be used for Table X2 in manuscript.
 
 #Next run pairwise adonis and the 3rd model to identify which gut regions differ from each other.
 pairwise.gut.zone=pairwise.adonis(weighted.unifrac.dist,metadata.fish.unifrac$Gut_Zone)
@@ -158,26 +158,37 @@ colvec2=c("mediumpurple1",viridis(n=7,option="D",begin=.15))
 
 plot(nmds.weighted.unifrac.F4.F8,type="n") #Set up the NMDS plot environment
 points(nmds.weighted.unifrac.F4.F8, #plot each sample as a point
-       cex=2,
+       cex=3.5,
        pch=pointvec[metadata.fish.F4.F8.unifrac$Species], #point shape corresponds to fish Species
        col=colvec2[as.factor(metadata.fish.F4.F8.unifrac$Gut_SubSection)]) 
 text(-.5,.275,label="Stress=.14")
 ordiellipse(nmds.weighted.unifrac.F4.F8,metadata.fish.F4.F8.unifrac$Gut_Zone,kind="sd",draw="polygon",alpha=c(0,0),lwd=2.5,border=c("mediumpurple1",viridis(n=3,option="D")[2:3])) #add SD ellipses, colored by Gut_Section.
 
 #Export as 8.5x11 PDF. merge with a legend and use that as Figure X3 for manuscript.
+
+#Additional options with arrows include
+#plot(nmds.weighted.unifrac.F4.F8,type="n") #Set up the NMDS plot environment
+#points(nmds.weighted.unifrac.F4.F8, #plot each sample as a point
+      #cex=4,
+       #pch=pointvec[metadata.fish.F4.F8.unifrac$Species], #point shape corresponds to fish Species
+       #col=colvec2[as.factor(metadata.fish.F4.F8.unifrac$Gut_SubSection)]) 
+#text(-.5,.275,label="Stress=.14")
+#ordiellipse(nmds.weighted.unifrac.F4.F8,metadata.fish.F4.F8.unifrac$Gut_Zone,kind="sd",draw="polygon",alpha=c(0,0),lwd=2.5,border=c("mediumpurple1",viridis(n=3,option="D")[2:3])) #add SD ellipses, colored by Gut_Section.
+#ordiarrows(nmds.weighted.unifrac.F4.F8,group=metadata.fish.F4.F8.unifrac$Fish_Number,order.by=metadata.fish.F4.F8.unifrac$Gut_SubSection,lwd=2,col="black")
+
 ```
 
 
-Next, draw arrows from ST->HG for individual fish to further visualize this successional gradient.
+Next, draw arrows from ST->HG for individual fish to further visualize this successional gradient. NOTE this might be removed since arrows may go in Fig 3
 
 ```{r}
-colvec2=viridis(n=8,option="D")
-plot(nmds.weighted.unifrac.F4.F8,type="n") #Set up the NMDS plot environment
-points(nmds.weighted.unifrac.F4.F8, #plot each sample as a point
-       cex=2,
-       pch=pointvec[metadata.fish.F4.F8.unifrac$Species], #point shape corresponds to fish Species
-       col=colvec2[as.factor(metadata.fish.F4.F8.unifrac$Gut_SubSection)]) 
-ordiarrows(nmds.weighted.unifrac.F4.F8,group=metadata.fish.F4.F8.unifrac$Fish_Number,order.by=metadata.fish.F4.F8.unifrac$Gut_SubSection,show.groups=c("F4","F7","F8"),lwd=2,col="black")
+#colvec2=viridis(n=8,option="D")
+#plot(nmds.weighted.unifrac.F4.F8,type="n") #Set up the NMDS plot environment
+#points(nmds.weighted.unifrac.F4.F8, #plot each sample as a point
+       #cex=2,
+       #pch=pointvec[metadata.fish.F4.F8.unifrac$Species], #point shape corresponds to fish Species
+       #col=colvec2[as.factor(metadata.fish.F4.F8.unifrac$Gut_SubSection)]) 
+#ordiarrows(nmds.weighted.unifrac.F4.F8,group=metadata.fish.F4.F8.unifrac$Fish_Number,order.by=metadata.fish.F4.F8.unifrac$Gut_SubSection,show.groups=c("F4","F7","F8"),lwd=2,col="black")
 
 #Export as 8.5x11 landscape PDF, merge with legend PNG to generate Figure SX2 for manuscript.
 ```
@@ -337,7 +348,7 @@ shannoneven.gut.subsection.plot=ggplot(alpha.diversity.mean.gut_subsection,aes(x
   theme(legend.position = "none")+
   geom_text(x=1:8,y=c(.6,.6,.6,.75,.75,.85,.85,.85),aes(label=c("A","A","A","A/B","A/B","B","B","B")))
 
-plot_grid(sobs.gut.subsection.plot,shannoneven.gut.subsection.plot) ##use the plot_grid function to plot the above 4 plots (par(mfrow=())) doesnt work with ggplot2. Save as PNG (1095 x 485).
+plot_grid(sobs.gut.subsection.plot,shannoneven.gut.subsection.plot) ##use the plot_grid function to plot the above 2 plots (par(mfrow=())) doesnt work with ggplot2. Save as PNG (1095 x 485) and use as Figure 1 in manuscript.
 ```
 
 
@@ -380,12 +391,15 @@ There is a significant difference in distances to centroid for the various gut s
 
 ```{r}
 
-dispersion.gut.subsection.plot.v1=ggplot(dispersion.gut.subsection1,aes(y=sqrt.distances,x=Gut_SubSection,fill=Gut_SubSection))+
+dispersion.gut.subsection.plot.v1=ggplot(dispersion.gut.subsection1,aes(y=distances,x=Gut_SubSection,fill=Gut_SubSection))+
+  ylab(label="unifrac distance to centroid")+
   geom_boxplot()+
   scale_fill_manual(values=colvec2)+
   theme_classic()
 
 dispersion.gut.subsection.plot.v1
+
+#save as 8.5x11 and use as Figure 2
 
 ```
 
