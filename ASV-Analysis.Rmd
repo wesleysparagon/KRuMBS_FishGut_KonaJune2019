@@ -1,0 +1,426 @@
+---
+title: "ASV Analysis"
+author: "Wesley Sparagon"
+date: "4/20/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Read in and work up data/metadata.
+
+```{r}
+library(phyloseq)
+library(lme4)
+library(lmerTest)
+library(multcomp)
+library(ggplot2)
+library(cowplot)
+library(gridExtra)
+
+#set up custom functions
+cull.otu=function(relabund.df, min.num, min.abund, min.single.abund) {
+  #Inputs:  relabund.df = dataframe containing ONLY relative abundance data, no metadata or other info. Samples in rows and OTUs in columns.
+            
+            #min.num = the minimum number of samples an OTU needs to be present in to not be culled.
+            
+            #min.abund = the minimum relative abundance an OTU needs to have in (the min.num) samples to not be culled.
+ 
+            #min.single.abund = the minimum relative abundance an OTU needs to have in a SINGLE sample to not be culled.
+   
+  sub=c() #create a empty vector
+  
+  cull=function(x) { #make a function that says for any input, generate a logical vector of TRUEs and FALSEs that will be used for subsetting, selecting OTUs that
+    sub=ifelse(length(x[x>=min.abund])>=min.num #have a relabund>"min.abund" in "min.num" samples 
+               | length(x[x>=min.single.abund])>0,TRUE,FALSE) #or have a relabund>"min.single.abund" in at least one sample
+    return(sub)
+  }
+  
+  cull.vec=apply(relabund.df,2,FUN=cull) #apply cull function to relabund.df, save output as a vector.
+  relabund.df.cull=relabund.df[,cull.vec] #Use cull.vec to subset the columns of relabund.df for OTUs that passed the cull threshold.
+  
+  relabund.df.cull<<-relabund.df.cull
+}
+
+#Read in metadata
+metadata=read.csv(file="metadata.csv") #read in metadata
+metadata$Gut_Section=factor(metadata$Gut_Section,levels=c("Stomach","Foregut","Midgut","Hindgut","No_Inoc","","GI","Pyloric_caeca")) #reorder the levels of the Gut_Subsection factor. This will be usefu later when generating ordinations.
+metadata$Species=factor(metadata$Species,levels=c("Kyphosus cinerascens","Kyphosus hawaiiensis","Kyphosus vaigiensis","")) #reorder the levels of the Species factor. This will be usefu later when generating ordinations.
+metadata$Gut_SubSection=factor(metadata$Gut_SubSection,levels=c("ST","GI_1","GI_2","GI_3","GI_4","HG_1","HG_2","HG_3","HG","No_Inoc","","PC","GI")) #reorder the levels of the Gut_SubSection factor. This will be useful later when generating ordinations.
+metadata$Gut_Zone=factor(metadata$Gut_Zone,levels=c("ST","GI","HG","PC","No_Inoc"))
+metadata.fish=metadata[metadata$Sample_Type_Broad=="Fish_Gut",] #subset metadata to include only fish gut samples
+metadata.fish=metadata.fish[metadata.fish$Gut_Zone!="PC",] #remove all PC samples
+metadata.fish.F4.F8=metadata.fish[metadata.fish$Fish_Number!="F1" & metadata.fish$Fish_Number!="F2" & metadata.fish$Fish_Number!="F3",] #subset metadata removing F1-F3, which were sampled differently and do not have gut_subsections compared to fish F4-F8.
+metadata.fish.noST=metadata.fish[metadata.fish$Gut_Section!="ST",] #remove ST samples
+metadata.fish.F4.F8.noST=metadata.fish.F4.F8[metadata.fish.F4.F8$Gut_SubSection!="ST",] #remove ST samples
+
+relabund=read.csv(file="abundance_table_100.csv") #read in relative abundance table
+rownames(relabund)=relabund$OTUNumber #make rownames correspond to OTU names
+relabund=relabund[,-1] #remove column 1 (OTU name column)
+relabund.t=relabund[,-87:-95]  #remove last 9 columns (which correspond to character vectors, taxonomy, etc.). Save as a new df which will be transposed. Must remove columns 87:89 BEFORE transposing.
+relabund.t=as.data.frame(t(relabund.t)) #transpose relabund.t df
+
+abund=read.csv(file="abundance_table_100.shared.csv") #read in abundance table
+rownames(abund)=abund$Group #make rownames correspond to OTU names
+abund=abund[,-1:-3] #remove columns 1-3 (non OTU columns)
+
+#subset relabund, relabund.t, and abund so they match with respective metadata
+relabund.fish.F4.F8.ST=relabund[,colnames(relabund) %in% metadata.fish.F4.F8$SampleCode]
+relabund.fish.ST=relabund[,colnames(relabund) %in% metadata.fish$SampleCode]
+relabund.fish=relabund[,colnames(relabund) %in% metadata.fish.noST$SampleCode]
+relabund.fish.F4.F8=relabund.fish[,colnames(relabund.fish) %in% metadata.fish.F4.F8.noST$SampleCode]
+relabund.fish=cbind(relabund.fish,relabund[,87:95]) #add back in taxonomy info
+relabund.fish.F4.F8=cbind(relabund.fish.F4.F8,relabund[,87:95]) #add back in taxonomy info
+relabund.fish.F4.F8.ST=cbind(relabund.fish.F4.F8.ST,relabund[,87:95]) #add back in taxonomy info
+relabund.t.fish.F4.F8.ST=relabund.t[rownames(relabund.t) %in% metadata.fish.F4.F8$SampleCode,]
+relabund.t.fish=relabund.t[rownames(relabund.t) %in% metadata.fish.noST$SampleCode,]
+relabund.t.fish.F4.F8=relabund.t.fish[rownames(relabund.t.fish) %in% metadata.fish.F4.F8.noST$SampleCode,]
+abund.fish=abund[rownames(abund) %in% metadata.fish.noST$SampleCode,]
+abund.fish.F4.F8=abund.fish[rownames(abund.fish) %in% metadata.fish.F4.F8.noST$SampleCode,]
+
+#relabund.fish.ST represents the full sample set that was analyzed in the first (gut_zone) NMDS in the multivariate analysis. relabund.fish.F4.F8.ST represents the sample set that had the GI and HG samples removed and was able to be analyzed with gut_subsection. This is the one I will focus on.
+#calculate the gamma diversity (total # of OTUs) in the relabund.fish.F4.F8.ST dataset, first by removing all OTUs that are not present in these samples and then counting the total number of OTUs (rows)
+
+relabund.fish.F4.F8.ST.zerocull=relabund.fish.F4.F8.ST[apply(relabund.fish.F4.F8.ST[,1:37],1,FUN=sum)!=0,]
+
+taxonomy.fish=relabund.fish[,46:50] #make a taxonomy df for fish ASVs
+taxonomy.fish.F4.F8.ST=relabund.fish.F4.F8.ST[,38:46]
+```
+
+Cull low abundance ASVs.
+
+```{r}
+#First visualize the distribution of relabund values.
+mean.relabund.t=apply(relabund.t,2,FUN=mean) #calculate the mean relabund value for each ASV.
+hist(mean.relabund.t,breaks=seq(0,.08,by=.0001),xlim=c(0,.02)) #make a histogram ranging from 0 - .02, with break every .0001 intervals. 
+```
+
+It looks like the most frequent relative abundance is very low. Preliminary relabund cull at .0001?
+
+```{r}
+#Cull ASVs at .0005 relabund cutoff (in at least 3 samples) or .01 relabund in 1 sample.
+cull.otu(relabund.t.fish,3,.0005,.01)
+relabund.t.fish.cull=relabund.df.cull #rename output
+cull.otu(relabund.t.fish.F4.F8,3,.0005,.01) #repeat for the relabund.t.fish.F4.F8 df
+relabund.t.fish.F4.F8.cull=relabund.df.cull #rename output
+relabund.fish.cull=as.data.frame(t(relabund.t.fish.cull)) #transpose culled relabund data
+relabund.fish.F4.F8.cull=as.data.frame(t(relabund.t.fish.F4.F8.cull)) #transpose culled relabund data
+cull.otu(relabund.t.fish.F4.F8.ST,3,.0005,.01)
+relabund.t.fish.F4.F8.ST.cull=relabund.df.cull
+
+#export relabund dfs as CSVs
+#write.csv(relabund.fish.cull,file="relabund.fish.cull.csv")
+#write.csv(relabund.fish.F4.F8.cull,file="relabund.fish.F4.F8.cull.csv")
+
+#make a taxonomy df for culled fish ASVs
+taxonomy.fish.cull=taxonomy.fish[rownames(taxonomy.fish) %in% rownames(relabund.fish.cull),]
+taxonomy.fish.F4.F8.cull=taxonomy.fish[rownames(taxonomy.fish) %in% rownames(relabund.fish.F4.F8.cull),]
+taxonomy.fish.F4.F8.ST.cull=taxonomy.fish.F4.F8.ST[rownames(taxonomy.fish.F4.F8.ST) %in% colnames(relabund.t.fish.F4.F8.ST.cull),]
+colnames(taxonomy.fish.cull)[2]="Kingdom" #change name of column 1 to Kingdom. This is necessary for phyloseq.
+colnames(taxonomy.fish.F4.F8.cull)[2]="Kingdom" #change name of column 1 to Kingdom. This is necessary for phyloseq.
+colnames(taxonomy.fish.F4.F8.ST.cull)[2]="Kingdom" #change name of column 1 to Kingdom. This is necessary for phyloseq.
+taxonomy.fish.cull=taxonomy.fish.cull[,-1] #remove first column. This is necessary for phyloseq.
+taxonomy.fish.F4.F8.cull=taxonomy.fish.F4.F8.cull[,-1] #remove first column. This is necessary for phyloseq.
+taxonomy.fish.F4.F8.ST.cull=taxonomy.fish.F4.F8.ST.cull[,-1] #remove first column. This is necessary for phyloseq.
+
+#Now average every OTU relabund value from relabund.t.fish.F4.F8.ST.cull for each of the gut subsections.
+metadata.fish.F4.F8.unifrac=metadata.fish.F4.F8[-23:-24,] #remove samples from metadata that failed to seq so the metadata can be correctly merged with the relabund data
+relabund.t.fish.F4.F8.ST.cull=cbind(relabund.t.fish.F4.F8.ST.cull,metadata.fish.F4.F8.unifrac) #first merge metadata
+relabund.t.fish.F4.F8.ST.cull.mean=as.data.frame(matrix(nrow=8,ncol=721)) #create a blank df to store averaged outputs
+for (i in 1:721){ #for each OTU column
+  relabund.t.fish.F4.F8.ST.cull.mean[,i]=aggregate(relabund.t.fish.F4.F8.ST.cull[,i],by=list(relabund.t.fish.F4.F8.ST.cull$Gut_SubSection),FUN=mean)[[2]] #aggregate by gut subsection, calculate means, and store means in bank df.
+}
+colnames(relabund.t.fish.F4.F8.ST.cull.mean)=colnames(relabund.t.fish.F4.F8.ST.cull)[1:721] #add in OTU names
+rownames(relabund.t.fish.F4.F8.ST.cull.mean)=aggregate(relabund.t.fish.F4.F8.ST.cull[,i],by=list(relabund.t.fish.F4.F8.ST.cull$Gut_SubSection),FUN=mean)[[1]] #add in gut subsections as rownames
+
+#Now average every OTU relabund value from relabund.t.fish.F4.F8.ST.cull for each of the species and gut subsections.
+relabund.t.fish.F4.F8.ST.cull$species.subsection=paste(relabund.t.fish.F4.F8.ST.cull$Species,relabund.t.fish.F4.F8.ST.cull$Gut_SubSection,sep="_") #create a new factor that merges species and section. this is what I will average across
+relabund.t.fish.F4.F8.ST.cull.species.subsection.mean=as.data.frame(matrix(nrow=21,ncol=721)) #create a blank df to store averaged outputs
+for (i in 1:721){ #for each OTU column
+  relabund.t.fish.F4.F8.ST.cull.species.subsection.mean[,i]=aggregate(relabund.t.fish.F4.F8.ST.cull[,i],by=list(relabund.t.fish.F4.F8.ST.cull$species.subsection),FUN=mean)[[2]] #aggregate by gut subsection, calculate means, and store means in bank df.
+}
+colnames(relabund.t.fish.F4.F8.ST.cull.species.subsection.mean)=colnames(relabund.t.fish.F4.F8.ST.cull)[1:721] #add in OTU names
+rownames(relabund.t.fish.F4.F8.ST.cull.species.subsection.mean)=aggregate(relabund.t.fish.F4.F8.ST.cull[,i],by=list(relabund.t.fish.F4.F8.ST.cull$species.subsection),FUN=mean)[[1]] #add in Species as rownames
+
+#create a metadata df for relabund.t.fish.F4.F8.ST.cull.mean that can be used in phyloseq.
+metadata.fish.F4.F8.mean=as.data.frame(matrix(nrow=8,ncol=1))
+colnames(metadata.fish.F4.F8.mean)="Gut_Subsection"
+rownames(metadata.fish.F4.F8.mean)=rownames(relabund.t.fish.F4.F8.ST.cull.mean)
+metadata.fish.F4.F8.mean$Gut_Subsection=rownames(relabund.t.fish.F4.F8.ST.cull.mean)
+
+#ERRORS IN THIS SECTION NEED TO DELETE
+#create a metadata df for relabund.t.fish.F4.F8.ST.cull.species.subsection.mean that can be used in phyloseq.
+metadata.fish.F4.F8.species.subsection.mean=as.data.frame(matrix(nrow=21,ncol=1))
+colnames(metadata.fish.F4.F8.species.subsection.mean)="Species_SubSection"
+rownames(metadata.fish.F4.F8.species.subsection.mean)=rownames(relabund.t.fish.F4.F8.ST.cull.species.subsection.mean)
+```
+
+
+To visualize broad trends between gut subsections, we need to look at a higher taxonomic rank than ASVs. To do this, use phyloseq to glom ASVs by various taxonomic ranks and then export the data out of phyloseq.
+
+```{r}
+#Convert relabund data, taxonomy data, and metadata to phyloseq objects and merge them. Use the F4.F8 PC culled data, averaged across gut subsections.
+otu.phyloseq=otu_table(relabund.t.fish.F4.F8.ST.cull.mean,taxa_are_rows=FALSE) #taxa are rows but for some reason i get an error unless i have it =FALSE
+taxonomy.phyloseq=tax_table(as.matrix(taxonomy.fish.F4.F8.ST.cull))
+metadata.phyloseq=sample_data(metadata.fish.F4.F8.mean)
+fish.phyloseq=phyloseq(otu.phyloseq,taxonomy.phyloseq,metadata.phyloseq)
+
+#Use tax_glom() to glom relative abundance values by specific taxonomic ranks
+relabund.phylum=tax_glom(fish.phyloseq,taxrank="Phylum")
+relabund.class=tax_glom(fish.phyloseq,taxrank="Class")
+relabund.order=tax_glom(fish.phyloseq,taxrank="Order")
+relabund.family=tax_glom(fish.phyloseq,taxrank="Family")
+relabund.genus=tax_glom(fish.phyloseq,taxrank="Genus")
+
+#Use psmelt() to convert these from phyloseq class objects to normals dfs.
+relabund.phylum.df=psmelt(relabund.phylum)
+relabund.class.df=psmelt(relabund.class)
+relabund.order.df=psmelt(relabund.order)
+relabund.family.df=psmelt(relabund.family)
+relabund.genus.df=psmelt(relabund.genus)
+
+#For each sample, create a new OTU, "Other", whose relative abundance = the difference between the samples total relative abundance and one. This essentally makes all samples have a relative abundance of 1 by adding a "Other" OTU.
+other.otus=aggregate(relabund.family.df$Abundance,by=list(relabund.family.df$Sample),FUN=sum)
+other.otus$Abundance=1-other.otus$x
+other.otus$Gut_Subsection=other.otus$Group.1
+other.otus$Kingdom=rep("Other",times=8)
+other.otus$OTUConTaxonomy=rep("Other",times=8)
+other.otus$Domain=rep("Other",times=8)
+other.otus$Phylum=rep("Other",times=8)
+other.otus$Class=rep("Other",times=8)
+other.otus$Order=rep("Other",times=8)
+other.otus$Family=rep("Other",times=8)
+other.otus=other.otus[,-2]
+other.otus$OTU=rep("Other",times=8)
+colnames(other.otus)[1]="Sample"
+other.otus=other.otus[,c(11,1:10)]
+
+other.otus1=aggregate(relabund.class.df$Abundance,by=list(relabund.class.df$Sample),FUN=sum)
+other.otus1$Abundance=1-other.otus1$x
+other.otus1$Gut_Subsection=other.otus1$Group.1
+other.otus1$Kingdom=rep("Other",times=8)
+other.otus1$OTUConTaxonomy=rep("Other",times=8)
+other.otus1$Domain=rep("Other",times=8)
+other.otus1$Phylum=rep("Other",times=8)
+other.otus1$Class=rep("Other",times=8)
+other.otus1=other.otus1[,-2]
+other.otus1$OTU=rep("Other",times=8)
+colnames(other.otus1)[1]="Sample"
+other.otus1=other.otus1[,c(9,1:8)]
+
+#combine the other otus and relabund.family.df dfs
+relabund.family.df=rbind(relabund.family.df,other.otus) 
+relabund.class.df=rbind(relabund.class.df,other.otus1)
+
+#calculate the mean abundance for each bacterial Class and export document
+relabund.class.df.mean=aggregate(relabund.class.df$Abundance,by=list(relabund.class.df$Class),FUN=mean)
+#write.csv(relabund.class.df.mean,file="relabund.class.df.mean.csv")
+
+#calculate the mean for each family and across eah gut subsection.
+relabund.family.df$family_subsection=paste(relabund.family.df$Gut_Subsection,relabund.family.df$Family,sep="_")
+relabund.family.df.subsection.mean=aggregate(relabund.family.df$Abundance,by=list(relabund.family.df$family_subsection),FUN=mean)
+#write.csv(relabund.family.df.subsection.mean,file="relabund.family.df.subsection.mean.csv")
+
+#write.csv(relabund.family.df,file="relabund.family.df.csv") #Export the relabund.cull.genus (or family) data as a CSV and open it in JMP. Use JMP to create stacked bar charts.
+
+#Now do the same for the species.section averaged data
+#Convert relabund data, taxonomy data, and metadata to phyloseq objects and merge them. Use the F4.F8 PC culled data, averaged across gut subsections.
+otu.phyloseq.species=otu_table(relabund.t.fish.F4.F8.ST.cull.species.mean,taxa_are_rows=FALSE) #taxa are rows but for some reason i get an error unless i have it =FALSE
+taxonomy.phyloseq=tax_table(as.matrix(taxonomy.fish.F4.F8.ST.cull))
+metadata.phyloseq.species=sample_data(metadata.fish.F4.F8.species.mean)
+fish.phyloseq.species=phyloseq(otu.phyloseq.species,taxonomy.phyloseq,metadata.phyloseq.species)
+
+#Use tax_glom() to glom relative abundance values by specific taxonomic ranks
+relabund.species.phylum=tax_glom(fish.phyloseq.species,taxrank="Phylum")
+relabund.species.class=tax_glom(fish.phyloseq.species,taxrank="Class")
+relabund.species.order=tax_glom(fish.phyloseq.species,taxrank="Order")
+relabund.species.family=tax_glom(fish.phyloseq.species,taxrank="Family")
+relabund.species.genus=tax_glom(fish.phyloseq.species,taxrank="Genus")
+
+#Use psmelt() to convert these from phyloseq class objects to normals dfs.
+relabund.species.phylum.df=psmelt(relabund.species.phylum)
+relabund.species.class.df=psmelt(relabund.species.class)
+relabund.species.order.df=psmelt(relabund.species.order)
+relabund.species.family.df=psmelt(relabund.species.family)
+relabund.species.genus.df=psmelt(relabund.species.genus)
+
+other.otus1=aggregate(relabund.species.family.df$Abundance,by=list(relabund.species.family.df$Sample),FUN=sum)
+other.otus1$Abundance=1-other.otus1$x
+other.otus1$Species=c("Kyphosus cinerascens","Kyphosus cinerascens","Kyphosus cinerascens","Kyphosus hawaiiensis","Kyphosus hawaiiensis","Kyphosus hawaiiensis","Kyphosus vaigiensis","Kyphosus vaigiensis","Kyphosus vaigiensis")
+other.otus1$Gut_Section=c("GI","HG","ST","GI","HG","ST","GI","HG","ST")
+other.otus1$Species_Gut_Section=other.otus1$Group.1
+other.otus1$Kingdom=rep("Other",times=9)
+other.otus1$Phylum=rep("Other",times=9)
+other.otus1$Class=rep("Other",times=9)
+other.otus1$Order=rep("Other",times=9)
+other.otus1$Family=rep("Other",times=9)
+other.otus1=other.otus1[,-2]
+other.otus1$OTU=rep("Other",times=9)
+othcolnames(other.otus1)[1]="Sample"
+other.otus1=other.otus1[,c(11,1:10)]
+
+relabund.species.family.df=rbind(relabund.species.family.df,other.otus1)
+
+write.csv(relabund.species.family.df,file="relabund.species.family.df.csv") #Export the ralbund.cull.genus (or family) data as a CSV and open it in JMP. Use JMP to create stacked bar charts.
+
+```
+
+Now model how individual ASVs respond to gut subsection and species and then use these results to pick specific ASVs for visualization.
+
+```{r}
+#Work up the relative abundance data for analysis.
+relabund.t.fish.F4.F8.cull.trans=asin(sqrt(relabund.t.fish.F4.F8.cull)) #arcsine sqrt transform relative abundance data to normalize. Save as new df.
+relabund.t.fish.F4.F8.cull.trans=cbind(relabund.t.fish.F4.F8.cull.trans,metadata.fish.F4.F8.noST) #merge metadata into relabund data
+
+#now run a mixed model on the transformed ASV data. Have relative abundance be a function of Species, Gut_SubSection, and Fish_Number be a random effect. Interaction term has been removed since it was not significant in the multivariate analysis. Could re-run model with Species also as a random effect.
+mixed.mod=function(x) { #create a function that performs the desired mixed model
+  mod=lmer(x~Species+Gut_SubSection+(1|Fish_Number),data=relabund.t.fish.F4.F8.cull.trans)
+  return(mod)
+}
+mixed.mod.relabund.t.fish.F4.F8.cull.trans=apply(relabund.t.fish.F4.F8.cull.trans[,-693:-702],2,FUN=mixed.mod) #apply mixed.mod only to columns containing ASV data. Save as new object.
+
+#Now let's inspect the results of the mixed models.
+mixed.mod.singularity=lapply(mixed.mod.relabund.t.fish.F4.F8.cull.trans,FUN=isSingular) #test each mixed model for singularity, save in list. After inspecting the list it looks like most models are not singular.
+anova.kw=function(x) { #make a function that performs anova (Kenward-Roger)
+  results=anova(x,ddf="Kenward-Roger")
+  return(results)
+}
+mixed.mod.results=lapply(mixed.mod.relabund.t.fish.F4.F8.cull.trans,FUN=anova.kw) #perform an anova(ddf="Kenward-Roger") on all mixed models, save output.
+mixed.mod.pvals=as.data.frame(t(as.data.frame(mixed.mod.results))[seq(from=6,to=4152,by=6),]) #extract the pvas from the mixed.mod.results list. Do this by converting list to df, transposing it, and then extracting every 6th column (which correspond to the pvals from each model).
+
+#Work up p values. #NEED TO REDO PVALUE ADJUSTMENT, COMBINING PVALS FOR GUT_SUBSECTION AND SPCIES INTO 1 VECTOR PRIOR TO ADJUSTMENT?
+mixed.mod.pvals$Gut_SubSection.padjust=p.adjust(mixed.mod.pvals$Gut_SubSection,method="BH") #Adjust p values for multiple comparisons
+mixed.mod.pvals$Species.padjust=p.adjust(mixed.mod.pvals$Species,method="BH") #Adjust p values for multiple comparisons
+rownames(mixed.mod.pvals)=colnames(relabund.t.fish.F4.F8.cull.trans)[1:692] #Change rownames to correspond with tested OTU names.
+mixed.mod.sig.otu.Gut_SubSection=mixed.mod.pvals[mixed.mod.pvals$Gut_SubSection.padjust<=.05,] #subset the mixed.mod.pvals df for significant (p<=.05) Gut_SubSection pvals. Save as new df.
+mixed.mod.sig.otu.Gut_SubSection=cbind(mixed.mod.sig.otu.Gut_SubSection,taxonomy.fish.F4.F8.cull[rownames(taxonomy.fish.F4.F8.cull) %in% rownames(mixed.mod.sig.otu.Gut_SubSection),],relabund.fish.F4.F8.cull[rownames(relabund.fish.F4.F8.cull) %in% rownames(mixed.mod.sig.otu.Gut_SubSection),]) #merge mixed.mod.sig.otu.Gut_SubSection with the associated OTU taxonomies.
+mixed.mod.sig.otu.Species=mixed.mod.pvals[mixed.mod.pvals$Species.padjust<=.05,] #subset the mixed.mod.pvals df for significant (p<=.05) Gut_SubSection pvals. Save as new df. It appears there are no significant Species pvals after padjustment. Will need to look into why this is. Perhaps if using the full sample set that includes F1-F3 GI/HG samples there would be enough replication to find significant species pvals.
+#create an output zscore df and calculate z score for each otu using the scale function.
+mixed.mod.sig.otu.Gut_SubSection.trans=cbind(mixed.mod.sig.otu.Gut_SubSection[,1:10],asin(sqrt(mixed.mod.sig.otu.Gut_SubSection[,-1:-10]))) #make a asinsqrt transfomred mixed mod sig otu gut subsection df. Normalizing ASVs is necessary for z scoring.
+mixed.mod.sig.otu.Gut_SubSection_zscore=as.data.frame(t(mixed.mod.sig.otu.Gut_SubSection.trans[,-1:-10]))
+
+for (i in 1:ncol(mixed.mod.sig.otu.Gut_SubSection_zscore)) { #calculate the zscore
+  mixed.mod.sig.otu.Gut_SubSection_zscore[,i]=scale(mixed.mod.sig.otu.Gut_SubSection_zscore[,i],center=TRUE,scale=TRUE)
+}
+
+#export new dfs
+#write.csv(mixed.mod.sig.otu.Gut_SubSection_zscore,file="mixed.mod.sig.otu.Gut_SubSection_zscore.csv")
+#write.csv(mixed.mod.sig.otu.Gut_SubSection,file="mixed.mod.sig.otu.Gut_SubSection.csv")
+#write.csv(mixed.mod.sig.otu.Gut_SubSection.trans,file="mixed.mod.sig.otu.Gut_SubSection.trans.csv")
+
+```
+
+Check to see if various culling thresholds of the significant ASVs produce a better number of sig ASVs for visualization.
+
+```{r}
+#subset the relabund.t.fish.F4.F8.cull df to select only the significant ASVs (by gut subsection).
+relabund.t.fish.F4.F8.cull.sig.subsection=relabund.t.fish.F4.F8.cull[,colnames(relabund.t.fish.F4.F8.cull) %in% rownames(mixed.mod.sig.otu.Gut_SubSection)]
+
+cull.otu(relabund.t.fish.F4.F8.cull.sig.subsection,1,.01,.01)
+relabund.t.fish.F4.F8.cull.sig.subsection.cull=relabund.df.cull
+ncol(relabund.t.fish.F4.F8.cull.sig.subsection.cull) #59 significant ASVs remain after culling at the threshold: .01 relabund (1%) in at least 1 sample.
+relabund.t.fish.F4.F8.cull.sig.subsection.cull=cbind(relabund.t.fish.F4.F8.cull.sig.subsection.cull,metadata.fish.F4.F8.noST) #add in metadata
+
+#subset the mixed.mod.sig.otu.Gut_SubSection df for only these 59 ASvs.
+mixed.mod.sig.otu.Gut_SubSection.cull=mixed.mod.sig.otu.Gut_SubSection[rownames(mixed.mod.sig.otu.Gut_SubSection) %in% colnames(relabund.t.fish.F4.F8.cull.sig.subsection.cull),]
+
+#Updated colnames
+colnames(relabund.t.fish.F4.F8.cull.sig.subsection.cull)[1:59]=paste(mixed.mod.sig.otu.Gut_SubSection.cull$Genus,rownames(mixed.mod.sig.otu.Gut_SubSection.cull),sep="_") #change colnames to correspond to ASV Family_ASVnumber
+
+#subset the mixed.mod.sig.otu.Gut_SubSection_zscore df to select only the culled significant ASVs.
+mixed.mod.sig.otu.Gut_SubSection_zscore.cull=mixed.mod.sig.otu.Gut_SubSection_zscore[,colnames(mixed.mod.sig.otu.Gut_SubSection_zscore) %in% rownames(mixed.mod.sig.otu.Gut_SubSection.cull)]
+
+write.csv(mixed.mod.sig.otu.Gut_Section_zscore.cull,file="mixed.mod.sig.otu.Gut_Section_zscore.cull.csv")
+write.csv(relabund.t.fish.F4.F8.cull.sig.section.cull,file="relabund.t.fish.F4.F8.cull.sig.section.cull.csv")
+write.csv(mixed.mod.sig.otu.Gut_Section.cull,file="mixed.mod.sig.otu.Gut_Section.cull.csv")
+```
+
+Exported mixed.mod.sig.otu.Gut_Subsection inspected in excel for promising ASVs. In the exported "mixed.mod.sig.otu.Gut_SubSection.csv" file in excel, calculate the mean relabund for each significant ASV in each gut section and add them as new columns. Reformat the file as "long format", so that there is ONE column for Gut_SubSection, with the mean relabund for each ASV represented for each Gut_SubSection (so each ASV is repeated 7 times). Now I will visualize the changes in relabund of these ASVs across the gut.
+
+```{r}
+mixed.mod.sig.otu.Gut_SubSection.longformat=read.csv(file="mixed.mod.sig.otu.Gut_SubSection_longformat.csv") #read in the long format file
+mixed.mod.sig.otu.Gut_SubSection.longformat.cull=mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$OTU %in% rownames(mixed.mod.sig.otu.Gut_SubSection.cull),] #subset the longformat df to select only the culled significant ASVs.
+
+#subset the culled ASVs to remove bacteria that are classified at the family level as "uncultured", "Bacteria_unclassified", and "Bacteroidetes_unclassified"
+mixed.mod.sig.otu.Gut_SubSection.longformat.cull1=mixed.mod.sig.otu.Gut_SubSection.longformat.cull[mixed.mod.sig.otu.Gut_SubSection.longformat.cull$Family!="Bacteria_unclassified" & mixed.mod.sig.otu.Gut_SubSection.longformat.cull$Family!="Bacteroidales_unclassified" & mixed.mod.sig.otu.Gut_SubSection.longformat.cull$Family!="uncultured",]
+
+#adjust the levels of the family factor to order the graph correctly
+mixed.mod.sig.otu.Gut_SubSection.longformat.cull1$Family=factor(mixed.mod.sig.otu.Gut_SubSection.longformat.cull1$Family,levels=c("Pasteurellaceae","Peptostreptococcaceae","Vibrionaceae","Erysipelotrichaceae","Brevinemataceae","Clostridiaceae_1","Parabasalia_unclassified","DMI_fa","Akkermansiaceae","Christensenellaceae","Clostridiales_vadinBB60_group","Desulfovibrionaceae","Eggerthellaceae","Lachnospiraceae","Paludibacteraceae","Rikenellaceae","Ruminococcaceae","Victivallaceae","Alphaproteobacteria_unclassified","Bacteria_unclassified","Bacteroidales_unclassified","Bacteroidia_unclassified","Clostridiales_unclassified","Family_XIII","Gastranaerophilales_fa","Gf10_symbiont_group_fa","Mollicutes_RF39_fa","Mollicutes_unclassified","Peptococcaceae","Puniceicoccaceae","Rhodospirillales_unclassified","Synergistaceae","uncultured","Verrucomicrobiae_unclassified","Victivallales_unclassified"))
+
+#visualize these culled significant ASVs. Group (using facet_wrap) by family, color code by genus, and use black ines to divide different ASVs. Export as a 2000x1800 PNG.
+ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat.cull1,aes(x=Gut_SubSection,y=mean_relabund,fill=Genus))+
+    geom_bar(stat="identity",col="black")+
+    facet_wrap(~Family,scales="free")+
+  theme(legend.position="bottom")
+
+#repeat this graph except using geom_point and geom_line to better visualize individual ASV behavior (peaking at various subsections, etc). Export as 2500x1500 PNG.
+ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat.cull1,aes(x=Gut_SubSection,y=mean_relabund,color=Genus,group=OTU))+
+    geom_point(size=3)+geom_line(size=1.5)+
+    facet_wrap(~Family,scales="free")+
+    theme(legend.position="bottom")
+
+#graph the relative abundance of significant ASVs across the gut subsections as stacked barcharts. Graph within family,fill by family ID but keep individual ASVs seperated by black lines. Lable ASV# on each portion of the barchart, with the size of the label proportional to the relabund of that ASV in that sample.
+proteo.sig.otus=ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Proteobacteria",],aes(x=Gut_SubSection,y=mean_relabund,fill=Family))+
+  geom_bar(stat="identity",col="black")+
+  geom_text(aes(label=OTU),size=sqrt((mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Proteobacteria",]$mean_relabund))*15,position = position_stack(vjust = 0.5))+
+  ggtitle(label="Proteobacteria") 
+
+unclassified.sig.otus=ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Bacteria_unclassified",],aes(x=Gut_SubSection,y=mean_relabund,fill=Family))+
+  geom_bar(stat="identity",col="black")+
+  geom_text(aes(label=OTU),size=sqrt((mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Bacteria_unclassified",]$mean_relabund))*30,position = position_stack(vjust = 0.5))+
+  ggtitle(label="Unclassified_Phylum") #save as landscape PDF
+
+bacteroidetes.sig.otus=ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Bacteroidetes",],aes(x=Gut_SubSection,y=mean_relabund,fill=Family))+
+  geom_bar(stat="identity",col="black")+
+  geom_text(aes(label=OTU),size=sqrt((mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Bacteroidetes",]$mean_relabund))*25,position = position_stack(vjust = 0.5))+
+  ggtitle(label="Bacteroidetes") #save as landscape PDF
+
+tenericutes.sig.otus=ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Tenericutes",],aes(x=Gut_SubSection,y=mean_relabund,fill=Family))+
+  geom_bar(stat="identity",col="black")+
+  geom_text(aes(label=OTU),size=sqrt((mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Tenericutes",]$mean_relabund))*25,position = position_stack(vjust = 0.5))+
+  ggtitle(label="Tenericutes") #save as landscape PDF
+
+actino.sig.otus=ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Actinobacteria",],aes(x=Gut_SubSection,y=mean_relabund,fill=Family))+
+  geom_bar(stat="identity",col="black")+
+  geom_text(aes(label=OTU),size=sqrt((mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Actinobacteria",]$mean_relabund))*80,position = position_stack(vjust = 0.5))+
+  ggtitle(label="Actinobacteria") #save as landscape PDF
+
+firmicutes.sig.otus=ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Firmicutes",],aes(x=Gut_SubSection,y=mean_relabund,fill=Family))+
+  geom_bar(stat="identity",col="black")+
+  geom_text(aes(label=OTU),size=sqrt((mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Firmicutes",]$mean_relabund))*15,position = position_stack(vjust = 0.5))+
+  ggtitle(label="Firmicutes")
+
+cyano.sig.otus=ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Cyanobacteria",],aes(x=Gut_SubSection,y=mean_relabund,fill=Family))+
+  geom_bar(stat="identity",col="black")+
+  geom_text(aes(label=OTU),size=sqrt((mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Cyanobacteria",]$mean_relabund))*75,position = position_stack(vjust = 0.5))+
+  ggtitle(label="Cyanobacteria")
+
+lentis.sig.otus=ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Lentisphaerae",],aes(x=Gut_SubSection,y=mean_relabund,fill=Family))+
+  geom_bar(stat="identity",col="black")+
+  geom_text(aes(label=OTU),size=sqrt((mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Lentisphaerae",]$mean_relabund))*50,position = position_stack(vjust = 0.5))+
+  ggtitle(label="Lentisphaerae")
+
+parabasalia.sig.otus=ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Parabasalia",],aes(x=Gut_SubSection,y=mean_relabund,fill=Family))+
+  geom_bar(stat="identity",col="black")+
+  geom_text(aes(label=OTU),size=sqrt((mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Parabasalia",]$mean_relabund))*40,position = position_stack(vjust = 0.5))+
+  ggtitle(label="Parabasalia")
+
+spirochaetes.sig.otus=ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Spirochaetes",],aes(x=Gut_SubSection,y=mean_relabund,fill=Family))+
+  geom_bar(stat="identity",col="black")+
+  geom_text(aes(label=OTU),size=sqrt((mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Spirochaetes",]$mean_relabund))*40,position = position_stack(vjust = 0.5))+
+  ggtitle(label="Spirochaetes")
+
+synergist.sig.otus=ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Synergistetes",],aes(x=Gut_SubSection,y=mean_relabund,fill=Family))+
+  geom_bar(stat="identity",col="black")+
+  geom_text(aes(label=OTU),size=sqrt((mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Synergistetes",]$mean_relabund))*200,position = position_stack(vjust = 0.5))+
+  ggtitle(label="Synergistetes")
+
+verruco.sig.otus=ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Verrucomicrobia",],aes(x=Gut_SubSection,y=mean_relabund,fill=Family))+
+  geom_bar(stat="identity",col="black")+
+  geom_text(aes(label=OTU),size=sqrt((mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Verrucomicrobia",]$mean_relabund))*30,position = position_stack(vjust = 0.5))+
+  ggtitle(label="Verrucomicrobia")
+
+```
+
