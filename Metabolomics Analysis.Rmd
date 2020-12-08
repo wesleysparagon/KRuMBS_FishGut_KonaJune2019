@@ -19,7 +19,7 @@ data=read.csv(file="KRuMBS_Fishguts_bothtrips_A_quant_filtered_withIDs.csv")
 metadata=read.csv(file="Metadata_KRuMBS_Fishguts_Seaweed_FULL.csv")
 
 #adjust order of factors for gut section and gut subsection to help with graphing
-metadata$ATTRIBUTE_Gut_Section=factor(metadata$ATTRIBUTE_Gut_Section,levels=c("ST","PC","GI","HG","not applicable"))
+metadata$ATTRIBUTE_Gut_Section=factor(metadata$ATTRIBUTE_Gut_Section,levels=c("ST","GI","HG","PC","not applicable"))
 metadata$ATTRIBUTE_Gut_SubSection=factor(metadata$ATTRIBUTE_Gut_SubSection,levels=c("ST","GI_1","GI_2","GI_3","GI_4","HG_1","HG_2","HG_3","HG","G1","G2","G3","GI","not applicable","PC"))
 metadata$ATTRIBUTE_Fish_Species=factor(metadata$ATTRIBUTE_Fish_Species,levels=c("Kyphosus cinerascens","Kyphosus hawaiiensis","Kyphosus vaigiensis","Kyphosus sandwicensis","not applicable","unknown"))
 colnames(metadata)[5]="Species"
@@ -240,8 +240,6 @@ relabund.19.jun.clean2.dist.t.3=relabund.19.jun.clean2.dist.t.2[match(metadata.1
 #adjust rownames so that they will line up with the 16S sample names that will be imported later
 rownames(relabund.19.jun.clean2.dist.t.3)=metadata.19.jun.samples2$SampleCode
 
-#There are 2 samples in the metadata.fish.F4.F8.unifrac df that are not in the metadata.19.jun.samples1 df. These are "F8_GI_3" and "F6_GI_3". Confirm with Emily what happened to them.
-
 #Generate dist matrix
 bray.relabund.19.jun.clean2.2=vegdist(relabund.19.jun.clean2.dist.t.3,method="bray")
 
@@ -250,18 +248,19 @@ colnames(metadata.19.jun.samples2)[5]="Species"
 colnames(metadata.19.jun.samples2)[6]="Gut_Section"
 colnames(metadata.19.jun.samples2)[7]="Gut_SubSection"
 
-
 nmds.relabund.2=metaMDS(bray.relabund.19.jun.clean2.2,k=2,trymax=100)
 #convergent solution reached, decent stress (.17)
 
-colvec3=viridis(n=8,option="D")
+colvec3=c("mediumpurple1",viridis(n=7,option="D",begin=.15))
 
-plot(nmds.relabund.2,type="n")
+plot(nmds.relabund.2,type="n",ylim=c(-.35,.6),xlim-c(-.7,.7))
 points(nmds.relabund.2, #plot each sample as a point
-       cex=2,
+       cex=3.5,
        pch=pointvec[metadata.19.jun.samples2$Species], #point shape corresponds to fish Species
-       col=colvec3[metadata.19.jun.samples2$Gut_SubSection]) 
-legend(-.75,-.022,legend = c("ST","GI_1","GI_2","GI_3","GI_4","HG_1","HG_2","HG_3","K. cinerascens","K. hawaiiensis","K. vaigiensis"),cex=1,y.intersp=.8,bg="transparent",bty="n",col=c(colvec3,"black","black","black"),pch=c(16,16,16,16,16,16,16,16,15,16,17),pt.cex=.75)
+       col=colvec3[metadata.19.jun.samples2$Gut_SubSection])
+text(-.6,.55,label="Stress=.19")
+ordiellipse(nmds.relabund.2,metadata.19.jun.samples2$Gut_Section,kind="sd",draw="polygon",alpha=c(0,0),lwd=2.5,border=c("mediumpurple1",viridis(n=3,option="D")[2:3])) #add SD ellipses, colored by Gut_Section.
+ordiarrows(nmds.relabund.2,group=metadata.19.jun.samples2$Fish_Number,order.by=metadata.19.jun.samples2$Gut_SubSection,lwd=2,col="black")
 ```
 
 We can see a clear succesional gradient from ST -> HG_3, and also more clearly see that species cluster distinctly, especially K. hawaiiensis.
@@ -269,10 +268,10 @@ We can see a clear succesional gradient from ST -> HG_3, and also more clearly s
 Now, I will run a permanova on this dataset.
 
 ```{r}
-permanova.gut.subsection=adonis(relabund.19.jun.clean2.dist.t.2~Gut_SubSection*Species,by="margin",strata=metadata.19.jun.samples2$ATTRIBUTE_Fish_Number,data=metadata.19.jun.samples2,permutations=999)
+permanova.gut.subsection=adonis(bray.relabund.19.jun.clean2.2~Gut_SubSection*Species,by="margin",strata=metadata.19.jun.samples2$ATTRIBUTE_Fish_Number,data=metadata.19.jun.samples2,permutations=999)
 permanova.gut.subsection
 
-permanova.gut.subsection.II=adonis.II(relabund.19.jun.clean2.dist.t.2~Gut_SubSection*Species,by="margin",strata=metadata.19.jun.samples2$ATTRIBUTE_Fish_Number,data=metadata.19.jun.samples2,permutations=999)
+permanova.gut.subsection.II=adonis.II(bray.relabund.19.jun.clean2.2~Gut_SubSection*Species,by="margin",strata=metadata.19.jun.samples2$ATTRIBUTE_Fish_Number,data=metadata.19.jun.samples2,permutations=999)
 permanova.gut.subsection.II
 ```
 
@@ -325,14 +324,14 @@ plot(pro,kind=2) #Not sure how to interperet this.
 pointvec2=c(22,21,24)
 
 #next plot a more detailed procrustes plot, with the filled points representing the rotated (metabolomic) samples and the open points representing the target (16S) samples.
-plot(pro,kind=1,lwd=1.5,len=.06,ar.col=colvec3[metadata.19.jun.samples2$Gut_SubSection])
+plot(pro,kind=1,lwd=3,len=.075,ar.col=colvec3[metadata.19.jun.samples2$Gut_SubSection])
 points(pro, display="rotated",#plot each sample as a point
-       cex=1,
+       cex=3.5,
        pch=pointvec[metadata.19.jun.samples2$Species], #point shape corresponds to fish Species
        col=colvec3[metadata.19.jun.samples2$Gut_SubSection]) 
 points(pro, display="target",#plot each sample as a point
-       cex=1,
-       lwd=2,
+       cex=3.5,
+       lwd=3,
        pch=pointvec2[metadata.19.jun.samples2$Species], #point shape corresponds to fishSpecies
        col=colvec3[metadata.19.jun.samples2$Gut_SubSection]) 
 
