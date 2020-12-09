@@ -13,10 +13,36 @@ knitr::opts_chunk$set(echo = TRUE)
 library(vegan)
 library(viridis)
 library(RVAideMemoire)
+library(pairwiseAdonis)
+
+#set up custom functions
+cull.otu=function(relabund.df, min.num, min.abund, min.single.abund) {
+  #Inputs:  relabund.df = dataframe containing ONLY relative abundance data, no metadata or other info. Samples in rows and OTUs in columns.
+            
+            #min.num = the minimum number of samples an OTU needs to be present in to not be culled.
+            
+            #min.abund = the minimum relative abundance an OTU needs to have in (the min.num) samples to not be culled.
+ 
+            #min.single.abund = the minimum relative abundance an OTU needs to have in a SINGLE sample to not be culled.
+   
+  sub=c() #create a empty vector
+  
+  cull=function(x) { #make a function that says for any input, generate a logical vector of TRUEs and FALSEs that will be used for subsetting, selecting OTUs that
+    sub=ifelse(length(x[x>=min.abund])>=min.num #have a relabund>"min.abund" in "min.num" samples 
+               | length(x[x>=min.single.abund])>0,TRUE,FALSE) #or have a relabund>"min.single.abund" in at least one sample
+    return(sub)
+  }
+  
+  cull.vec=apply(relabund.df,2,FUN=cull) #apply cull function to relabund.df, save output as a vector.
+  relabund.df.cull=relabund.df[,cull.vec] #Use cull.vec to subset the columns of relabund.df for OTUs that passed the cull threshold.
+  
+  relabund.df.cull<<-relabund.df.cull
+}
 
 #read in data and metadata
 data=read.csv(file="KRuMBS_Fishguts_bothtrips_A_quant_filtered_withIDs.csv")
 metadata=read.csv(file="Metadata_KRuMBS_Fishguts_Seaweed_FULL.csv")
+molnetdata=read.csv(file="KRuMBS_ClassyFireResults_Network.csv")
 
 #adjust order of factors for gut section and gut subsection to help with graphing
 metadata$ATTRIBUTE_Gut_Section=factor(metadata$ATTRIBUTE_Gut_Section,levels=c("ST","GI","HG","PC","not applicable"))
@@ -273,6 +299,9 @@ permanova.gut.subsection
 
 permanova.gut.subsection.II=adonis.II(bray.relabund.19.jun.clean2.2~Gut_SubSection*Species,by="margin",strata=metadata.19.jun.samples2$ATTRIBUTE_Fish_Number,data=metadata.19.jun.samples2,permutations=999)
 permanova.gut.subsection.II
+
+pairwise.permanova.subsection=pairwise.adonis(bray.relabund.19.jun.clean2.2,metadata.19.jun.samples2$Gut_SubSection,p.adjust.m="BH")
+pairwise.permanova.subsection
 ```
 
 Gut subsection and Species are both very significant, whereas the interaction term is less (but still noticably) significant. Gut subsection explains double the variation of species or their interaction. Interestingly, the interaction term explains more variation than species alone, despite the low effect size (F value).
@@ -340,3 +369,68 @@ pro.test
 ```
 
 The protest comes out as "significant", but I am not sure how useful the pvalue is. Need to read up more on the procrustes SS and correlation statistics.
+
+Next, do a preliminary modelling of how individual features (relative abundance) respond to gut subsection.
+
+```{r}
+#Work up the relative abundance data for analysis.
+#further cull low abundance features
+cull.otu(relabund.19.jun.clean2.dist.t.3,3,.0005,.01)
+relabund.19.jun.clean2.dist.t.3.cull=relabund.df.cull
+#went from 1133 ASVs to 583 ASVs
+
+#asinsqrt transform the data
+relabund.19.jun.clean2.dist.t.3.cull.trans=asin(sqrt(relabund.19.jun.clean2.dist.t.3.cull))
+#merge in metadata
+relabund.19.jun.clean2.dist.t.3.cull.trans=cbind(relabund.19.jun.clean2.dist.t.3.cull.trans,metadata.19.jun.samples2)
+
+#remove stomach samples
+#relabund.19.jun.clean2.dist.t.3.cull.trans1=relabund.19.jun.clean2.dist.t.3.cull.trans[relabund.19.jun.clean2.dist.t.3.cull.trans$Gut_SubSection!="ST",]
+
+#now run a mixed model on the transformed ASV data. Have relative abundance be a function of Species, Gut_SubSection, and Fish_Number be a random effect. Interaction term has been removed since it was not significant in the multivariate analysis. Could re-run model with Species also as a random effect.
+mixed.mod=function(x) { #create a function that performs the desired mixed model
+  mod=lmer(x~Species+Gut_SubSection+(1|Fish_Number),data=relabund.19.jun.clean2.dist.t.3.cull.trans)
+  return(mod)
+}
+mixed.mod.relabund.19.jun.clean2.dist.t.3.cull.trans=apply(relabund.19.jun.clean2.dist.t.3.cull.trans[,-584:-602],2,FUN=mixed.mod) #apply mixed.mod only to columns containing ASV data. Save as new object.
+
+#Now let's inspect the results of the mixed models.
+mixed.mod.singularity=lapply(mixed.mod.relabund.19.jun.clean2.dist.t.3.cull.trans,FUN=isSingular) #test each mixed model for singularity, save in list. After inspecting the list it looks like ~50% of models are singular.
+
+anova.kw=function(x) { #make a function that performs anova (Kenward-Roger)
+  results=anova(x,ddf="Kenward-Roger")
+  return(results)
+}
+
+mixed.mod.results=lapply(mixed.mod.relabund.19.jun.clean2.dist.t.3.cull.trans,FUN=anova.kw) #perform an anova(ddf="Kenward-Roger") on all mixed models, save output.
+mixed.mod.pvals=as.data.frame(t(as.data.frame(mixed.mod.results))[seq(from=6,to=3498,by=6),]) #extract the pvals from the mixed.mod.results list. Do this by converting list to df, transposing it, and then extracting every 6th column (which correspond to the pvals from each model).
+
+#Work up p values.
+mixed.mod.pvals$Gut_SubSection.padjust=p.adjust(mixed.mod.pvals$Gut_SubSection,method="BH") #Adjust p values for multiple comparisons
+mixed.mod.pvals$Species.padjust=p.adjust(mixed.mod.pvals$Species,method="BH") #Adjust p values for multiple comparisons
+rownames(mixed.mod.pvals)=colnames(relabund.19.jun.clean2.dist.t.3.cull.trans)[1:583] #Change rownames to correspond with tested OTU names.
+mixed.mod.sig.feature.Gut_SubSection=mixed.mod.pvals[mixed.mod.pvals$Gut_SubSection.padjust<=.05,] #subset the mixed.mod.pvals df for significant (p<=.05) Gut_SubSection pvals. Save as new df.
+mixed.mod.sig.feature.Species=mixed.mod.pvals[mixed.mod.pvals$Species.padjust<=.05,] #subset the mixed.mod.pvals df for significant (p<=.05) Gut_SubSection pvals. Save as new df. It appears there are no significant Species pvals after padjustment. Will need to look into why this is. Perhaps if using the full sample set that includes F1-F3 GI/HG samples there would be enough replication to find significant species pvals.
+
+#add in molnet enhancer data
+molnetdata1=molnetdata[molnetdata$cluster.index %in% rownames(mixed.mod.sig.feature.Gut_SubSection),] #subset molnet enhancer data
+molnetdata1=molnetdata1[match(rownames(mixed.mod.sig.feature.Gut_SubSection),molnetdata1$cluster.index),]
+
+
+mixed.mod.sig.feature.Gut_SubSection=cbind(mixed.mod.sig.feature.Gut_SubSection,molnetdata1) #merge mixed.mod.sig.otu.Gut_SubSection with the associated OTU taxonomies.
+
+#create an output zscore df and calculate z score for each otu using the scale function.
+mixed.mod.sig.feature.Gut_SubSection.trans=relabund.19.jun.clean2.dist.t.3.cull.trans
+mixed.mod.sig.feature.Gut_SubSection.trans=mixed.mod.sig.feature.Gut_SubSection.trans[,colnames(mixed.mod.sig.feature.Gut_SubSection.trans) %in% mixed.mod.sig.feature.Gut_SubSection$cluster.index] #subset for just significant features
+mixed.mod.sig.feature.Gut_SubSection.zscore=as.data.frame((t(mixed.mod.sig.feature.Gut_SubSection.trans)))
+
+#calculate zscore
+for (i in 1:ncol(mixed.mod.sig.feature.Gut_SubSection.zscore)) { #calculate the zscore
+  mixed.mod.sig.feature.Gut_SubSection.zscore[,i]=scale(mixed.mod.sig.feature.Gut_SubSection.zscore[,i],center=TRUE,scale=TRUE)
+}
+
+#write.csv(mixed.mod.sig.feature.Gut_SubSection.zscore,file="mixed.mod.sig.feature.Gut_SubSection.zscore.csv")
+#write.csv(mixed.mod.sig.feature.Gut_SubSection,file="mixed.mod.sig.feature.Gut_SubSection.csv")
+
+```
+
