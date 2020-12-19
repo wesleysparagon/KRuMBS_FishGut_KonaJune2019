@@ -14,6 +14,8 @@ library(vegan)
 library(viridis)
 library(RVAideMemoire)
 library(pairwiseAdonis)
+library(lme4)
+library(lmerTest)
 
 #set up custom functions
 cull.otu=function(relabund.df, min.num, min.abund, min.single.abund) {
@@ -279,7 +281,7 @@ nmds.relabund.2=metaMDS(bray.relabund.19.jun.clean2.2,k=2,trymax=100)
 
 colvec3=c("mediumpurple1",viridis(n=7,option="D",begin=.15))
 
-plot(nmds.relabund.2,type="n",ylim=c(-.35,.6),xlim-c(-.7,.7))
+plot(nmds.relabund.2,type="n",ylim=c(-.35,.6),xlim=c(-.7,.7))
 points(nmds.relabund.2, #plot each sample as a point
        cex=3.5,
        pch=pointvec[metadata.19.jun.samples2$Species], #point shape corresponds to fish Species
@@ -374,50 +376,105 @@ Next, do a preliminary modelling of how individual features (relative abundance)
 
 ```{r}
 #Work up the relative abundance data for analysis.
-#further cull low abundance features
-cull.otu(relabund.19.jun.clean2.dist.t.3,3,.0005,.01)
-relabund.19.jun.clean2.dist.t.3.cull=relabund.df.cull
-#went from 1133 ASVs to 583 ASVs
-
-#asinsqrt transform the data
-relabund.19.jun.clean2.dist.t.3.cull.trans=asin(sqrt(relabund.19.jun.clean2.dist.t.3.cull))
-#merge in metadata
-relabund.19.jun.clean2.dist.t.3.cull.trans=cbind(relabund.19.jun.clean2.dist.t.3.cull.trans,metadata.19.jun.samples2)
 
 #remove stomach samples
-#relabund.19.jun.clean2.dist.t.3.cull.trans1=relabund.19.jun.clean2.dist.t.3.cull.trans[relabund.19.jun.clean2.dist.t.3.cull.trans$Gut_SubSection!="ST",]
+relabund.19.jun.clean2.dist.t.4=relabund.19.jun.clean2.dist.t.3[metadata.19.jun.samples2$Gut_SubSection!="ST",]
+
+#further cull low abundance features
+cull.otu(relabund.19.jun.clean2.dist.t.4,3,.0005,.01)
+relabund.19.jun.clean2.dist.t.4.cull=relabund.df.cull
+#went from 1133 ASVs to 549 ASVs
+
+#asinsqrt transform the data
+relabund.19.jun.clean2.dist.t.4.cull.trans=asin(sqrt(relabund.19.jun.clean2.dist.t.4.cull))
+#merge in metadata
+relabund.19.jun.clean2.dist.t.4.cull.trans=cbind(relabund.19.jun.clean2.dist.t.4.cull.trans,metadata.19.jun.samples2[metadata.19.jun.samples2$Gut_SubSection!="ST",])
 
 #now run a mixed model on the transformed ASV data. Have relative abundance be a function of Species, Gut_SubSection, and Fish_Number be a random effect. Interaction term has been removed since it was not significant in the multivariate analysis. Could re-run model with Species also as a random effect.
 mixed.mod=function(x) { #create a function that performs the desired mixed model
-  mod=lmer(x~Species+Gut_SubSection+(1|Fish_Number),data=relabund.19.jun.clean2.dist.t.3.cull.trans)
+  mod=lmer(x~Species+Gut_SubSection+(1|Fish_Number),data=relabund.19.jun.clean2.dist.t.4.cull.trans)
   return(mod)
 }
-mixed.mod.relabund.19.jun.clean2.dist.t.3.cull.trans=apply(relabund.19.jun.clean2.dist.t.3.cull.trans[,-584:-602],2,FUN=mixed.mod) #apply mixed.mod only to columns containing ASV data. Save as new object.
+mixed.mod.relabund.19.jun.clean2.dist.t.4.cull.trans=apply(relabund.19.jun.clean2.dist.t.4.cull.trans[,-549:-568],2,FUN=mixed.mod) #apply mixed.mod only to columns containing ASV data. Save as new object.
+
+#make a new mixed mod function testing gut section instead of subsection
+mixed.mod.section=function(x) {
+  mod1=lmer(x~Species+Gut_Section+(1|Fish_Number),data=relabund.19.jun.clean2.dist.t.4.cull.trans)
+  return(mod1)
+}
+mixed.mod.section.relabund.19.jun.clean2.dist.t.4.cull.trans=apply(relabund.19.jun.clean2.dist.t.4.cull.trans[,-549:-568],2,FUN=mixed.mod.section) #apply mixed.mod only to columns containing ASV data. Save as new object.
 
 #Now let's inspect the results of the mixed models.
-mixed.mod.singularity=lapply(mixed.mod.relabund.19.jun.clean2.dist.t.3.cull.trans,FUN=isSingular) #test each mixed model for singularity, save in list. After inspecting the list it looks like ~50% of models are singular.
+mixed.mod.singularity=lapply(mixed.mod.relabund.19.jun.clean2.dist.t.4.cull.trans,FUN=isSingular) #test each mixed model for singularity, save in list. After inspecting the list it looks like ~33% of models are singular.
+
+mixed.mod.section.singularity=lapply(mixed.mod.section.relabund.19.jun.clean2.dist.t.4.cull.trans,FUN=isSingular) #test each mixed model for singularity, save in list. After inspecting the list it looks like ~33% of models are singular.
 
 anova.kw=function(x) { #make a function that performs anova (Kenward-Roger)
   results=anova(x,ddf="Kenward-Roger")
   return(results)
 }
 
-mixed.mod.results=lapply(mixed.mod.relabund.19.jun.clean2.dist.t.3.cull.trans,FUN=anova.kw) #perform an anova(ddf="Kenward-Roger") on all mixed models, save output.
-mixed.mod.pvals=as.data.frame(t(as.data.frame(mixed.mod.results))[seq(from=6,to=3498,by=6),]) #extract the pvals from the mixed.mod.results list. Do this by converting list to df, transposing it, and then extracting every 6th column (which correspond to the pvals from each model).
+mixed.mod.results=lapply(mixed.mod.relabund.19.jun.clean2.dist.t.4.cull.trans,FUN=anova.kw) #perform an anova(ddf="Kenward-Roger") on all mixed models, save output.
+mixed.mod.pvals=as.data.frame(t(as.data.frame(mixed.mod.results))[seq(from=6,to=3288,by=6),]) #extract the pvals from the mixed.mod.results list. Do this by converting list to df, transposing it, and then extracting every 6th column (which correspond to the pvals from each model).
+
+#repeat for mixed.mod.section
+mixed.mod.section.results=lapply(mixed.mod.section.relabund.19.jun.clean2.dist.t.4.cull.trans,FUN=anova.kw) #perform an anova(ddf="Kenward-Roger") on all mixed models, save output.
+mixed.mod.section.pvals=as.data.frame(t(as.data.frame(mixed.mod.section.results))[seq(from=6,to=3288,by=6),]) #extract the pvals from the mixed.mod.results list. Do this by converting list to df, transposing it, and then extracting every 6th column (which correspond to the pvals from each model).
 
 #Work up p values.
 mixed.mod.pvals$Gut_SubSection.padjust=p.adjust(mixed.mod.pvals$Gut_SubSection,method="BH") #Adjust p values for multiple comparisons
 mixed.mod.pvals$Species.padjust=p.adjust(mixed.mod.pvals$Species,method="BH") #Adjust p values for multiple comparisons
-rownames(mixed.mod.pvals)=colnames(relabund.19.jun.clean2.dist.t.3.cull.trans)[1:583] #Change rownames to correspond with tested OTU names.
-mixed.mod.sig.feature.Gut_SubSection=mixed.mod.pvals[mixed.mod.pvals$Gut_SubSection.padjust<=.05,] #subset the mixed.mod.pvals df for significant (p<=.05) Gut_SubSection pvals. Save as new df.
+rownames(mixed.mod.pvals)=colnames(relabund.19.jun.clean2.dist.t.4.cull.trans)[1:548] #Change rownames to correspond with tested feature names.
+sum(mixed.mod.pvals$Gut_SubSection<=.05)
+#124 features respond significantly to subsection before padjustment.
+mixed.mod.sig.feature.Gut_SubSection=mixed.mod.pvals[mixed.mod.pvals$Gut_SubSection.padjust<=.05,] #subset the mixed.mod.pvals df for significant (p<=.05) Gut_SubSection pvals. Save as new df. 64 features respond significantly to gut subsection after padjustment.
+sum(mixed.mod.pvals$Species<=.05)
+#77 features respond significantly to species before padjustment.
 mixed.mod.sig.feature.Species=mixed.mod.pvals[mixed.mod.pvals$Species.padjust<=.05,] #subset the mixed.mod.pvals df for significant (p<=.05) Gut_SubSection pvals. Save as new df. It appears there are no significant Species pvals after padjustment. Will need to look into why this is. Perhaps if using the full sample set that includes F1-F3 GI/HG samples there would be enough replication to find significant species pvals.
 
-#add in molnet enhancer data
+#Work up p values for mixed.mod.section
+mixed.mod.section.pvals$Gut_Section.padjust=p.adjust(mixed.mod.section.pvals$Gut_Section,method="BH") #Adjust p values for multiple comparisons
+mixed.mod.section.pvals$Species.padjust=p.adjust(mixed.mod.section.pvals$Species,method="BH") #Adjust p values for multiple comparisons
+rownames(mixed.mod.section.pvals)=colnames(relabund.19.jun.clean2.dist.t.4.cull.trans)[1:548] #Change rownames to correspond with tested feature names.
+sum(mixed.mod.section.pvals$Gut_Section<=.05)
+#216 features respond significantly to subsection before padjustment.
+mixed.mod.section.sig.feature.Gut_Section=mixed.mod.section.pvals[mixed.mod.section.pvals$Gut_Section.padjust<=.05,] #subset the mixed.mod.section.pvals df for significant (p<=.05) Gut_Section pvals. Save as new df. 116 features respond significantly to gut section after padjustment.
+sum(mixed.mod.section.pvals$Species<=.05)
+#63 features respond significantly to species before padjustment.
+mixed.mod.section.sig.feature.Species=mixed.mod.section.pvals[mixed.mod.section.pvals$Species.padjust<=.05,] #subset the mixed.mod.pvals df for significant (p<=.05) Gut_SubSection pvals. Save as new df. It appears there are no significant Species pvals after padjustment. Will need to look into why this is. Perhaps if using the full sample set that includes F1-F3 GI/HG samples there would be enough replication to find significant species pvals.
+
+#subset molnet enhancer data
 molnetdata1=molnetdata[molnetdata$cluster.index %in% rownames(mixed.mod.sig.feature.Gut_SubSection),] #subset molnet enhancer data
-molnetdata1=molnetdata1[match(rownames(mixed.mod.sig.feature.Gut_SubSection),molnetdata1$cluster.index),]
+molnetdata1=molnetdata1[match(rownames(mixed.mod.sig.feature.Gut_SubSection),molnetdata1$cluster.index),] #order molnetdata1 according to features in mixed.mod.sig.feature.Gut_Subsection.
 
+#repeat for mixed.mod.section
+molnetdata2=molnetdata[molnetdata$cluster.index %in% rownames(mixed.mod.section.sig.feature.Gut_Section),] #subset molnet enhancer data
+molnetdata2=molnetdata2[match(rownames(mixed.mod.section.sig.feature.Gut_Section),molnetdata2$cluster.index),] #order molnetdata2 according to features in mixed.mod.section.sig.feature.Gut_Section.
 
-mixed.mod.sig.feature.Gut_SubSection=cbind(mixed.mod.sig.feature.Gut_SubSection,molnetdata1) #merge mixed.mod.sig.otu.Gut_SubSection with the associated OTU taxonomies.
+#subset feature library ID data.
+libraryID=data[data$row.ID %in% rownames(mixed.mod.sig.feature.Gut_SubSection),1:6]
+libraryID=libraryID[match(rownames(mixed.mod.sig.feature.Gut_SubSection),libraryID$row.ID),]
+
+#repeat for mixed.mod.section
+libraryID1=data[data$row.ID %in% rownames(mixed.mod.section.sig.feature.Gut_Section),1:6]
+libraryID1=libraryID1[match(rownames(mixed.mod.section.sig.feature.Gut_Section),libraryID1$row.ID),]
+
+#subset the relabund data
+relabund.19.jun.clean2.dist.t.4.cull.t=as.data.frame(t(relabund.19.jun.clean2.dist.t.4.cull)) #transpose relabund data
+relabund.sig.feature=relabund.19.jun.clean2.dist.t.4.cull.t[rownames(relabund.19.jun.clean2.dist.t.4.cull.t) %in% rownames(mixed.mod.sig.feature.Gut_SubSection),]
+relabund.sig.feature=relabund.sig.feature[match(rownames(mixed.mod.sig.feature.Gut_SubSection),rownames(relabund.sig.feature)),]
+
+#repeat for mixed.mod.section data
+relabund.section.sig.feature=relabund.19.jun.clean2.dist.t.4.cull.t[rownames(relabund.19.jun.clean2.dist.t.4.cull.t) %in% rownames(mixed.mod.section.sig.feature.Gut_Section),]
+relabund.section.sig.feature=relabund.section.sig.feature[match(rownames(mixed.mod.section.sig.feature.Gut_Section),rownames(relabund.section.sig.feature)),]
+
+#combine molnetdata, libraryID data, realbund data, and mixed mod data into 1 df
+mixed.mod.sig.feature.Gut_SubSection=cbind(mixed.mod.sig.feature.Gut_SubSection,molnetdata1,libraryID,relabund.sig.feature) #merge mixed.mod.sig.otu.Gut_SubSection with the associated  molnet enhancer classifications
+mixed.mod.section.sig.feature.Gut_Section=cbind(mixed.mod.section.sig.feature.Gut_Section,molnetdata2,libraryID1,relabund.section.sig.feature)
+
+#export as CSVs
+#write.csv(mixed.mod.sig.feature.Gut_SubSection,file="mixed.mod.sig.feature.Gut_SubSection.csv")
+#write.csv(mixed.mod.section.sig.feature.Gut_Section,file="mixed.mod.section.sig.feature.Gut_Section.csv")
 
 #create an output zscore df and calculate z score for each otu using the scale function.
 mixed.mod.sig.feature.Gut_SubSection.trans=relabund.19.jun.clean2.dist.t.3.cull.trans
@@ -430,7 +487,67 @@ for (i in 1:ncol(mixed.mod.sig.feature.Gut_SubSection.zscore)) { #calculate the 
 }
 
 #write.csv(mixed.mod.sig.feature.Gut_SubSection.zscore,file="mixed.mod.sig.feature.Gut_SubSection.zscore.csv")
-#write.csv(mixed.mod.sig.feature.Gut_SubSection,file="mixed.mod.sig.feature.Gut_SubSection.csv")
+
+```
+
+Next, some the realbund for all features by network and then model the networks by subsection.
+
+```{r}
+#transpose relabund data so features are rows
+relabund.19.jun.clean2.dist.t.4.t=as.data.frame(t(relabund.19.jun.clean2.dist.t.4))
+
+#subset network linkouts to correspond to the above features and add to df
+data.network=as.data.frame(data$Component.Index)
+rownames(data.network)=data$row.ID
+data.network=data.network[rownames(data.network) %in% rownames(relabund.19.jun.clean2.dist.t.4.t),]
+relabund.19.jun.clean2.dist.t.4.t=cbind(data.network,relabund.19.jun.clean2.dist.t.4.t)
+relabund.19.jun.clean2.dist.t.4.t$data.network=as.factor(relabund.19.jun.clean2.dist.t.4.t$data.network)
+
+#sum relabund by netowrk
+relabund.network=aggregate(relabund.19.jun.clean2.dist.t.4.t[,2:32],by=list(relabund.19.jun.clean2.dist.t.4.t$data.network),FUN=sum)
+
+#transpose df for modeling
+relabund.network.t=as.data.frame(t(relabund.network[,-1]))
+colnames(relabund.network.t)=relabund.network$Group.1
+
+#remove networks with no relabund value in any sample
+relabund.network.t=relabund.network.t[,apply(relabund.network.t,2,FUN=sum)!=0]
+
+#add in metadata
+relabund.network.t=cbind(relabund.network.t,relabund.19.jun.clean2.dist.t.4.cull.trans[,550:568])
+
+#arcsinesqrt transform data
+relabund.network.t.trans=cbind(asin(sqrt(relabund.network.t[,1:143])),relabund.network.t[,-1:-143])
+
+#make mixed mod for summed networks
+mixed.mod.network=function(x) { #create a function that performs the desired mixed model
+  mod.network=lmer(x~Species+Gut_SubSection+(1|Fish_Number),data=relabund.network.t.trans)
+  return(mod.network)
+}
+
+#apply gut subseciton function to networks
+mixed.mod.networks=apply(relabund.network.t.trans[,1:143],2,FUN=mixed.mod.network) #apply mixed.mod only to columns containing ASV data. Save as new object.
+
+#inspect results
+mixed.mod.network.singularity=lapply(mixed.mod.networks,FUN=isSingular) #test each mixed model for singularity, save in list. After inspecting the list it looks like ~33% of models are singular.
+
+mixed.mod.network.results=lapply(mixed.mod.networks,FUN=anova.kw) #perform an anova(ddf="Kenward-Roger") on all mixed models, save output.
+mixed.mod.network.pvals=as.data.frame(t(as.data.frame(mixed.mod.network.results))[seq(from=6,to=858,by=6),]) #extract the pvals from the mixed.mod.results list. Do this by converting list to df, transposing it, and then extracting every 6th column (which correspond to the pvals from each model).
+
+#Work up p values.
+mixed.mod.network.pvals$Gut_SubSection.padjust=p.adjust(mixed.mod.network.pvals$Gut_SubSection,method="BH") #Adjust p values for multiple comparisons
+mixed.mod.network.pvals$Species.padjust=p.adjust(mixed.mod.network.pvals$Species,method="BH") #Adjust p values for multiple comparisons
+rownames(mixed.mod.network.pvals)=colnames(relabund.network.t.trans)[1:143] #Change rownames to correspond with tested network names.
+sum(mixed.mod.network.pvals$Gut_SubSection<=.05)
+#32 networks respond significantly to subsection before padjustment.
+mixed.mod.sig.network.Gut_SubSection=mixed.mod.network.pvals[mixed.mod.network.pvals$Gut_SubSection.padjust<=.05,] #subset the mixed.mod.pvals df for significant (p<=.05) Gut_SubSection pvals. Save as new df. 17 features respond significantly to gut subsection after padjustment.
+sum(mixed.mod.network.pvals$Species<=.05)
+#12 features respond significantly to species before padjustment.
+mixed.mod.sig.network.Species=mixed.mod.network.pvals[mixed.mod.network.pvals$Species.padjust<=.05,] #subset the mixed.mod.pvals df for significant (p<=.05) Gut_SubSection pvals. Save as new df. It appears there are no significant Species pvals after padjustment. Will need to look into why this is. Perhaps if using the full sample set that includes F1-F3 GI/HG samples there would be enough replication to find significant species pvals.
+
+#write.csv(mixed.mod.sig.network.Gut_SubSection,file="mixed.mod.sig.network.Gut_SubSection.csv")
+
+
 
 ```
 
