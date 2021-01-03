@@ -161,11 +161,11 @@ points(nmds.weighted.unifrac.F4.F8, #plot each sample as a point
        cex=3.5,
        pch=pointvec[metadata.fish.F4.F8.unifrac$Species], #point shape corresponds to fish Species
        col=colvec2[as.factor(metadata.fish.F4.F8.unifrac$Gut_SubSection)]) 
-text(-.5,.35,label="Stress=.14")
+text(-.475,.4,label="Stress=.14")
 ordiellipse(nmds.weighted.unifrac.F4.F8,metadata.fish.F4.F8.unifrac$Gut_Zone,kind="sd",draw="polygon",alpha=c(0,0),lwd=2.5,border=c("mediumpurple1",viridis(n=3,option="D")[2:3])) #add SD ellipses, colored by Gut_Section.
 ordiarrows(nmds.weighted.unifrac.F4.F8,group=metadata.fish.F4.F8.unifrac$Fish_Number,order.by=metadata.fish.F4.F8.unifrac$Gut_SubSection,lwd=2,col="black")
 
-#Export as 8.5x11 PDF. merge with a legend and use that as Figure X3 for manuscript.
+#Export as 8.5x9 PDF. merge with a legend, dispersion graph, and corresponding NMDS and dispersion graphs for metabolomics data and use that as Figure X3 for manuscript.
 
 #Additional options with arrows include
 #plot(nmds.weighted.unifrac.F4.F8,type="n") #Set up the NMDS plot environment
@@ -209,46 +209,51 @@ stderror=function(x) {
   return(se)
 }
 
-#Calculate means and SE of the sobs and shannon evenness alpha diversity metrics for each Gut_Section and save as a df
-alpha.diversity.mean.gut_Zone=aggregate(alpha.diversity.fish$sobs,by=list(alpha.diversity.fish$Gut_Zone),FUN=mean)$x #aggregate (mean) sobs by Gut_Section, save in new df.
-alpha.diversity.mean.gut_Zone=as.data.frame(alpha.diversity.mean.gut_Zone)
-colnames(alpha.diversity.mean.gut_Zone)[1]="sobs" #rename column 1 to sobs.
-alpha.diversity.mean.gut_Zone$SE_sobs=aggregate(alpha.diversity.fish$sobs,by=list(alpha.diversity.fish$Gut_Zone),FUN=stderror)$x #aggregate (stderror) sobs by Gut_Zone, save as a new column in df.
+#Calculate means and SE of the sobs and shannon evenness alpha diversity metrics for each Gut_Section and save as a df. This code will not be used in the final manuscript.
+#alpha.diversity.mean.gut_Zone=aggregate(alpha.diversity.fish$sobs,by=list(alpha.diversity.fish$Gut_Zone),FUN=mean)$x #aggregate (mean) sobs by Gut_Section, save in new df.
+#alpha.diversity.mean.gut_Zone=as.data.frame(alpha.diversity.mean.gut_Zone)
+#colnames(alpha.diversity.mean.gut_Zone)[1]="sobs" #rename column 1 to sobs.
+#alpha.diversity.mean.gut_Zone$SE_sobs=aggregate(alpha.diversity.fish$sobs,by=list(alpha.diversity.fish$Gut_Zone),FUN=stderror)$x #aggregate (stderror) sobs by Gut_Zone, save as a new column in df.
 #repeat this for shannoneven
-alpha.diversity.mean.gut_Zone$shannoneven=aggregate(alpha.diversity.fish$shannoneven,by=list(alpha.diversity.fish$Gut_Zone),FUN=mean)$x
-alpha.diversity.mean.gut_Zone$SE_shannoneven=aggregate(alpha.diversity.fish$shannoneven,by=list(alpha.diversity.fish$Gut_Zone),FUN=stderror)$x
+#alpha.diversity.mean.gut_Zone$shannoneven=aggregate(alpha.diversity.fish$shannoneven,by=list(alpha.diversity.fish$Gut_Zone),FUN=mean)$x
+#alpha.diversity.mean.gut_Zone$SE_shannoneven=aggregate(alpha.diversity.fish$shannoneven,by=list(alpha.diversity.fish$Gut_Zone),FUN=stderror)$x
 #now add in a Gut_Zone column
-alpha.diversity.mean.gut_Zone$Gut_Zone=aggregate(alpha.diversity.fish$shannoneven,by=list(alpha.diversity.fish$Gut_Zone),FUN=stderror)$Group.1
+#alpha.diversity.mean.gut_Zone$Gut_Zone=aggregate(alpha.diversity.fish$shannoneven,by=list(alpha.diversity.fish$Gut_Zone),FUN=stderror)$Group.1
 
-#Model the alpha diversity (sobs and shannoneven) metrics using mixed models with Gut_Section and Fish_Species as fixed effects and Fish_ID as a random effect.
+#Model the alpha diversity (sobs and shannoneven and shannon) metrics using mixed models with Gut_Section and Fish_Species as fixed effects and Fish_ID as a random effect.
 #First, check to see that the sobs and shannoneven data are normal
-hist(alpha.diversity.fish$sobs) #asses normality of sobs data
-shapiro.test(alpha.diversity.fish$sobs) 
+hist(alpha.diversity.fish.F4.F8$sobs) #asses normality of sobs data
 ```
 
-The sobs data appearto be normal.
+The sobs data look normal.
 
 ```{r}
-hist(alpha.diversity.fish$shannoneven) #asses normality of shannoneven data
-shapiro.test(alpha.diversity.fish$shannoneven)
+hist(alpha.diversity.fish.F4.F8$shannoneven) #asses normality of shannoneven data
 
 ```
 
-The shannoneven data appear to be (barely) normal. Thus I will not transform either the sobs or shannoneven data prior to running the mixed models.
+The shannoneven data look normal.
 
 ```{r}
-#use the GI culled data!
+hist(alpha.diversity.fish.F4.F8$shannon) #asses normality of shannoneven data
+
+```
+
+The shannon data looks normal, although not great...
+
+```{r}
+#use the GI culled data! Do not include this section in final analysis
 #Model the sobs data in response to Gut_seciton, fish species, and fish ID
-adiv.mod.gut.nested.sobs=lmer(sobs~Gut_Zone/Gut_SubSection+Species+(1|Fish_Number),data=alpha.diversity.fish)
-summary(adiv.mod.gut.nested.sobs) #Note that including the Fish_Number ranef yields a singularity error regardless of species
-anova(adiv.mod.gut.nested.sobs,ddf="Kenward-Roger") #Gut_Section is significant
-lsmeans(adiv.mod.gut.nested.sobs, pairwise ~ Gut_Zone, adjust="tukey") #HG and ST are not significantly different from each other, both are significantly different from GI.
+#adiv.mod.gut.nested.sobs=lmer(sobs~Gut_Zone/Gut_SubSection+Species+(1|Fish_Number),data=alpha.diversity.fish)
+#summary(adiv.mod.gut.nested.sobs) #Note that including the Fish_Number ranef yields a singularity error regardless of species
+#anova(adiv.mod.gut.nested.sobs,ddf="Kenward-Roger") #Gut_Section is significant
+#lsmeans(adiv.mod.gut.nested.sobs, pairwise ~ Gut_Zone, adjust="tukey") #HG and ST are not significantly different from each other, both are significantly different from GI.
 
 #Model the shannoneven data in response to Gut_seciton, fish species, and fish ID
-adiv.mod.gut.Zone.shannoneven=lmer(shannoneven~Gut_Zone+Species+(1|Fish_Number),data=alpha.diversity.fish)
-summary(adiv.mod.gut.Zone.shannoneven)
-anova(adiv.mod.gut.Zone.shannoneven,ddf="Kenward-Roger") #Gut_Zone is significant
-lsmeans(adiv.mod.gut.Zone.shannoneven, pairwise ~ Gut_Zone, adjust="tukey")
+#adiv.mod.gut.Zone.shannoneven=lmer(shannoneven~Gut_Zone+Species+(1|Fish_Number),data=alpha.diversity.fish)
+#summary(adiv.mod.gut.Zone.shannoneven)
+#anova(adiv.mod.gut.Zone.shannoneven,ddf="Kenward-Roger") #Gut_Zone is significant
+#lsmeans(adiv.mod.gut.Zone.shannoneven, pairwise ~ Gut_Zone, adjust="tukey")
 #HG is significantly different from ST and GI. ST and GI are not significantly different from each other.
 ```
 
@@ -283,19 +288,22 @@ shannoneven.gut.Zone.plot=ggplot(alpha.diversity.mean.gut_Zone,aes(x=Gut_Zone,y=
 
 Sobs shows both ST and HG to have substantially higher alpha diversity compared to GI. Shannon eveness shows HG to have substantially higher alpha diversity than all other gut sections.
 
-Next, plot the same alpha diversity metrics by Gut_SUBsection.
+Next, model and plot the same alpha diversity metrics by Gut_SUBsection.
 
 ```{r}
-  #Calculate means and SE of the sobs and shannon evenness alpha diversity metrics for each Gut_SubSection and save as a df
-  alpha.diversity.mean.gut_subsection=aggregate(alpha.diversity.fish.F4.F8$sobs,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=mean)$x #aggregate (mean) sobs by Gut_SubSection, save in new df.
-  alpha.diversity.mean.gut_subsection=as.data.frame(alpha.diversity.mean.gut_subsection)
-  colnames(alpha.diversity.mean.gut_subsection)[1]="sobs" #rename column 1 to sobs.
-  alpha.diversity.mean.gut_subsection$SE_sobs=aggregate(alpha.diversity.fish.F4.F8$sobs,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=stderror)$x #aggregate (stderror) sobs by Gut_SubSection, save as a new column in df.
-  #repeat this for shannoneven
-  alpha.diversity.mean.gut_subsection$shannoneven=aggregate(alpha.diversity.fish.F4.F8$shannoneven,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=mean)$x
-  alpha.diversity.mean.gut_subsection$SE_shannoneven=aggregate(alpha.diversity.fish.F4.F8$shannoneven,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=stderror)$x
-  #now add in a Gut_SubSection column
-  alpha.diversity.mean.gut_subsection$Gut_SubSection=aggregate(alpha.diversity.fish.F4.F8$shannoneven,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=stderror)$Group.1
+#Calculate means and SE of the sobs and shannon evenness alpha diversity metrics for each Gut_SubSection and save as a df
+alpha.diversity.mean.gut_subsection=aggregate(alpha.diversity.fish.F4.F8$sobs,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=mean)$x #aggregate (mean) sobs by Gut_SubSection, save in new df.
+alpha.diversity.mean.gut_subsection=as.data.frame(alpha.diversity.mean.gut_subsection)
+colnames(alpha.diversity.mean.gut_subsection)[1]="sobs" #rename column 1 to sobs.
+alpha.diversity.mean.gut_subsection$SE_sobs=aggregate(alpha.diversity.fish.F4.F8$sobs,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=stderror)$x #aggregate (stderror) sobs by Gut_SubSection, save as a new column in df.
+#repeat this for shannoneven
+alpha.diversity.mean.gut_subsection$shannoneven=aggregate(alpha.diversity.fish.F4.F8$shannoneven,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=mean)$x
+alpha.diversity.mean.gut_subsection$SE_shannoneven=aggregate(alpha.diversity.fish.F4.F8$shannoneven,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=stderror)$x
+#now add in a Gut_SubSection column
+alpha.diversity.mean.gut_subsection$Gut_SubSection=aggregate(alpha.diversity.fish.F4.F8$shannoneven,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=stderror)$Group.1
+#repeat this for shannon
+alpha.diversity.mean.gut_subsection$shannon=aggregate(alpha.diversity.fish.F4.F8$shannon,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=mean)$x
+alpha.diversity.mean.gut_subsection$SE_shannon=aggregate(alpha.diversity.fish.F4.F8$shannon,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=stderror)$x
 
 #Model the sobs data in response to Gut_SubSeciton, fish species, and fish ID
 adiv.mod.gut.subsection.sobs=lmer(sobs~Gut_SubSection+Species+(1|Fish_Number),data=alpha.diversity.fish.F4.F8) #interaction term has been removed to prevent errors.
@@ -309,17 +317,11 @@ summary(adiv.mod.gut.subsection.shannoneven)
 anova(adiv.mod.gut.subsection.shannoneven,ddf="Kenward-Roger") #Gut_SubSection is significant, species is not.
 lsmeans(adiv.mod.gut.subsection.shannoneven, pairwise ~ Gut_SubSection, adjust="tukey")
 
-#Repeat these models with Species and Fish_ID nested as randome effects. Model the sobs data in response to Gut_SubSeciton, fish species, and fish ID
-adiv.mod.gut.subsection.sobs1=lmer(sobs~Gut_SubSection+(1|Species/Fish_Number),data=alpha.diversity.fish.F4.F8) #interaction term has been removed to prevent errors.
-summary(adiv.mod.gut.subsection.sobs1)
-anova(adiv.mod.gut.subsection.sobs1,ddf="Kenward-Roger") #Gut_SubSection is significant, Species is not significant.
-lsmeans(adiv.mod.gut.subsection.sobs1, pairwise ~ Gut_SubSection, adjust="tukey") #Post Hoc analysis for the Gut_SubSection factor. This function averages across Species so that it is ONLY testing the differences between Gut_SubSection. 
-
-#Model the shannoneven data in response to Gut_subseciton, fish species, and fish ID
-adiv.mod.gut.subsection.shannoneven1=lmer(shannoneven~Gut_SubSection+(1|Species/Fish_Number),data=alpha.diversity.fish.F4.F8)
-summary(adiv.mod.gut.subsection.shannoneven1)
-anova(adiv.mod.gut.subsection.shannoneven1,ddf="Kenward-Roger") #Gut_SubSection is significant, species is not.
-lsmeans(adiv.mod.gut.subsection.shannoneven1, pairwise ~ Gut_SubSection, adjust="tukey")
+#model the shannon data in response to Gut_subsection, fish species, and fish ID
+adiv.mod.gut.subsection.shannon=lmer(shannon~Gut_SubSection+Species+(1|Fish_Number),data=alpha.diversity.fish.F4.F8)
+summary(adiv.mod.gut.subsection.shannon)
+anova(adiv.mod.gut.subsection.shannon,ddf="Kenward-Roger") #Gut_SubSection is significant, species is not.
+lsmeans(adiv.mod.gut.subsection.shannon, pairwise ~ Gut_SubSection, adjust="tukey")
 
 #write.csv(alpha.diversity.mean.gut_subsection,file="alpha.diversity.mean.gut_subsection.csv") export this df as a csv for Table X in manuscript.
 ```
@@ -329,14 +331,15 @@ Gut_SubSection is a significant predictor of both sobs and shannoneven. The mode
 ```{r}
 #Graph sobs and shannoneven indices as a function of Gut_SubSection
 sobs.gut.subsection.plot=ggplot(alpha.diversity.mean.gut_subsection,aes(x=Gut_SubSection,y=sobs,fill=Gut_SubSection))+
-  ylim(0,670)+
+  ylab("Observed ASVs")+
+  ylim(0,680)+
   geom_bar(stat="identity")+
   scale_fill_manual(values=colvec2)+
   geom_errorbar(aes(ymin=sobs-SE_sobs,ymax=sobs+SE_sobs),width=.5)+
   ggtitle("A")+
   theme_classic()+
-  theme(legend.position = "none")+
-  geom_text(x=1:8,y=c(655,275,240,275,440,625,595,570),aes(label=c("A","B","B","B","B/C","A/C","A/C","A/C")))
+  theme(legend.position = "none",axis.text=element_text(size=12))+
+  geom_text(x=1:8,y=c(675,275,240,275,440,625,595,570),aes(label=c("A","B","B","B","B/C","A/C","A/C","A/C")))
 
 #now repeat for shannoneven
 shannoneven.gut.subsection.plot=ggplot(alpha.diversity.mean.gut_subsection,aes(x=Gut_SubSection,y=shannoneven,fill=Gut_SubSection))+
@@ -346,10 +349,20 @@ shannoneven.gut.subsection.plot=ggplot(alpha.diversity.mean.gut_subsection,aes(x
   ggtitle("B")+
   theme_classic()+
   ylim(0,.87)+
-  theme(legend.position = "none")+
+  theme(legend.position = "none",axis.text=element_text(size=12))+
   geom_text(x=1:8,y=c(.6,.6,.6,.75,.75,.85,.85,.85),aes(label=c("A","A","A","A/B","A/B","B","B","B")))
 
-plot_grid(sobs.gut.subsection.plot,shannoneven.gut.subsection.plot) ##use the plot_grid function to plot the above 2 plots (par(mfrow=())) doesnt work with ggplot2. Save as PNG (1095 x 485) and use as Figure 1 in manuscript.
+shannon.gut.subsection.plot=ggplot(alpha.diversity.mean.gut_subsection,aes(x=Gut_SubSection,y=shannon,fill=Gut_SubSection))+
+  geom_bar(stat="identity")+
+  scale_fill_manual(values=colvec2)+
+  geom_errorbar(aes(ymin=shannon-SE_shannon,ymax=shannon+SE_shannon),width=.5)+
+  ggtitle("C")+
+  theme_classic()+
+  ylim(0,5.3)+
+  theme(legend.position = "none",axis.text=element_text(size=12))+
+  geom_text(x=1:8,y=c(4,3.25,3.25,4,4.3,5.3,5.3,5.3),aes(label=c("A/B","A/B","B","A/B","A/C","C","C","C")))
+
+plot_grid(sobs.gut.subsection.plot,shannoneven.gut.subsection.plot,shannon.gut.subsection.plot) ##use the plot_grid function to plot the above 2 plots (par(mfrow=())) doesnt work with ggplot2. Save as PNG (995 x 750) and use as Figure 1 in manuscript.
 ```
 
 
@@ -396,11 +409,12 @@ dispersion.gut.subsection.plot.v1=ggplot(dispersion.gut.subsection1,aes(y=distan
   ylab(label="unifrac distance to centroid")+
   geom_boxplot()+
   scale_fill_manual(values=colvec2)+
-  theme_classic()
+  theme_classic()+
+  theme(legend.position = "none")
 
 dispersion.gut.subsection.plot.v1
 
-#save as 8.5x11 and use as Figure 2
+#save as 8.5x9 and use as Figure x3
 
 ```
 

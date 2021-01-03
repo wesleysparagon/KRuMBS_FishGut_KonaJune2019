@@ -281,12 +281,12 @@ nmds.relabund.2=metaMDS(bray.relabund.19.jun.clean2.2,k=2,trymax=100)
 
 colvec3=c("mediumpurple1",viridis(n=7,option="D",begin=.15))
 
-plot(nmds.relabund.2,type="n",ylim=c(-.35,.6),xlim=c(-.7,.7))
+plot(nmds.relabund.2,type="n")
 points(nmds.relabund.2, #plot each sample as a point
        cex=3.5,
        pch=pointvec[metadata.19.jun.samples2$Species], #point shape corresponds to fish Species
        col=colvec3[metadata.19.jun.samples2$Gut_SubSection])
-text(-.6,.55,label="Stress=.19")
+text(-.42,.525,label="Stress=.17")
 ordiellipse(nmds.relabund.2,metadata.19.jun.samples2$Gut_Section,kind="sd",draw="polygon",alpha=c(0,0),lwd=2.5,border=c("mediumpurple1",viridis(n=3,option="D")[2:3])) #add SD ellipses, colored by Gut_Section.
 ordiarrows(nmds.relabund.2,group=metadata.19.jun.samples2$Fish_Number,order.by=metadata.19.jun.samples2$Gut_SubSection,lwd=2,col="black")
 ```
@@ -307,6 +307,58 @@ pairwise.permanova.subsection
 ```
 
 Gut subsection and Species are both very significant, whereas the interaction term is less (but still noticably) significant. Gut subsection explains double the variation of species or their interaction. Interestingly, the interaction term explains more variation than species alone, despite the low effect size (F value).
+
+Next, calculate the gut subsection dispersion values for the MB data.
+
+```{r}
+#Extract dispersion values from the unifrac data and asses their distribution.
+dispersion.mb.gut.subsection=betadisper(bray.relabund.19.jun.clean2.2,type="centroid",group=metadata.19.jun.samples2$Gut_SubSection)
+dispersion.mb.gut.subsection
+hist(dispersion.mb.gut.subsection$distances) #asses the distribution of the dispersion data. It looks normal
+
+dispersion.mb.gut.subsection1=as.data.frame(dispersion.mb.gut.subsection[[3]]) #make a new df with just the distances.
+colnames(dispersion.mb.gut.subsection1)[1]="bray curtis distance to centroid"
+dispersion.mb.gut.subsection1$samples=rownames(dispersion.mb.gut.subsection1) #add in metadata
+dispersion.mb.gut.subsection1$Gut_SubSection=metadata.19.jun.samples2$Gut_SubSection
+dispersion.mb.gut.subsection1$Gut_Section=metadata.19.jun.samples2$Gut_Section
+dispersion.mb.gut.subsection1$Species=metadata.19.jun.samples2$Species
+dispersion.mb.gut.subsection1$Fish_Number=metadata.19.jun.samples2$Fish_Number
+
+#convert dispersion.gut.section1 into df of means and SE so it can be graphed as a barplot.
+dispersion.mb.gut.subsection2=as.data.frame(aggregate(dispersion.mb.gut.subsection1$`bray curtis distance to centroid`,by=list(dispersion.mb.gut.subsection1$Gut_SubSection),FUN=mean))
+
+#make a function to calculate standard error
+stderror=function(x) {
+  se=sd(x)/sqrt(length(x))
+  return(se)
+}
+
+dispersion.mb.gut.subsection2$se=aggregate(dispersion.mb.gut.subsection1$`bray curtis distance to centroid`,by=list(dispersion.mb.gut.subsection1$Gut_SubSection),FUN=stderror)[[2]]
+colnames(dispersion.mb.gut.subsection2)=c("Gut_SubSection","bray curtis distance to centroid","se")
+
+#Model the distance values in response to Gut_SubSection and Fish_Number as a random effect.
+dispersion.mb.mod.gut.subsection=lmer(`bray curtis distance to centroid`~Gut_SubSection+Species+(1|Fish_Number),data=dispersion.mb.gut.subsection1)
+summary(dispersion.mb.mod.gut.subsection)
+anova(dispersion.mb.mod.gut.subsection,ddf="Kenward-Roger") #Gut_SubSectionis significant.
+lsmeans(dispersion.mb.mod.gut.subsection, pairwise ~ Gut_SubSection, adjust="tukey")
+
+#add in significance indicators to dispersion.mb.gut.subsection1 for use in boxplots .
+posthocvec=c("A","B","B","B","A","A","A","A")
+dispersion.mb.gut.subsection1$posthoc=posthocvec[dispersion.mb.gut.subsection1$Gut_SubSection]
+#add in significance indicator heights
+posthocymax=aggregate(dispersion.mb.gut.subsection1$`bray curtis distance to centroid`,by=list(dispersion.mb.gut.subsection1$Gut_SubSection),FUN=max)[[2]]
+dispersion.mb.gut.subsection1$posthocymax=posthocymax[dispersion.mb.gut.subsection1$Gut_SubSection]
+
+#now, visualize the dispersion data
+dispersion.mb.gut.subsection.plot.v1=ggplot(dispersion.mb.gut.subsection1,aes(y=`bray curtis distance to centroid`,x=Gut_SubSection,fill=Gut_SubSection))+
+  geom_boxplot()+
+  scale_fill_manual(values=colvec3)+
+  theme_classic()+
+  theme(legend.position = "none")+
+  geom_text(data=dispersion.mb.gut.subsection1,aes(x=Gut_SubSection,y=posthocymax+.02,label=posthoc))
+
+#export as 8.5x9 PDF, include in figure X3
+```
 
 Next, I will import the parallel 16S distance matrix, and compare the 2 using procrustes and mantel tests.
 
