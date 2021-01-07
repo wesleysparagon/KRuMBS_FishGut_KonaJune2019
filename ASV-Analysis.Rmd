@@ -108,7 +108,7 @@ relabund.t.fish.F4.F8.cull=relabund.df.cull #rename output
 relabund.fish.cull=as.data.frame(t(relabund.t.fish.cull)) #transpose culled relabund data
 relabund.fish.F4.F8.cull=as.data.frame(t(relabund.t.fish.F4.F8.cull)) #transpose culled relabund data
 cull.otu(relabund.t.fish.F4.F8.ST,3,.0005,.01)
-relabund.t.fish.F4.F8.ST.cull=relabund.df.cull
+relabund.t.fish.F4.F8.ST.cull=relabund.df.cull #721 ASVs remain
 
 #export relabund dfs as CSVs
 #write.csv(relabund.fish.cull,file="relabund.fish.cull.csv")
@@ -150,11 +150,11 @@ colnames(metadata.fish.F4.F8.mean)="Gut_Subsection"
 rownames(metadata.fish.F4.F8.mean)=rownames(relabund.t.fish.F4.F8.ST.cull.mean)
 metadata.fish.F4.F8.mean$Gut_Subsection=rownames(relabund.t.fish.F4.F8.ST.cull.mean)
 
-#ERRORS IN THIS SECTION NEED TO DELETE
 #create a metadata df for relabund.t.fish.F4.F8.ST.cull.species.subsection.mean that can be used in phyloseq.
 metadata.fish.F4.F8.species.subsection.mean=as.data.frame(matrix(nrow=21,ncol=1))
 colnames(metadata.fish.F4.F8.species.subsection.mean)="Species_SubSection"
 rownames(metadata.fish.F4.F8.species.subsection.mean)=rownames(relabund.t.fish.F4.F8.ST.cull.species.subsection.mean)
+metadata.fish.F4.F8.species.subsection.mean$Species_SubSection=rownames(metadata.fish.F4.F8.species.subsection.mean)
 ```
 
 
@@ -218,52 +218,52 @@ relabund.class.df=rbind(relabund.class.df,other.otus1)
 relabund.class.df.mean=aggregate(relabund.class.df$Abundance,by=list(relabund.class.df$Class),FUN=mean)
 #write.csv(relabund.class.df.mean,file="relabund.class.df.mean.csv")
 
-#calculate the mean for each family and across eah gut subsection.
-relabund.family.df$family_subsection=paste(relabund.family.df$Gut_Subsection,relabund.family.df$Family,sep="_")
-relabund.family.df.subsection.mean=aggregate(relabund.family.df$Abundance,by=list(relabund.family.df$family_subsection),FUN=mean)
+#calculate the mean for each family and across eah gut subsection. Not sure what this is use for, for now don't include it
+#relabund.family.df$family_subsection=paste(relabund.family.df$Gut_Subsection,relabund.family.df$Family,sep="_")
+#relabund.family.df.subsection.mean=aggregate(relabund.family.df$Abundance,by=list(relabund.family.df$family_subsection),FUN=mean)
 #write.csv(relabund.family.df.subsection.mean,file="relabund.family.df.subsection.mean.csv")
 
 #write.csv(relabund.family.df,file="relabund.family.df.csv") #Export the relabund.cull.genus (or family) data as a CSV and open it in JMP. Use JMP to create stacked bar charts.
 
 #Now do the same for the species.section averaged data
 #Convert relabund data, taxonomy data, and metadata to phyloseq objects and merge them. Use the F4.F8 PC culled data, averaged across gut subsections.
-otu.phyloseq.species=otu_table(relabund.t.fish.F4.F8.ST.cull.species.mean,taxa_are_rows=FALSE) #taxa are rows but for some reason i get an error unless i have it =FALSE
+otu.phyloseq.species.subsection=otu_table(relabund.t.fish.F4.F8.ST.cull.species.subsection.mean,taxa_are_rows=FALSE) #taxa are rows but for some reason i get an error unless i have it =FALSE
 taxonomy.phyloseq=tax_table(as.matrix(taxonomy.fish.F4.F8.ST.cull))
-metadata.phyloseq.species=sample_data(metadata.fish.F4.F8.species.mean)
-fish.phyloseq.species=phyloseq(otu.phyloseq.species,taxonomy.phyloseq,metadata.phyloseq.species)
+metadata.phyloseq.species.subsection=sample_data(metadata.fish.F4.F8.species.subsection.mean)
+fish.phyloseq.species.subsection=phyloseq(otu.phyloseq.species.subsection,taxonomy.phyloseq,metadata.phyloseq.species.subsection)
 
 #Use tax_glom() to glom relative abundance values by specific taxonomic ranks
-relabund.species.phylum=tax_glom(fish.phyloseq.species,taxrank="Phylum")
-relabund.species.class=tax_glom(fish.phyloseq.species,taxrank="Class")
-relabund.species.order=tax_glom(fish.phyloseq.species,taxrank="Order")
-relabund.species.family=tax_glom(fish.phyloseq.species,taxrank="Family")
-relabund.species.genus=tax_glom(fish.phyloseq.species,taxrank="Genus")
+relabund.species.subsection.phylum=tax_glom(fish.phyloseq.species.subsection,taxrank="Phylum")
+relabund.species.subsection.class=tax_glom(fish.phyloseq.species.subsection,taxrank="Class")
+relabund.species.subsection.order=tax_glom(fish.phyloseq.species.subsection,taxrank="Order")
+relabund.species.subsection.family=tax_glom(fish.phyloseq.species.subsection,taxrank="Family")
+relabund.species.subsection.genus=tax_glom(fish.phyloseq.species.subsection,taxrank="Genus")
 
 #Use psmelt() to convert these from phyloseq class objects to normals dfs.
-relabund.species.phylum.df=psmelt(relabund.species.phylum)
-relabund.species.class.df=psmelt(relabund.species.class)
-relabund.species.order.df=psmelt(relabund.species.order)
-relabund.species.family.df=psmelt(relabund.species.family)
-relabund.species.genus.df=psmelt(relabund.species.genus)
+relabund.species.subsection.phylum.df=psmelt(relabund.species.subsection.phylum)
+relabund.species.subsection.class.df=psmelt(relabund.species.subsection.class)
+relabund.species.subsection.order.df=psmelt(relabund.species.subsection.order)
+relabund.species.subsection.family.df=psmelt(relabund.species.subsection.family)
+relabund.species.subsection.genus.df=psmelt(relabund.species.subsection.genus)
 
-other.otus1=aggregate(relabund.species.family.df$Abundance,by=list(relabund.species.family.df$Sample),FUN=sum)
-other.otus1$Abundance=1-other.otus1$x
-other.otus1$Species=c("Kyphosus cinerascens","Kyphosus cinerascens","Kyphosus cinerascens","Kyphosus hawaiiensis","Kyphosus hawaiiensis","Kyphosus hawaiiensis","Kyphosus vaigiensis","Kyphosus vaigiensis","Kyphosus vaigiensis")
-other.otus1$Gut_Section=c("GI","HG","ST","GI","HG","ST","GI","HG","ST")
-other.otus1$Species_Gut_Section=other.otus1$Group.1
-other.otus1$Kingdom=rep("Other",times=9)
-other.otus1$Phylum=rep("Other",times=9)
-other.otus1$Class=rep("Other",times=9)
-other.otus1$Order=rep("Other",times=9)
-other.otus1$Family=rep("Other",times=9)
-other.otus1=other.otus1[,-2]
-other.otus1$OTU=rep("Other",times=9)
-othcolnames(other.otus1)[1]="Sample"
-other.otus1=other.otus1[,c(11,1:10)]
+other.otus2=aggregate(relabund.species.subsection.family.df$Abundance,by=list(relabund.species.subsection.family.df$Sample),FUN=sum)
+other.otus2$Abundance=1-other.otus2$x
+other.otus2$Species_SubSection=other.otus2$Group.1
+other.otus2$Kingdom=rep("Other",times=21)
+other.otus2$OTUConTaxonomy=rep("Other",times=21)
+other.otus2$Domain=rep("Other",times=21)
+other.otus2$Phylum=rep("Other",times=21)
+other.otus2$Class=rep("Other",times=21)
+other.otus2$Order=rep("Other",times=21)
+other.otus2$Family=rep("Other",times=21)
+other.otus2=other.otus2[,-2]
+other.otus2$OTU=rep("Other",times=21)
+colnames(other.otus2)[1]="Sample"
+other.otus2=other.otus2[,c(11,1:10)]
 
-relabund.species.family.df=rbind(relabund.species.family.df,other.otus1)
+relabund.species.subsection.family.df1=rbind(relabund.species.subsection.family.df,other.otus2)
 
-write.csv(relabund.species.family.df,file="relabund.species.family.df.csv") #Export the ralbund.cull.genus (or family) data as a CSV and open it in JMP. Use JMP to create stacked bar charts.
+write.csv(relabund.species.subsection.family.df1,file="relabund.species.subsection.family.df1.csv") #Export the ralbund.cull.genus (or family) data as a CSV and open it in JMP. Use JMP to create stacked bar charts.
 
 ```
 

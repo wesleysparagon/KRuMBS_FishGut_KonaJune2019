@@ -369,6 +369,7 @@ nmds.scores.2$Ranked_Distance_from_Stomach=metadata.fish.F4.F8.unifrac$Ranked_Gu
 nmds.scores.2$Species=metadata.fish.F4.F8.unifrac$Species #Add Species to the new df.
 nmds.scores.2$Fish_Number=metadata.fish.F4.F8.unifrac$Fish_Number
 nmds.scores.2$Gut_Section=metadata.fish.F4.F8.unifrac$Gut_Section
+nmds.scores.2$Sample_Type=c(rep("16S",times=14),rep("Metabolomics",times=23))
 
 #test different color gradients
 colvectest=c("#7b5804",viridis(n=7,option="D",begin=.15))
@@ -433,3 +434,12 @@ points(nmds.weighted.unifrac.F4.F8, #plot each sample as a point
 text(-.5,.275,label="Stress=.14")
 ordiellipse(nmds.weighted.unifrac.F4.F8,metadata.fish.F4.F8.unifrac$Gut_Zone,kind="sd",draw="polygon",alpha=c(0,0),lwd=2.5,border=c("mediumpurple1",viridis(n=3,option="D")[2:3])) #add SD ellipses, colored by Gut_Section.
 ordiarrows(nmds.weighted.unifrac.F4.F8,group=metadata.fish.F4.F8.unifrac$Fish_Number,order.by=metadata.fish.F4.F8.unifrac$Gut_SubSection,lwd=2,col="black")
+
+
+
+#this was testing color gradient, but now it is for generating the fill scale for the legen for the procrustes figure
+ggplot(nmds.scores.2,aes(x=NMDS1,y=NMDS2))+ #plot nmds.scores, specify x and y axis, shape corresponding to species, color corresponding to Ranked_Distance_from_Stomach
+  geom_point(data=nmds.scores.2,aes(x=NMDS1,y=NMDS2,shape=Sample_Type,size=2))+ #add points
+  scale_shape_manual(values = c(21, 16))+
+  theme_classic()+
+  ggtitle("new gradient1")#export graphs as 8.5x11 PDF (landscape)

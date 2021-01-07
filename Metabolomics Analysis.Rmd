@@ -16,6 +16,7 @@ library(RVAideMemoire)
 library(pairwiseAdonis)
 library(lme4)
 library(lmerTest)
+library(lsmeans)
 
 #set up custom functions
 cull.otu=function(relabund.df, min.num, min.abund, min.single.abund) {
@@ -350,7 +351,7 @@ posthocymax=aggregate(dispersion.mb.gut.subsection1$`bray curtis distance to cen
 dispersion.mb.gut.subsection1$posthocymax=posthocymax[dispersion.mb.gut.subsection1$Gut_SubSection]
 
 #now, visualize the dispersion data
-dispersion.mb.gut.subsection.plot.v1=ggplot(dispersion.mb.gut.subsection1,aes(y=`bray curtis distance to centroid`,x=Gut_SubSection,fill=Gut_SubSection))+
+ggplot(dispersion.mb.gut.subsection1,aes(y=`bray curtis distance to centroid`,x=Gut_SubSection,fill=Gut_SubSection))+
   geom_boxplot()+
   scale_fill_manual(values=colvec3)+
   theme_classic()+
@@ -417,6 +418,8 @@ points(pro, display="target",#plot each sample as a point
        lwd=3,
        pch=pointvec2[metadata.19.jun.samples2$Species], #point shape corresponds to fishSpecies
        col=colvec3[metadata.19.jun.samples2$Gut_SubSection]) 
+
+#export as 8.5x11 PDF for manuscript
 
 pro.test=protest(nmds.16s,nmds.relabund.2,scores="sites")
 pro.test
