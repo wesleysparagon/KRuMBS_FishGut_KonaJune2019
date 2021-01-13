@@ -438,19 +438,19 @@ relabund.19.jun.clean2.dist.t.4=relabund.19.jun.clean2.dist.t.3[metadata.19.jun.
 #further cull low abundance features
 cull.otu(relabund.19.jun.clean2.dist.t.4,3,.0005,.01)
 relabund.19.jun.clean2.dist.t.4.cull=relabund.df.cull
-#went from 1133 ASVs to 549 ASVs
+#went from 1133 featuress to 549 features
 
 #asinsqrt transform the data
 relabund.19.jun.clean2.dist.t.4.cull.trans=asin(sqrt(relabund.19.jun.clean2.dist.t.4.cull))
 #merge in metadata
 relabund.19.jun.clean2.dist.t.4.cull.trans=cbind(relabund.19.jun.clean2.dist.t.4.cull.trans,metadata.19.jun.samples2[metadata.19.jun.samples2$Gut_SubSection!="ST",])
 
-#now run a mixed model on the transformed ASV data. Have relative abundance be a function of Species, Gut_SubSection, and Fish_Number be a random effect. Interaction term has been removed since it was not significant in the multivariate analysis. Could re-run model with Species also as a random effect.
+#now run a mixed model on the transformed feature data. Have relative abundance be a function of Species, Gut_SubSection, and Fish_Number be a random effect. Interaction term has been removed since it was not significant in the multivariate analysis. Could re-run model with Species also as a random effect.
 mixed.mod=function(x) { #create a function that performs the desired mixed model
   mod=lmer(x~Species+Gut_SubSection+(1|Fish_Number),data=relabund.19.jun.clean2.dist.t.4.cull.trans)
   return(mod)
 }
-mixed.mod.relabund.19.jun.clean2.dist.t.4.cull.trans=apply(relabund.19.jun.clean2.dist.t.4.cull.trans[,-549:-568],2,FUN=mixed.mod) #apply mixed.mod only to columns containing ASV data. Save as new object.
+mixed.mod.relabund.19.jun.clean2.dist.t.4.cull.trans=apply(relabund.19.jun.clean2.dist.t.4.cull.trans[,-549:-568],2,FUN=mixed.mod) #apply mixed.mod only to columns containing feature data. Save as new object.
 
 #make a new mixed mod function testing gut section instead of subsection
 mixed.mod.section=function(x) {
