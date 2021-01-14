@@ -154,7 +154,7 @@ The gut zoness all form relativley distinct clusters.
 Next, plot the same NMDS but color by Gut_SubSection instead of Gut_Zone. Do this using the subset unifrac matrix and metadata that only contain F4-F8. Plot a NMDS in base R colored by Gut_SubSection but with ellipses by Gut_Section
 
 ```{r}
-colvec2=c("mediumpurple1",viridis(n=7,option="D",begin=.15))
+colvec2=c("mediumpurple1",viridis(n=7,option="D",begin=.15)) #generate colvec
 
 plot(nmds.weighted.unifrac.F4.F8,type="n") #Set up the NMDS plot environment
 points(nmds.weighted.unifrac.F4.F8, #plot each sample as a point
