@@ -1,0 +1,608 @@
+---
+title: "Metabolomics Analysis"
+author: "Wesley Sparagon"
+date: "10/2/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(vegan)
+library(viridis)
+library(RVAideMemoire)
+library(pairwiseAdonis)
+library(lme4)
+library(lmerTest)
+library(lsmeans)
+
+#set up custom functions
+cull.otu=function(relabund.df, min.num, min.abund, min.single.abund) {
+  #Inputs:  relabund.df = dataframe containing ONLY relative abundance data, no metadata or other info. Samples in rows and OTUs in columns.
+            
+            #min.num = the minimum number of samples an OTU needs to be present in to not be culled.
+            
+            #min.abund = the minimum relative abundance an OTU needs to have in (the min.num) samples to not be culled.
+ 
+            #min.single.abund = the minimum relative abundance an OTU needs to have in a SINGLE sample to not be culled.
+   
+  sub=c() #create a empty vector
+  
+  cull=function(x) { #make a function that says for any input, generate a logical vector of TRUEs and FALSEs that will be used for subsetting, selecting OTUs that
+    sub=ifelse(length(x[x>=min.abund])>=min.num #have a relabund>"min.abund" in "min.num" samples 
+               | length(x[x>=min.single.abund])>0,TRUE,FALSE) #or have a relabund>"min.single.abund" in at least one sample
+    return(sub)
+  }
+  
+  cull.vec=apply(relabund.df,2,FUN=cull) #apply cull function to relabund.df, save output as a vector.
+  relabund.df.cull=relabund.df[,cull.vec] #Use cull.vec to subset the columns of relabund.df for OTUs that passed the cull threshold.
+  
+  relabund.df.cull<<-relabund.df.cull
+}
+
+#read in data and metadata
+data=read.csv(file="KRuMBS_Fishguts_bothtrips_A_quant_filtered_withIDs.csv")
+metadata=read.csv(file="Metadata_KRuMBS_Fishguts_Seaweed_FULL.csv")
+molnetdata=read.csv(file="KRuMBS_ClassyFireResults_Network.csv")
+
+#adjust order of factors for gut section and gut subsection to help with graphing
+metadata$ATTRIBUTE_Gut_Section=factor(metadata$ATTRIBUTE_Gut_Section,levels=c("ST","GI","HG","PC","not applicable"))
+metadata$ATTRIBUTE_Gut_SubSection=factor(metadata$ATTRIBUTE_Gut_SubSection,levels=c("ST","GI_1","GI_2","GI_3","GI_4","HG_1","HG_2","HG_3","HG","G1","G2","G3","GI","not applicable","PC"))
+metadata$ATTRIBUTE_Fish_Species=factor(metadata$ATTRIBUTE_Fish_Species,levels=c("Kyphosus cinerascens","Kyphosus hawaiiensis","Kyphosus vaigiensis","Kyphosus sandwicensis","not applicable","unknown"))
+colnames(metadata)[5]="Species"
+colnames(metadata)[6]="Gut_Section"
+colnames(metadata)[7]="Gut_SubSection"
+
+#adjust appropriate varibles in metadata to be characters
+metadata$sample_name=as.character(metadata$sample_name)
+metadata$SampleCode=as.character(metadata$SampleCode)
+
+#add in string ".Peak.area" to sample_name in metadata so that the sample_name in metadata corresponds to the colnames in data
+metadata$sample_name2=paste(metadata$sample_name,".Peak.area",sep="")
+
+#subset data and metadata to contain only the June 2019 sampling trip. Be sure to add back in columns 1:6
+metadata.19.jun=metadata[metadata$ATTRIBUTE_SamplingTrip=="19-Jun",]
+data.19.jun=cbind(data[,1:6],data[,colnames(data) %in% metadata.19.jun$sample_name2])
+
+#subset data and metadata from jun 19 for only the samples (not the blanks)
+metadata.19.jun.samples=metadata.19.jun[metadata.19.jun$ATTRIBUTE_Sample_Type=="Fish_Gut",]
+data.19.jun.samples=cbind(data.19.jun[,1:6],data.19.jun[,colnames(data.19.jun) %in% metadata.19.jun.samples$sample_name2])
+
+#subset data.19.jun and metadata.19.jun for only the blanks
+metadata.19.jun.blank=metadata.19.jun[metadata.19.jun$ATTRIBUTE_Sample_Type=="blank",]
+data.19.jun.blank=cbind(data.19.jun[,1:6],data.19.jun[,colnames(data.19.jun) %in% metadata.19.jun.blank$sample_name2])
+
+```
+
+Now perform blank removal to get rid of contaminant features.
+
+```{r}
+
+blank.removal = function(data, blank.data, sample.cols, blank.cols, blank.factor) {
+  #data is the feature table with ONLY the samples
+  
+  #blank.data is the feature table with ONLY the blanks
+  
+  #sample.cols are the col numbers corresponding to the peak area of features in samples (no columns containing data on the feature)
+  
+  #blanks.cols are the col numbers corresponding to the peak area of features in blanks (no columns containing data on the feature)
+  
+  #blank.factor is the factor to multiply the max peak area of a feature in the blanks
+  
+  removal.vec=c() #create and empty vector 
+  
+  
+  for (i in 1:nrow(data)) {
+    removal.vec[i]=mean(unlist(data[i,sample.cols])) >= blank.factor*max(blank.data[i,blank.cols])
+    
+  }
+  
+  removal.vec<<-removal.vec
+  
+  data.clean=data[removal.vec,]
+  data.clean<<-data.clean
+  
+  return(data[removal.vec=="FALSE",5]) #return the names of the removed features.
+  
+}
+
+#Now run the function
+blank.removal(data.19.jun.samples,data.19.jun.blank,7:63,7:18,2)
+```
+
+31 features were removed.
+
+Next, remove low abundance peaks.
+
+```{r}
+abund.removal = function(data,sample.cols) {
+  
+  abund.threshold = function(x) {
+    ifelse(sum(x>0)>=3,TRUE,FALSE)
+  }
+  
+  abund.removal.vec=apply(data[,sample.cols],1,FUN=abund.threshold)
+  
+  data.clean2=cbind(data[abund.removal.vec,])
+  
+  data.clean2<<-data.clean2
+  
+  return(sum(abund.removal.vec))
+}
+
+#Run the function
+abund.removal(data.clean,7:63)
+```
+
+659 low abundance features were removed.
+
+Next, let's look at the raw data distribution and transform into relative abundance.
+
+```{r}
+data.19.jun.clean2=data.clean2
+
+#make a histogram of the feature peak areas.
+hist(unlist(data.19.jun.clean2[,7:63]),breaks=10000)
+
+#data look HIGHLY 0 inflated and with a long right tail. Let's look at the more common values.
+hist(unlist(data.19.jun.clean2[,7:63]),xlim=c(0,500000),breaks=10000)
+
+#Again, very 0 inflated, Most common peak areas appear to be under 4E05. Now, exclude 0s from the histogram
+hist(unlist(data.19.jun.clean2[,7:63])[unlist(data.19.jun.clean2[,7:63])!=0],breaks=10000)
+
+#Looks like there is a strong right skew, but most peak area values are under 5E06, with a few that are close to 3.5E07. Now look at only the more common values.
+hist(unlist(data.19.jun.clean2[,7:63])[unlist(data.19.jun.clean2[,7:63])!=0],xlim=c(0,500000),breaks=10000)
+
+#Looks like the distribtion of peak area vlaues has a substantial right hand skew, with a peak frequency at between 40,000 and 50,000.
+
+#Next, look at the minimum peak area value in the dataset. Consider this a threshold that Emily applied.
+min(unlist(data.19.jun.clean2[,7:63])[unlist(data.19.jun.clean2[,7:63])!=0])
+#Minimum peak area is 13,246.03
+
+#now transform each feature peak area to realtive abundance.
+#First creat blanks dfs and vectors to store for loop outputs.
+relabund=as.data.frame(matrix(nrow=1133,ncol=63))
+sample.col.relabund=c()
+
+for (i in 7:63) { #for each column (sample)
+  
+  sample.col=data.clean2[,i] #extract the peak abundance values for said sample and save them in empty vector.
+  
+  for (j in 1:1133) { #for each element (peak area) in said vector
+    
+    sample.col.relabund[j]=sample.col[j]/sum(sample.col) #calculate it's relative abundance by dividing it by the sum of all peak area values in said vector. Save this in corresponding position in new storage vector.
+    
+  }
+  
+  relabund[,i]=sample.col.relabund #store the feature.col.relabund vector in the appropriate row (feature) in the storage df.
+  
+}
+
+#rename rows, columns, and add back in metadata to relabund df.
+colnames(relabund)=colnames(data.clean2)
+rownames(relabund)=rownames(data.clean2)
+relabund[,1:6]=data.clean2[,1:6]
+
+#Rename relabund df.
+relabund.19.jun.clean2=relabund 
+
+#Visualize the distribution of the data. The relabund data is also 0 inflated.
+
+hist(unlist(relabund.19.jun.clean2[,7:63])[unlist(relabund.19.jun.clean2[,7:63])!=0],xlim=c(0,.02),breaks=1000)
+
+hist(unlist(relabund.19.jun.clean2[,7:63])[unlist(relabund.19.jun.clean2[,7:63])!=0],xlim=c(0,.01),breaks=1000)
+#The highest relabund freq is very low, between .0004 and .0008. The data has a strong right skew. Generallt the width of the peak is tighter with the relabund vs. abund data.
+```
+
+The data structure is similar to that of 16S data. Highly zero inflated, most features have low abundance/relative abundance, and there is a large right hand skew as a few features are highly abundant.
+
+Next, let's convert to the relabund data to a bray curtis distance matrix, run a NMDS and PERMANOVA. We will then compare to the same process with raw abundance data data.
+
+```{r}
+#work up relabund data for vegdist
+rownames(relabund.19.jun.clean2)=relabund.19.jun.clean2$row.ID
+relabund.19.jun.clean2.dist=relabund.19.jun.clean2[,7:63]
+relabund.19.jun.clean2.dist.t=as.data.frame(t(relabund.19.jun.clean2.dist))
+
+#work up the abund data for vegdist
+rownames(data.19.jun.clean2)=data.19.jun.clean2$row.ID
+data.19.jun.clean2.dist=data.19.jun.clean2[,7:63]
+data.19.jun.clean2.dist.t=as.data.frame(t(data.19.jun.clean2.dist))
+
+bray.relabund.19.jun.clean2=vegdist(relabund.19.jun.clean2.dist.t,method="bray")
+bray.19.jun.clean2=vegdist(data.19.jun.clean2.dist.t,method="bray")
+
+nmds.relabund=metaMDS(bray.relabund.19.jun.clean2,k=2,trymax=100)
+#Convergent solutions were reached and stress was ok (~.17)
+
+nmds=metaMDS(bray.19.jun.clean2,k=2,trymax=100)
+#Convergent solutions were reached and stress was good (~.13)
+
+pointvec=c(15,16,17) #generate a vector of points to correspond to Species.
+colvec=viridis(n=4,option="D")
+
+#adjust the oder of the metadata samples to correspond to the order of samples in the dist matrix
+metadata.19.jun.samples1=metadata.19.jun.samples[match(rownames(data.19.jun.clean2.dist.t),metadata.19.jun.samples$sample_name2),]
+
+plot(nmds.relabund,type="n",main="relabund",xlim=c(-.8,.5))
+points(nmds.relabund, #plot each sample as a point
+       cex=2,
+       pch=pointvec[metadata.19.jun.samples1$Species], #point shape corresponds to fish Species
+       col=colvec[metadata.19.jun.samples1$Gut_Section]) 
+legend(-1,0,legend = c("ST","PC","GI","HG","K. cinerascens","K. hawaiiensis","K. vaigiensis"),cex=1,y.intersp=.75,bg="transparent",bty="n",col=c(colvec,"black","black","black"),pch=c(16,16,16,16,15,16,17),pt.cex=1)
+
+plot(nmds,type="n",main="raw abundance",xlim=c(-.8,.5))
+points(nmds, #plot each sample as a point
+       cex=2,
+       pch=pointvec[metadata.19.jun.samples1$Species], #point shape corresponds to fish Species
+       col=colvec[metadata.19.jun.samples1$Gut_Section]) 
+legend(-.8,0,legend = c("ST","PC","GI","HG","K. cinerascens","K. hawaiiensis","K. vaigiensis"),cex=1,y.intersp=.75,bg="transparent",bty="n",col=c(colvec,"black","black","black"),pch=c(16,16,16,16,15,16,17),pt.cex=1)
+
+```
+
+Regardless of if I use raw abundance or relative abundance data, the NMDS shows clear distinction in metabolomic communities by gut section. Hard to tell if species has an effect. Now I will run permanovas on the relabund dist matrix to asses the effects of Gut_Section and Species on metabolomic communities. Looks like the dispersion patterns here do not reflect the microbial community patterns. ST and HG have highest dispersion while GI and especially PC have low dispersion. I cannot explain the ST, GI, and HG patterns but it is likely that the PC has such low dispersion because we didn't sample any digesta from that section (or very little), so the signal is mostly fish tissue which is likely more uniform between individuals?
+
+```{r}
+permanova.gut.section=adonis(relabund.19.jun.clean2.dist.t~Gut_Section*Species,by="margin",strata=metadata.19.jun.samples1$ATTRIBUTE_Fish_Number,data=metadata.19.jun.samples1)
+permanova.gut.section
+
+permanova.gut.section.II=adonis.II(relabund.19.jun.clean2.dist.t~Gut_Section*Species,by="margin",strata=metadata.19.jun.samples1$ATTRIBUTE_Fish_Number,data=metadata.19.jun.samples1)
+permanova.gut.section.II
+```
+
+Gut Section is the most significant predictor of metabolomic community structure, followed by Species and a barely significant interaction between the two. Gut_Section explained the most variability.
+
+Now I will analyze only the dataset that corresponds to the 16S multivariate dataset, looking at gut subsection instead of gut section.
+
+```{r}
+#read in unifrac metadata
+metadata.fish.F4.F8.unifrac=read.csv(file="metadata.fish.F4.F8.unifrac.csv")
+metadata.19.jun.samples2=merge(metadata.19.jun.samples1,metadata.fish.F4.F8.unifrac,by.x="SampleCode",by.y="SampleCode")
+
+relabund.19.jun.clean2.dist.t.2=relabund.19.jun.clean2.dist.t[rownames(relabund.19.jun.clean2.dist.t) %in% metadata.19.jun.samples2$sample_name2,]
+
+#adjust the row order of relabund.19.jun.clean2.dist.t.2 to match the metadata order
+relabund.19.jun.clean2.dist.t.3=relabund.19.jun.clean2.dist.t.2[match(metadata.19.jun.samples2$sample_name2,rownames(relabund.19.jun.clean2.dist.t.2)),]
+
+#adjust rownames so that they will line up with the 16S sample names that will be imported later
+rownames(relabund.19.jun.clean2.dist.t.3)=metadata.19.jun.samples2$SampleCode
+
+#Generate dist matrix
+bray.relabund.19.jun.clean2.2=vegdist(relabund.19.jun.clean2.dist.t.3,method="bray")
+
+#reorder the metadata so it lines up with the distance matrix
+colnames(metadata.19.jun.samples2)[5]="Species"
+colnames(metadata.19.jun.samples2)[6]="Gut_Section"
+colnames(metadata.19.jun.samples2)[7]="Gut_SubSection"
+
+nmds.relabund.2=metaMDS(bray.relabund.19.jun.clean2.2,k=2,trymax=100)
+#convergent solution reached, decent stress (.17)
+
+colvec3=c("mediumpurple1",viridis(n=7,option="D",begin=.15))
+
+plot(nmds.relabund.2,type="n")
+points(nmds.relabund.2, #plot each sample as a point
+       cex=3.5,
+       pch=pointvec[metadata.19.jun.samples2$Species], #point shape corresponds to fish Species
+       col=colvec3[metadata.19.jun.samples2$Gut_SubSection])
+text(-.42,.525,label="Stress=.17")
+ordiellipse(nmds.relabund.2,metadata.19.jun.samples2$Gut_Section,kind="sd",draw="polygon",alpha=c(0,0),lwd=2.5,border=c("mediumpurple1",viridis(n=3,option="D")[2:3])) #add SD ellipses, colored by Gut_Section.
+ordiarrows(nmds.relabund.2,group=metadata.19.jun.samples2$Fish_Number,order.by=metadata.19.jun.samples2$Gut_SubSection,lwd=2,col="black")
+```
+
+We can see a clear succesional gradient from ST -> HG_3, and also more clearly see that species cluster distinctly, especially K. hawaiiensis.
+
+Now, I will run a permanova on this dataset.
+
+```{r}
+permanova.gut.subsection=adonis(bray.relabund.19.jun.clean2.2~Gut_SubSection*Species,by="margin",strata=metadata.19.jun.samples2$ATTRIBUTE_Fish_Number,data=metadata.19.jun.samples2,permutations=999)
+permanova.gut.subsection
+
+permanova.gut.subsection.II=adonis.II(bray.relabund.19.jun.clean2.2~Gut_SubSection*Species,by="margin",strata=metadata.19.jun.samples2$ATTRIBUTE_Fish_Number,data=metadata.19.jun.samples2,permutations=999)
+permanova.gut.subsection.II
+
+pairwise.permanova.subsection=pairwise.adonis(bray.relabund.19.jun.clean2.2,metadata.19.jun.samples2$Gut_SubSection,p.adjust.m="BH")
+pairwise.permanova.subsection
+```
+
+Gut subsection and Species are both very significant, whereas the interaction term is less (but still noticably) significant. Gut subsection explains double the variation of species or their interaction. Interestingly, the interaction term explains more variation than species alone, despite the low effect size (F value).
+
+Next, calculate the gut subsection dispersion values for the MB data.
+
+```{r}
+#Extract dispersion values from the unifrac data and asses their distribution.
+dispersion.mb.gut.subsection=betadisper(bray.relabund.19.jun.clean2.2,type="centroid",group=metadata.19.jun.samples2$Gut_SubSection)
+dispersion.mb.gut.subsection
+hist(dispersion.mb.gut.subsection$distances) #asses the distribution of the dispersion data. It looks normal
+
+dispersion.mb.gut.subsection1=as.data.frame(dispersion.mb.gut.subsection[[3]]) #make a new df with just the distances.
+colnames(dispersion.mb.gut.subsection1)[1]="bray curtis distance to centroid"
+dispersion.mb.gut.subsection1$samples=rownames(dispersion.mb.gut.subsection1) #add in metadata
+dispersion.mb.gut.subsection1$Gut_SubSection=metadata.19.jun.samples2$Gut_SubSection
+dispersion.mb.gut.subsection1$Gut_Section=metadata.19.jun.samples2$Gut_Section
+dispersion.mb.gut.subsection1$Species=metadata.19.jun.samples2$Species
+dispersion.mb.gut.subsection1$Fish_Number=metadata.19.jun.samples2$Fish_Number
+
+#convert dispersion.gut.section1 into df of means and SE so it can be graphed as a barplot.
+dispersion.mb.gut.subsection2=as.data.frame(aggregate(dispersion.mb.gut.subsection1$`bray curtis distance to centroid`,by=list(dispersion.mb.gut.subsection1$Gut_SubSection),FUN=mean))
+
+#make a function to calculate standard error
+stderror=function(x) {
+  se=sd(x)/sqrt(length(x))
+  return(se)
+}
+
+dispersion.mb.gut.subsection2$se=aggregate(dispersion.mb.gut.subsection1$`bray curtis distance to centroid`,by=list(dispersion.mb.gut.subsection1$Gut_SubSection),FUN=stderror)[[2]]
+colnames(dispersion.mb.gut.subsection2)=c("Gut_SubSection","bray curtis distance to centroid","se")
+
+#Model the distance values in response to Gut_SubSection and Fish_Number as a random effect.
+dispersion.mb.mod.gut.subsection=lmer(`bray curtis distance to centroid`~Gut_SubSection+Species+(1|Fish_Number),data=dispersion.mb.gut.subsection1)
+summary(dispersion.mb.mod.gut.subsection)
+anova(dispersion.mb.mod.gut.subsection,ddf="Kenward-Roger") #Gut_SubSectionis significant.
+lsmeans(dispersion.mb.mod.gut.subsection, pairwise ~ Gut_SubSection, adjust="tukey")
+
+#add in significance indicators to dispersion.mb.gut.subsection1 for use in boxplots .
+posthocvec=c("A","B","B","B","A","A","A","A")
+dispersion.mb.gut.subsection1$posthoc=posthocvec[dispersion.mb.gut.subsection1$Gut_SubSection]
+#add in significance indicator heights
+posthocymax=aggregate(dispersion.mb.gut.subsection1$`bray curtis distance to centroid`,by=list(dispersion.mb.gut.subsection1$Gut_SubSection),FUN=max)[[2]]
+dispersion.mb.gut.subsection1$posthocymax=posthocymax[dispersion.mb.gut.subsection1$Gut_SubSection]
+
+#now, visualize the dispersion data
+ggplot(dispersion.mb.gut.subsection1,aes(y=`bray curtis distance to centroid`,x=Gut_SubSection,fill=Gut_SubSection))+
+  geom_boxplot()+
+  scale_fill_manual(values=colvec3)+
+  theme_classic()+
+  theme(legend.position = "none")+
+  geom_text(data=dispersion.mb.gut.subsection1,aes(x=Gut_SubSection,y=posthocymax+.02,label=posthoc))
+
+#export as 8.5x9 PDF, include in figure X3
+```
+
+Next, I will import the parallel 16S distance matrix, and compare the 2 using procrustes and mantel tests.
+
+```{r}
+#Read in the 16S dist matrix, and subset it so it only includes the corresponding metabolomic samples
+weighted.unifrac.F4.F8.matrix=read.csv(file="weighted.unifrac.matrix.F4.F8.matrix.csv")
+rownames(weighted.unifrac.F4.F8.matrix)=weighted.unifrac.F4.F8.matrix$X
+weighted.unifrac.F4.F8.matrix=weighted.unifrac.F4.F8.matrix[,-1]
+weighted.unifrac.F4.F8.matrix1=weighted.unifrac.F4.F8.matrix[rownames(weighted.unifrac.F4.F8.matrix)!="F6_GI_3"&rownames(weighted.unifrac.F4.F8.matrix)!="F8_GI_3",colnames(weighted.unifrac.F4.F8.matrix)!="F6_GI_3"&rownames(weighted.unifrac.F4.F8.matrix)!="F8_GI_3"]
+#re order the matrix so samples are in the same order as the metabolomic dist matrix. In this case, the row/colnames of the other dist matrix are the metabolomic long format, whereas the row/colnames of the 16s dist matrix are the shortened "SampleCode." So we have to match the 16S unifrac matrix against the metadata.19.jun.samples2$SampleCode, since this will be in the order that the samples are in in the metabolomic dist matrix. Ugh
+weighted.unifrac.F4.F8.matrix1=weighted.unifrac.F4.F8.matrix1[match(metadata.19.jun.samples2$SampleCode,rownames(weighted.unifrac.F4.F8.matrix1)),match(metadata.19.jun.samples2$SampleCode,colnames(weighted.unifrac.F4.F8.matrix1))]
+weighted.unifrac.F4.F8.dist1=as.dist(weighted.unifrac.F4.F8.matrix1) #convert to dist
+
+mantel(weighted.unifrac.F4.F8.dist1,bray.relabund.19.jun.clean2.2)
+```
+
+Mantel test is significant.
+
+```{r}
+#Generate a nmds from the 16S dist matrix
+nmds.16s=metaMDS(weighted.unifrac.F4.F8.dist1,k=2,trymax=10)
+
+#plot the 16S nmds
+plot(nmds.16s,type="n",main="16S")
+points(nmds.16s, #plot each sample as a point
+       cex=2,
+       pch=pointvec[metadata.19.jun.samples2$Species], #point shape corresponds to fish Species
+       col=colvec3[metadata.19.jun.samples2$Gut_SubSection]) 
+
+#replot the metabolomics nmds for comparison
+plot(nmds.relabund.2,type="n",main="Metabolomics")
+points(nmds.relabund.2, #plot each sample as a point
+       cex=2,
+       pch=pointvec[metadata.19.jun.samples2$Species], #point shape corresponds to fish Species
+       col=colvec3[metadata.19.jun.samples2$Gut_SubSection]) 
+#as you can see, it looks like there is potential to align the two nmds plots pretty well.
+
+#run procrustes on the two nmds objects
+pro=procrustes(nmds.16s,nmds.relabund.2,scale=FALSE,symmetric=TRUE,scores="sites")
+summary(pro)
+
+#first do the simple plots
+plot(pro,kind=1)
+plot(pro,kind=2) #Not sure how to interperet this.
+
+pointvec2=c(22,21,24)
+
+#next plot a more detailed procrustes plot, with the filled points representing the rotated (metabolomic) samples and the open points representing the target (16S) samples.
+plot(pro,kind=1,lwd=3,len=.075,ar.col=colvec3[metadata.19.jun.samples2$Gut_SubSection])
+points(pro, display="rotated",#plot each sample as a point
+       cex=3.5,
+       pch=pointvec[metadata.19.jun.samples2$Species], #point shape corresponds to fish Species
+       col=colvec3[metadata.19.jun.samples2$Gut_SubSection]) 
+points(pro, display="target",#plot each sample as a point
+       cex=3.5,
+       lwd=3,
+       pch=pointvec2[metadata.19.jun.samples2$Species], #point shape corresponds to fishSpecies
+       col=colvec3[metadata.19.jun.samples2$Gut_SubSection]) 
+
+#export as 8.5x11 PDF for manuscript
+
+pro.test=protest(nmds.16s,nmds.relabund.2,scores="sites")
+pro.test
+```
+
+The protest comes out as "significant", but I am not sure how useful the pvalue is. Need to read up more on the procrustes SS and correlation statistics.
+
+Next, do a preliminary modelling of how individual features (relative abundance) respond to gut subsection.
+
+```{r}
+#Work up the relative abundance data for analysis.
+
+#remove stomach samples
+relabund.19.jun.clean2.dist.t.4=relabund.19.jun.clean2.dist.t.3[metadata.19.jun.samples2$Gut_SubSection!="ST",]
+
+#further cull low abundance features
+cull.otu(relabund.19.jun.clean2.dist.t.4,3,.0005,.01)
+relabund.19.jun.clean2.dist.t.4.cull=relabund.df.cull
+#went from 1133 featuress to 549 features
+
+#asinsqrt transform the data
+relabund.19.jun.clean2.dist.t.4.cull.trans=asin(sqrt(relabund.19.jun.clean2.dist.t.4.cull))
+#merge in metadata
+relabund.19.jun.clean2.dist.t.4.cull.trans=cbind(relabund.19.jun.clean2.dist.t.4.cull.trans,metadata.19.jun.samples2[metadata.19.jun.samples2$Gut_SubSection!="ST",])
+
+#now run a mixed model on the transformed feature data. Have relative abundance be a function of Species, Gut_SubSection, and Fish_Number be a random effect. Interaction term has been removed since it was not significant in the multivariate analysis. Could re-run model with Species also as a random effect.
+mixed.mod=function(x) { #create a function that performs the desired mixed model
+  mod=lmer(x~Species+Gut_SubSection+(1|Fish_Number),data=relabund.19.jun.clean2.dist.t.4.cull.trans)
+  return(mod)
+}
+mixed.mod.relabund.19.jun.clean2.dist.t.4.cull.trans=apply(relabund.19.jun.clean2.dist.t.4.cull.trans[,-549:-568],2,FUN=mixed.mod) #apply mixed.mod only to columns containing feature data. Save as new object.
+
+#make a new mixed mod function testing gut section instead of subsection
+mixed.mod.section=function(x) {
+  mod1=lmer(x~Species+Gut_Section+(1|Fish_Number),data=relabund.19.jun.clean2.dist.t.4.cull.trans)
+  return(mod1)
+}
+mixed.mod.section.relabund.19.jun.clean2.dist.t.4.cull.trans=apply(relabund.19.jun.clean2.dist.t.4.cull.trans[,-549:-568],2,FUN=mixed.mod.section) #apply mixed.mod only to columns containing ASV data. Save as new object.
+
+#Now let's inspect the results of the mixed models.
+mixed.mod.singularity=lapply(mixed.mod.relabund.19.jun.clean2.dist.t.4.cull.trans,FUN=isSingular) #test each mixed model for singularity, save in list. After inspecting the list it looks like ~33% of models are singular.
+
+mixed.mod.section.singularity=lapply(mixed.mod.section.relabund.19.jun.clean2.dist.t.4.cull.trans,FUN=isSingular) #test each mixed model for singularity, save in list. After inspecting the list it looks like ~33% of models are singular.
+
+anova.kw=function(x) { #make a function that performs anova (Kenward-Roger)
+  results=anova(x,ddf="Kenward-Roger")
+  return(results)
+}
+
+mixed.mod.results=lapply(mixed.mod.relabund.19.jun.clean2.dist.t.4.cull.trans,FUN=anova.kw) #perform an anova(ddf="Kenward-Roger") on all mixed models, save output.
+mixed.mod.pvals=as.data.frame(t(as.data.frame(mixed.mod.results))[seq(from=6,to=3288,by=6),]) #extract the pvals from the mixed.mod.results list. Do this by converting list to df, transposing it, and then extracting every 6th column (which correspond to the pvals from each model).
+
+#repeat for mixed.mod.section
+mixed.mod.section.results=lapply(mixed.mod.section.relabund.19.jun.clean2.dist.t.4.cull.trans,FUN=anova.kw) #perform an anova(ddf="Kenward-Roger") on all mixed models, save output.
+mixed.mod.section.pvals=as.data.frame(t(as.data.frame(mixed.mod.section.results))[seq(from=6,to=3288,by=6),]) #extract the pvals from the mixed.mod.results list. Do this by converting list to df, transposing it, and then extracting every 6th column (which correspond to the pvals from each model).
+
+#Work up p values.
+mixed.mod.pvals$Gut_SubSection.padjust=p.adjust(mixed.mod.pvals$Gut_SubSection,method="BH") #Adjust p values for multiple comparisons
+mixed.mod.pvals$Species.padjust=p.adjust(mixed.mod.pvals$Species,method="BH") #Adjust p values for multiple comparisons
+rownames(mixed.mod.pvals)=colnames(relabund.19.jun.clean2.dist.t.4.cull.trans)[1:548] #Change rownames to correspond with tested feature names.
+sum(mixed.mod.pvals$Gut_SubSection<=.05)
+#124 features respond significantly to subsection before padjustment.
+mixed.mod.sig.feature.Gut_SubSection=mixed.mod.pvals[mixed.mod.pvals$Gut_SubSection.padjust<=.05,] #subset the mixed.mod.pvals df for significant (p<=.05) Gut_SubSection pvals. Save as new df. 64 features respond significantly to gut subsection after padjustment.
+sum(mixed.mod.pvals$Species<=.05)
+#77 features respond significantly to species before padjustment.
+mixed.mod.sig.feature.Species=mixed.mod.pvals[mixed.mod.pvals$Species.padjust<=.05,] #subset the mixed.mod.pvals df for significant (p<=.05) Gut_SubSection pvals. Save as new df. It appears there are no significant Species pvals after padjustment. Will need to look into why this is. Perhaps if using the full sample set that includes F1-F3 GI/HG samples there would be enough replication to find significant species pvals.
+
+#Work up p values for mixed.mod.section
+mixed.mod.section.pvals$Gut_Section.padjust=p.adjust(mixed.mod.section.pvals$Gut_Section,method="BH") #Adjust p values for multiple comparisons
+mixed.mod.section.pvals$Species.padjust=p.adjust(mixed.mod.section.pvals$Species,method="BH") #Adjust p values for multiple comparisons
+rownames(mixed.mod.section.pvals)=colnames(relabund.19.jun.clean2.dist.t.4.cull.trans)[1:548] #Change rownames to correspond with tested feature names.
+sum(mixed.mod.section.pvals$Gut_Section<=.05)
+#216 features respond significantly to subsection before padjustment.
+mixed.mod.section.sig.feature.Gut_Section=mixed.mod.section.pvals[mixed.mod.section.pvals$Gut_Section.padjust<=.05,] #subset the mixed.mod.section.pvals df for significant (p<=.05) Gut_Section pvals. Save as new df. 116 features respond significantly to gut section after padjustment.
+sum(mixed.mod.section.pvals$Species<=.05)
+#63 features respond significantly to species before padjustment.
+mixed.mod.section.sig.feature.Species=mixed.mod.section.pvals[mixed.mod.section.pvals$Species.padjust<=.05,] #subset the mixed.mod.pvals df for significant (p<=.05) Gut_SubSection pvals. Save as new df. It appears there are no significant Species pvals after padjustment. Will need to look into why this is. Perhaps if using the full sample set that includes F1-F3 GI/HG samples there would be enough replication to find significant species pvals.
+
+#subset molnet enhancer data
+molnetdata1=molnetdata[molnetdata$cluster.index %in% rownames(mixed.mod.sig.feature.Gut_SubSection),] #subset molnet enhancer data
+molnetdata1=molnetdata1[match(rownames(mixed.mod.sig.feature.Gut_SubSection),molnetdata1$cluster.index),] #order molnetdata1 according to features in mixed.mod.sig.feature.Gut_Subsection.
+
+#repeat for mixed.mod.section
+molnetdata2=molnetdata[molnetdata$cluster.index %in% rownames(mixed.mod.section.sig.feature.Gut_Section),] #subset molnet enhancer data
+molnetdata2=molnetdata2[match(rownames(mixed.mod.section.sig.feature.Gut_Section),molnetdata2$cluster.index),] #order molnetdata2 according to features in mixed.mod.section.sig.feature.Gut_Section.
+
+#subset feature library ID data.
+libraryID=data[data$row.ID %in% rownames(mixed.mod.sig.feature.Gut_SubSection),1:6]
+libraryID=libraryID[match(rownames(mixed.mod.sig.feature.Gut_SubSection),libraryID$row.ID),]
+
+#repeat for mixed.mod.section
+libraryID1=data[data$row.ID %in% rownames(mixed.mod.section.sig.feature.Gut_Section),1:6]
+libraryID1=libraryID1[match(rownames(mixed.mod.section.sig.feature.Gut_Section),libraryID1$row.ID),]
+
+#subset the relabund data
+relabund.19.jun.clean2.dist.t.4.cull.t=as.data.frame(t(relabund.19.jun.clean2.dist.t.4.cull)) #transpose relabund data
+relabund.sig.feature=relabund.19.jun.clean2.dist.t.4.cull.t[rownames(relabund.19.jun.clean2.dist.t.4.cull.t) %in% rownames(mixed.mod.sig.feature.Gut_SubSection),]
+relabund.sig.feature=relabund.sig.feature[match(rownames(mixed.mod.sig.feature.Gut_SubSection),rownames(relabund.sig.feature)),]
+
+#repeat for mixed.mod.section data
+relabund.section.sig.feature=relabund.19.jun.clean2.dist.t.4.cull.t[rownames(relabund.19.jun.clean2.dist.t.4.cull.t) %in% rownames(mixed.mod.section.sig.feature.Gut_Section),]
+relabund.section.sig.feature=relabund.section.sig.feature[match(rownames(mixed.mod.section.sig.feature.Gut_Section),rownames(relabund.section.sig.feature)),]
+
+#combine molnetdata, libraryID data, realbund data, and mixed mod data into 1 df
+mixed.mod.sig.feature.Gut_SubSection=cbind(mixed.mod.sig.feature.Gut_SubSection,molnetdata1,libraryID,relabund.sig.feature) #merge mixed.mod.sig.otu.Gut_SubSection with the associated  molnet enhancer classifications
+mixed.mod.section.sig.feature.Gut_Section=cbind(mixed.mod.section.sig.feature.Gut_Section,molnetdata2,libraryID1,relabund.section.sig.feature)
+
+#export as CSVs
+#write.csv(mixed.mod.sig.feature.Gut_SubSection,file="mixed.mod.sig.feature.Gut_SubSection.csv")
+#write.csv(mixed.mod.section.sig.feature.Gut_Section,file="mixed.mod.section.sig.feature.Gut_Section.csv")
+
+#create an output zscore df and calculate z score for each otu using the scale function.
+mixed.mod.sig.feature.Gut_SubSection.trans=relabund.19.jun.clean2.dist.t.3.cull.trans
+mixed.mod.sig.feature.Gut_SubSection.trans=mixed.mod.sig.feature.Gut_SubSection.trans[,colnames(mixed.mod.sig.feature.Gut_SubSection.trans) %in% mixed.mod.sig.feature.Gut_SubSection$cluster.index] #subset for just significant features
+mixed.mod.sig.feature.Gut_SubSection.zscore=as.data.frame((t(mixed.mod.sig.feature.Gut_SubSection.trans)))
+
+#calculate zscore
+for (i in 1:ncol(mixed.mod.sig.feature.Gut_SubSection.zscore)) { #calculate the zscore
+  mixed.mod.sig.feature.Gut_SubSection.zscore[,i]=scale(mixed.mod.sig.feature.Gut_SubSection.zscore[,i],center=TRUE,scale=TRUE)
+}
+
+#write.csv(mixed.mod.sig.feature.Gut_SubSection.zscore,file="mixed.mod.sig.feature.Gut_SubSection.zscore.csv")
+
+```
+
+Next, some the realbund for all features by network and then model the networks by subsection.
+
+```{r}
+#transpose relabund data so features are rows
+relabund.19.jun.clean2.dist.t.4.t=as.data.frame(t(relabund.19.jun.clean2.dist.t.4))
+
+#subset network linkouts to correspond to the above features and add to df
+data.network=as.data.frame(data$Component.Index)
+rownames(data.network)=data$row.ID
+data.network=data.network[rownames(data.network) %in% rownames(relabund.19.jun.clean2.dist.t.4.t),]
+relabund.19.jun.clean2.dist.t.4.t=cbind(data.network,relabund.19.jun.clean2.dist.t.4.t)
+relabund.19.jun.clean2.dist.t.4.t$data.network=as.factor(relabund.19.jun.clean2.dist.t.4.t$data.network)
+
+#sum relabund by netowrk
+relabund.network=aggregate(relabund.19.jun.clean2.dist.t.4.t[,2:32],by=list(relabund.19.jun.clean2.dist.t.4.t$data.network),FUN=sum)
+
+#transpose df for modeling
+relabund.network.t=as.data.frame(t(relabund.network[,-1]))
+colnames(relabund.network.t)=relabund.network$Group.1
+
+#remove networks with no relabund value in any sample
+relabund.network.t=relabund.network.t[,apply(relabund.network.t,2,FUN=sum)!=0]
+
+#add in metadata
+relabund.network.t=cbind(relabund.network.t,relabund.19.jun.clean2.dist.t.4.cull.trans[,550:568])
+
+#arcsinesqrt transform data
+relabund.network.t.trans=cbind(asin(sqrt(relabund.network.t[,1:143])),relabund.network.t[,-1:-143])
+
+#make mixed mod for summed networks
+mixed.mod.network=function(x) { #create a function that performs the desired mixed model
+  mod.network=lmer(x~Species+Gut_SubSection+(1|Fish_Number),data=relabund.network.t.trans)
+  return(mod.network)
+}
+
+#apply gut subseciton function to networks
+mixed.mod.networks=apply(relabund.network.t.trans[,1:143],2,FUN=mixed.mod.network) #apply mixed.mod only to columns containing ASV data. Save as new object.
+
+#inspect results
+mixed.mod.network.singularity=lapply(mixed.mod.networks,FUN=isSingular) #test each mixed model for singularity, save in list. After inspecting the list it looks like ~33% of models are singular.
+
+mixed.mod.network.results=lapply(mixed.mod.networks,FUN=anova.kw) #perform an anova(ddf="Kenward-Roger") on all mixed models, save output.
+mixed.mod.network.pvals=as.data.frame(t(as.data.frame(mixed.mod.network.results))[seq(from=6,to=858,by=6),]) #extract the pvals from the mixed.mod.results list. Do this by converting list to df, transposing it, and then extracting every 6th column (which correspond to the pvals from each model).
+
+#Work up p values.
+mixed.mod.network.pvals$Gut_SubSection.padjust=p.adjust(mixed.mod.network.pvals$Gut_SubSection,method="BH") #Adjust p values for multiple comparisons
+mixed.mod.network.pvals$Species.padjust=p.adjust(mixed.mod.network.pvals$Species,method="BH") #Adjust p values for multiple comparisons
+rownames(mixed.mod.network.pvals)=colnames(relabund.network.t.trans)[1:143] #Change rownames to correspond with tested network names.
+sum(mixed.mod.network.pvals$Gut_SubSection<=.05)
+#32 networks respond significantly to subsection before padjustment.
+mixed.mod.sig.network.Gut_SubSection=mixed.mod.network.pvals[mixed.mod.network.pvals$Gut_SubSection.padjust<=.05,] #subset the mixed.mod.pvals df for significant (p<=.05) Gut_SubSection pvals. Save as new df. 17 features respond significantly to gut subsection after padjustment.
+sum(mixed.mod.network.pvals$Species<=.05)
+#12 features respond significantly to species before padjustment.
+mixed.mod.sig.network.Species=mixed.mod.network.pvals[mixed.mod.network.pvals$Species.padjust<=.05,] #subset the mixed.mod.pvals df for significant (p<=.05) Gut_SubSection pvals. Save as new df. It appears there are no significant Species pvals after padjustment. Will need to look into why this is. Perhaps if using the full sample set that includes F1-F3 GI/HG samples there would be enough replication to find significant species pvals.
+
+#write.csv(mixed.mod.sig.network.Gut_SubSection,file="mixed.mod.sig.network.Gut_SubSection.csv")
+
+
+
+```
+
