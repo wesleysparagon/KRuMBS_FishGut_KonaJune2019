@@ -43,7 +43,7 @@ cull.otu=function(relabund.df, min.num, min.abund, min.single.abund) {
 }
 
 #read in data and metadata
-data=read.csv(file="KRuMBS_Fishguts_bothtrips_A_quant_filtered_withIDs.csv")
+data=read.csv(file="KRuMBS_Fishguts_bothtrips_A_quant_filtered_UPDATED.csv")
 metadata=read.csv(file="Metadata_KRuMBS_Fishguts_Seaweed_FULL.csv")
 molnetdata=read.csv(file="KRuMBS_ClassyFireResults_Network.csv")
 
@@ -572,7 +572,7 @@ relabund.network.t=relabund.network.t[,apply(relabund.network.t,2,FUN=sum)!=0]
 relabund.network.t=cbind(relabund.network.t,relabund.19.jun.clean2.dist.t.4.cull.trans[,550:568])
 
 #arcsinesqrt transform data
-relabund.network.t.trans=cbind(asin(sqrt(relabund.network.t[,1:143])),relabund.network.t[,-1:-143])
+relabund.network.t.trans=cbind(asin(sqrt(relabund.network.t[,1:131])),relabund.network.t[,-1:-131])
 
 #make mixed mod for summed networks
 mixed.mod.network=function(x) { #create a function that performs the desired mixed model
@@ -581,23 +581,23 @@ mixed.mod.network=function(x) { #create a function that performs the desired mix
 }
 
 #apply gut subseciton function to networks
-mixed.mod.networks=apply(relabund.network.t.trans[,1:143],2,FUN=mixed.mod.network) #apply mixed.mod only to columns containing ASV data. Save as new object.
+mixed.mod.networks=apply(relabund.network.t.trans[,1:131],2,FUN=mixed.mod.network) #apply mixed.mod only to columns containing ASV data. Save as new object.
 
 #inspect results
 mixed.mod.network.singularity=lapply(mixed.mod.networks,FUN=isSingular) #test each mixed model for singularity, save in list. After inspecting the list it looks like ~33% of models are singular.
 
 mixed.mod.network.results=lapply(mixed.mod.networks,FUN=anova.kw) #perform an anova(ddf="Kenward-Roger") on all mixed models, save output.
-mixed.mod.network.pvals=as.data.frame(t(as.data.frame(mixed.mod.network.results))[seq(from=6,to=858,by=6),]) #extract the pvals from the mixed.mod.results list. Do this by converting list to df, transposing it, and then extracting every 6th column (which correspond to the pvals from each model).
+mixed.mod.network.pvals=as.data.frame(t(as.data.frame(mixed.mod.network.results))[seq(from=6,to=786,by=6),]) #extract the pvals from the mixed.mod.results list. Do this by converting list to df, transposing it, and then extracting every 6th column (which correspond to the pvals from each model).
 
 #Work up p values.
 mixed.mod.network.pvals$Gut_SubSection.padjust=p.adjust(mixed.mod.network.pvals$Gut_SubSection,method="BH") #Adjust p values for multiple comparisons
 mixed.mod.network.pvals$Species.padjust=p.adjust(mixed.mod.network.pvals$Species,method="BH") #Adjust p values for multiple comparisons
-rownames(mixed.mod.network.pvals)=colnames(relabund.network.t.trans)[1:143] #Change rownames to correspond with tested network names.
+rownames(mixed.mod.network.pvals)=colnames(relabund.network.t.trans)[1:131] #Change rownames to correspond with tested network names.
 sum(mixed.mod.network.pvals$Gut_SubSection<=.05)
-#32 networks respond significantly to subsection before padjustment.
-mixed.mod.sig.network.Gut_SubSection=mixed.mod.network.pvals[mixed.mod.network.pvals$Gut_SubSection.padjust<=.05,] #subset the mixed.mod.pvals df for significant (p<=.05) Gut_SubSection pvals. Save as new df. 17 features respond significantly to gut subsection after padjustment.
+#38 networks respond significantly to subsection before padjustment.
+mixed.mod.sig.network.Gut_SubSection=mixed.mod.network.pvals[mixed.mod.network.pvals$Gut_SubSection.padjust<=.05,] #subset the mixed.mod.pvals df for significant (p<=.05) Gut_SubSection pvals. Save as new df. 25 features respond significantly to gut subsection after padjustment.
 sum(mixed.mod.network.pvals$Species<=.05)
-#12 features respond significantly to species before padjustment.
+#21 features respond significantly to species before padjustment.
 mixed.mod.sig.network.Species=mixed.mod.network.pvals[mixed.mod.network.pvals$Species.padjust<=.05,] #subset the mixed.mod.pvals df for significant (p<=.05) Gut_SubSection pvals. Save as new df. It appears there are no significant Species pvals after padjustment. Will need to look into why this is. Perhaps if using the full sample set that includes F1-F3 GI/HG samples there would be enough replication to find significant species pvals.
 
 #write.csv(mixed.mod.sig.network.Gut_SubSection,file="mixed.mod.sig.network.Gut_SubSection.csv")

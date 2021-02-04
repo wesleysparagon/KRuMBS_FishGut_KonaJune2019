@@ -291,19 +291,19 @@ Sobs shows both ST and HG to have substantially higher alpha diversity compared 
 Next, model and plot the same alpha diversity metrics by Gut_SUBsection.
 
 ```{r}
-#Calculate means and SE of the sobs and shannon evenness alpha diversity metrics for each Gut_SubSection and save as a df
-alpha.diversity.mean.gut_subsection=aggregate(alpha.diversity.fish.F4.F8$sobs,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=mean)$x #aggregate (mean) sobs by Gut_SubSection, save in new df.
-alpha.diversity.mean.gut_subsection=as.data.frame(alpha.diversity.mean.gut_subsection)
-colnames(alpha.diversity.mean.gut_subsection)[1]="sobs" #rename column 1 to sobs.
-alpha.diversity.mean.gut_subsection$SE_sobs=aggregate(alpha.diversity.fish.F4.F8$sobs,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=stderror)$x #aggregate (stderror) sobs by Gut_SubSection, save as a new column in df.
+#Calculate means and SE of the sobs and shannon evenness alpha diversity metrics for each Gut_SubSection and save as a df. #I will not hash this out since I am using the geom_boxplot() function instead of the geom_bar() function, which means I don't need means and SE.
+#alpha.diversity.mean.gut_subsection=aggregate(alpha.diversity.fish.F4.F8$sobs,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=mean)$x #aggregate (mean) sobs by Gut_SubSection, save in new df.
+#alpha.diversity.mean.gut_subsection=as.data.frame(alpha.diversity.mean.gut_subsection)
+#colnames(alpha.diversity.mean.gut_subsection)[1]="sobs" #rename column 1 to sobs.
+#alpha.diversity.mean.gut_subsection$SE_sobs=aggregate(alpha.diversity.fish.F4.F8$sobs,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=stderror)$x #aggregate (stderror) sobs by Gut_SubSection, save as a new column in df.
 #repeat this for shannoneven
-alpha.diversity.mean.gut_subsection$shannoneven=aggregate(alpha.diversity.fish.F4.F8$shannoneven,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=mean)$x
-alpha.diversity.mean.gut_subsection$SE_shannoneven=aggregate(alpha.diversity.fish.F4.F8$shannoneven,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=stderror)$x
+#alpha.diversity.mean.gut_subsection$shannoneven=aggregate(alpha.diversity.fish.F4.F8$shannoneven,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=mean)$x
+#alpha.diversity.mean.gut_subsection$SE_shannoneven=aggregate(alpha.diversity.fish.F4.F8$shannoneven,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=stderror)$x
 #now add in a Gut_SubSection column
-alpha.diversity.mean.gut_subsection$Gut_SubSection=aggregate(alpha.diversity.fish.F4.F8$shannoneven,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=stderror)$Group.1
+#alpha.diversity.mean.gut_subsection$Gut_SubSection=aggregate(alpha.diversity.fish.F4.F8$shannoneven,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=stderror)$Group.1
 #repeat this for shannon
-alpha.diversity.mean.gut_subsection$shannon=aggregate(alpha.diversity.fish.F4.F8$shannon,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=mean)$x
-alpha.diversity.mean.gut_subsection$SE_shannon=aggregate(alpha.diversity.fish.F4.F8$shannon,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=stderror)$x
+#alpha.diversity.mean.gut_subsection$shannon=aggregate(alpha.diversity.fish.F4.F8$shannon,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=mean)$x
+#alpha.diversity.mean.gut_subsection$SE_shannon=aggregate(alpha.diversity.fish.F4.F8$shannon,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=stderror)$x
 
 #Model the sobs data in response to Gut_SubSeciton, fish species, and fish ID
 adiv.mod.gut.subsection.sobs=lmer(sobs~Gut_SubSection+Species+(1|Fish_Number),data=alpha.diversity.fish.F4.F8) #interaction term has been removed to prevent errors.
@@ -329,40 +329,57 @@ lsmeans(adiv.mod.gut.subsection.shannon, pairwise ~ Gut_SubSection, adjust="tuke
 Gut_SubSection is a significant predictor of both sobs and shannoneven. The modes appear to struggle with certain Species:Gut_SubSection terms, likely because of limited sample size for certain species making it impossible to asses certain interactions. After removing the interactions, the models appear to perform fine.
 
 ```{r}
+#add in significance indicators to alpha.diversity.fish.F4.F8 for use in boxplots.
+#first add significance indicators for sobs.
+posthocvec.sobs=c("A","B","B","B","B/C","A/C","A/C","A/C")
+alpha.diversity.fish.F4.F8$posthoc.sobs=posthocvec.sobs[alpha.diversity.fish.F4.F8$Gut_SubSection]
+#add in significance indicator heights
+posthocymax.sobs=aggregate(alpha.diversity.fish.F4.F8$sobs,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=max)[[2]]
+alpha.diversity.fish.F4.F8$posthocymax.sobs=posthocymax.sobs[alpha.diversity.fish.F4.F8$Gut_SubSection]
+#repeat for shannoneven
+posthocvec.shannoneven=c("A","A","A","A/B","A/B","B/C","B/C","B/C")
+alpha.diversity.fish.F4.F8$posthoc.shannoneven=posthocvec.shannoneven[alpha.diversity.fish.F4.F8$Gut_SubSection]
+#add in significance indicator heights
+posthocymax.shannoneven=aggregate(alpha.diversity.fish.F4.F8$shannoneven,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=max)[[2]]
+alpha.diversity.fish.F4.F8$posthocymax.shannoneven=posthocymax.shannoneven[alpha.diversity.fish.F4.F8$Gut_SubSection]
+#repeat for shannon
+posthocvec.shannon=c("A/B","A/B","B","A/B","A/C","C","C","C")
+alpha.diversity.fish.F4.F8$posthoc.shannon=posthocvec.shannon[alpha.diversity.fish.F4.F8$Gut_SubSection]
+#add in significance indicator heights
+posthocymax.shannon=aggregate(alpha.diversity.fish.F4.F8$shannon,by=list(alpha.diversity.fish.F4.F8$Gut_SubSection),FUN=max)[[2]]
+alpha.diversity.fish.F4.F8$posthocymax.shannon=posthocymax.shannon[alpha.diversity.fish.F4.F8$Gut_SubSection]
+
 #Graph sobs and shannoneven indices as a function of Gut_SubSection
-sobs.gut.subsection.plot=ggplot(alpha.diversity.mean.gut_subsection,aes(x=Gut_SubSection,y=sobs,fill=Gut_SubSection))+
+sobs.gut.subsection.plot=ggplot(alpha.diversity.fish.F4.F8,aes(x=Gut_SubSection,y=sobs,fill=Gut_SubSection))+
   ylab("Observed ASVs")+
-  ylim(0,680)+
-  geom_bar(stat="identity")+
+  ylim(75,800)+
+  geom_boxplot()+
   scale_fill_manual(values=colvec2)+
-  geom_errorbar(aes(ymin=sobs-SE_sobs,ymax=sobs+SE_sobs),width=.5)+
   ggtitle("A")+
   theme_classic()+
   theme(legend.position = "none",axis.text=element_text(size=12))+
-  geom_text(x=1:8,y=c(675,275,240,275,440,625,595,570),aes(label=c("A","B","B","B","B/C","A/C","A/C","A/C")))
+  geom_text(data=alpha.diversity.fish.F4.F8,aes(x=Gut_SubSection,y=posthocymax.sobs+50,label=posthoc.sobs))
 
 #now repeat for shannoneven
-shannoneven.gut.subsection.plot=ggplot(alpha.diversity.mean.gut_subsection,aes(x=Gut_SubSection,y=shannoneven,fill=Gut_SubSection))+
-  geom_bar(stat="identity")+
+shannoneven.gut.subsection.plot=ggplot(alpha.diversity.fish.F4.F8,aes(x=Gut_SubSection,y=shannoneven,fill=Gut_SubSection))+
+  ylab("Shannon evenness")+
+  geom_boxplot()+
   scale_fill_manual(values=colvec2)+
-  geom_errorbar(aes(ymin=shannoneven-SE_shannoneven,ymax=shannoneven+SE_shannoneven),width=.5)+
   ggtitle("B")+
   theme_classic()+
-  ylim(0,.87)+
   theme(legend.position = "none",axis.text=element_text(size=12))+
-  geom_text(x=1:8,y=c(.6,.6,.6,.75,.75,.85,.85,.85),aes(label=c("A","A","A","A/B","A/B","B","B","B")))
+  geom_text(data=alpha.diversity.fish.F4.F8,aes(x=Gut_SubSection,y=posthocymax.shannoneven+.05,label=posthoc.shannoneven))
 
-shannon.gut.subsection.plot=ggplot(alpha.diversity.mean.gut_subsection,aes(x=Gut_SubSection,y=shannon,fill=Gut_SubSection))+
-  geom_bar(stat="identity")+
+shannon.gut.subsection.plot=ggplot(alpha.diversity.fish.F4.F8,aes(x=Gut_SubSection,y=shannon,fill=Gut_SubSection))+
+  ylab("Shannon")+
+  geom_boxplot()+
   scale_fill_manual(values=colvec2)+
-  geom_errorbar(aes(ymin=shannon-SE_shannon,ymax=shannon+SE_shannon),width=.5)+
   ggtitle("C")+
   theme_classic()+
-  ylim(0,5.3)+
   theme(legend.position = "none",axis.text=element_text(size=12))+
-  geom_text(x=1:8,y=c(4,3.25,3.25,4,4.3,5.3,5.3,5.3),aes(label=c("A/B","A/B","B","A/B","A/C","C","C","C")))
+  geom_text(data=alpha.diversity.fish.F4.F8,aes(x=Gut_SubSection,y=posthocymax.shannon+.35,label=posthoc.shannon))
 
-plot_grid(sobs.gut.subsection.plot,shannoneven.gut.subsection.plot,shannon.gut.subsection.plot) ##use the plot_grid function to plot the above 2 plots (par(mfrow=())) doesnt work with ggplot2. Save as PNG (995 x 750) and use as Figure 1 in manuscript.
+plot_grid(sobs.gut.subsection.plot,shannoneven.gut.subsection.plot,shannon.gut.subsection.plot) ##use the plot_grid function to plot the above 2 plots (par(mfrow=())) doesnt work with ggplot2). Save as PNG (995 x 750) and use as Figure 2 in manuscript.
 ```
 
 

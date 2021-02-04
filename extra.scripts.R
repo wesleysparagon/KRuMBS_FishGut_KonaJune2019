@@ -443,3 +443,64 @@ ggplot(nmds.scores.2,aes(x=NMDS1,y=NMDS2))+ #plot nmds.scores, specify x and y a
   scale_shape_manual(values = c(21, 16))+
   theme_classic()+
   ggtitle("new gradient1")#export graphs as 8.5x11 PDF (landscape)
+
+#graph the relative abundance of significant ASVs across the gut subsections as stacked barcharts. Graph within family,fill by family ID but keep individual ASVs seperated by black lines. Lable ASV# on each portion of the barchart, with the size of the label proportional to the relabund of that ASV in that sample.
+#proteo.sig.otus=ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Proteobacteria",],aes(x=Gut_SubSection,y=mean_relabund,fill=Family))+
+#geom_bar(stat="identity",col="black")+
+#geom_text(aes(label=OTU),size=sqrt((mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Proteobacteria",]$mean_relabund))*15,position = position_stack(vjust = 0.5))+
+#ggtitle(label="Proteobacteria") 
+
+#unclassified.sig.otus=ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Bacteria_unclassified",],aes(x=Gut_SubSection,y=mean_relabund,fill=Family))+
+#geom_bar(stat="identity",col="black")+
+#geom_text(aes(label=OTU),size=sqrt((mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Bacteria_unclassified",]$mean_relabund))*30,position = position_stack(vjust = 0.5))+
+#ggtitle(label="Unclassified_Phylum") #save as landscape PDF
+
+#bacteroidetes.sig.otus=ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Bacteroidetes",],aes(x=Gut_SubSection,y=mean_relabund,fill=Family))+
+# geom_bar(stat="identity",col="black")+
+#geom_text(aes(label=OTU),size=sqrt((mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Bacteroidetes",]$mean_relabund))*25,position = position_stack(vjust = 0.5))+
+#ggtitle(label="Bacteroidetes") #save as landscape PDF
+
+#tenericutes.sig.otus=ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Tenericutes",],aes(x=Gut_SubSection,y=mean_relabund,fill=Family))+
+#geom_bar(stat="identity",col="black")+
+#geom_text(aes(label=OTU),size=sqrt((mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Tenericutes",]$mean_relabund))*25,position = position_stack(vjust = 0.5))+
+# ggtitle(label="Tenericutes") #save as landscape PDF
+
+#actino.sig.otus=ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Actinobacteria",],aes(x=Gut_SubSection,y=mean_relabund,fill=Family))+
+#geom_bar(stat="identity",col="black")+
+#geom_text(aes(label=OTU),size=sqrt((mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Actinobacteria",]$mean_relabund))*80,position = position_stack(vjust = 0.5))+
+#ggtitle(label="Actinobacteria") #save as landscape PDF
+
+#firmicutes.sig.otus=ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Firmicutes",],aes(x=Gut_SubSection,y=mean_relabund,fill=Family))+
+#geom_bar(stat="identity",col="black")+
+# geom_text(aes(label=OTU),size=sqrt((mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Firmicutes",]$mean_relabund))*15,position = position_stack(vjust = 0.5))+
+# ggtitle(label="Firmicutes")
+
+#cyano.sig.otus=ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Cyanobacteria",],aes(x=Gut_SubSection,y=mean_relabund,fill=Family))+
+# geom_bar(stat="identity",col="black")+
+#geom_text(aes(label=OTU),size=sqrt((mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Cyanobacteria",]$mean_relabund))*75,position = position_stack(vjust = 0.5))+
+# ggtitle(label="Cyanobacteria")
+
+#lentis.sig.otus=ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Lentisphaerae",],aes(x=Gut_SubSection,y=mean_relabund,fill=Family))+
+# geom_bar(stat="identity",col="black")+
+#geom_text(aes(label=OTU),size=sqrt((mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Lentisphaerae",]$mean_relabund))*50,position = position_stack(vjust = 0.5))+
+#ggtitle(label="Lentisphaerae")
+
+#parabasalia.sig.otus=ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Parabasalia",],aes(x=Gut_SubSection,y=mean_relabund,fill=Family))+
+#geom_bar(stat="identity",col="black")+
+#geom_text(aes(label=OTU),size=sqrt((mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Parabasalia",]$mean_relabund))*40,position = position_stack(vjust = 0.5))+
+#ggtitle(label="Parabasalia")
+
+#spirochaetes.sig.otus=ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Spirochaetes",],aes(x=Gut_SubSection,y=mean_relabund,fill=Family))+
+#geom_bar(stat="identity",col="black")+
+#geom_text(aes(label=OTU),size=sqrt((mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Spirochaetes",]$mean_relabund))*40,position = position_stack(vjust = 0.5))+
+#ggtitle(label="Spirochaetes")
+
+#synergist.sig.otus=ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Synergistetes",],aes(x=Gut_SubSection,y=mean_relabund,fill=Family))+
+# geom_bar(stat="identity",col="black")+
+#geom_text(aes(label=OTU),size=sqrt((mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Synergistetes",]$mean_relabund))*200,position = position_stack(vjust = 0.5))+
+#ggtitle(label="Synergistetes")
+
+#verruco.sig.otus=ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Verrucomicrobia",],aes(x=Gut_SubSection,y=mean_relabund,fill=Family))+
+#geom_bar(stat="identity",col="black")+
+#geom_text(aes(label=OTU),size=sqrt((mixed.mod.sig.otu.Gut_SubSection.longformat[mixed.mod.sig.otu.Gut_SubSection.longformat$Phylum=="Verrucomicrobia",]$mean_relabund))*30,position = position_stack(vjust = 0.5))+
+# ggtitle(label="Verrucomicrobia")
