@@ -288,8 +288,10 @@ points(nmds.relabund.2, #plot each sample as a point
        pch=pointvec[metadata.19.jun.samples2$Species], #point shape corresponds to fish Species
        col=colvec3[metadata.19.jun.samples2$Gut_SubSection])
 text(-.42,.525,label="Stress=.17")
-ordiellipse(nmds.relabund.2,metadata.19.jun.samples2$Gut_Section,kind="sd",draw="polygon",alpha=c(0,0),lwd=2.5,border=c("mediumpurple1",viridis(n=3,option="D")[2:3])) #add SD ellipses, colored by Gut_Section.
+ordiellipse(nmds.relabund.2,metadata.19.jun.samples2$Gut_Section,kind="sd",draw="polygon",lwd=2.5,border=c("mediumpurple1",viridis(n=3,option="D")[2:3]),col=c("mediumpurple1",viridis(n=3,option="D")[2:3])) #add SD ellipses, colored by Gut_Section.
 ordiarrows(nmds.relabund.2,group=metadata.19.jun.samples2$Fish_Number,order.by=metadata.19.jun.samples2$Gut_SubSection,lwd=2,col="black")
+#alpha=c(0,0) use to remove color from ellipse fill
+#export as 8.5x9 PDF and use in Figure X3
 ```
 
 We can see a clear succesional gradient from ST -> HG_3, and also more clearly see that species cluster distinctly, especially K. hawaiiensis.
