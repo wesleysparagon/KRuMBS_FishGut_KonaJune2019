@@ -367,6 +367,7 @@ nmds.scores.2=as.data.frame(scores(nmds.weighted.unifrac.F4.F8)) #extract NMDS s
 nmds.scores.2$Gut_SubSection=metadata.fish.F4.F8.unifrac$Gut_SubSection #add the Fish_GutSubsection to the new df
 nmds.scores.2$Ranked_Distance_from_Stomach=metadata.fish.F4.F8.unifrac$Ranked_Gut_SubSection_Distance_from_Stomach #Add Ranked_Gut_SubSection_Distance_from_Stomach to df, give it a shorter name
 nmds.scores.2$Species=metadata.fish.F4.F8.unifrac$Species #Add Species to the new df.
+levels(nmds.scores.2$Species)=c("Kyphosus hawaiiensis","Kyphosus vaigiensis","Kyphosus cinerascens","")
 nmds.scores.2$Fish_Number=metadata.fish.F4.F8.unifrac$Fish_Number
 nmds.scores.2$Gut_Section=metadata.fish.F4.F8.unifrac$Gut_Section
 nmds.scores.2$Sample_Type=c(rep("16S",times=14),rep("Metabolomics",times=23))
