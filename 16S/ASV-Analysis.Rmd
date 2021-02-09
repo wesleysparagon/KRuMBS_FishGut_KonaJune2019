@@ -321,6 +321,9 @@ mixed.mod.pvals$Species.padjust=p.adjust(mixed.mod.pvals$Species,method="BH") #A
 rownames(mixed.mod.pvals)=colnames(relabund.t.fish.F4.F8.cull.trans)[2:693] #Change rownames to correspond with tested OTU names.
 mixed.mod.sig.otu.Gut_SubSection=mixed.mod.pvals[mixed.mod.pvals$Gut_SubSection.padjust<=.05,] #subset the mixed.mod.pvals df for significant (p<=.05) Gut_SubSection pvals. Save as new df. 285 sig ASVs after padjustment.
 mixed.mod.sig.otu.Gut_SubSection=cbind(mixed.mod.sig.otu.Gut_SubSection,taxonomy.fish.F4.F8.cull[rownames(taxonomy.fish.F4.F8.cull) %in% rownames(mixed.mod.sig.otu.Gut_SubSection),],relabund.fish.F4.F8.cull[rownames(relabund.fish.F4.F8.cull) %in% rownames(mixed.mod.sig.otu.Gut_SubSection),]) #merge mixed.mod.sig.otu.Gut_SubSection with the associated OTU taxonomies.
+
+write.csv(mixed.mod.sig.otu.Gut_SubSection,file="mixed.mod.sig.otu.Gut_SubSection.csv") #export and use as table SX2
+
 mixed.mod.sig.otu.Species=mixed.mod.pvals[mixed.mod.pvals$Species.padjust<=.05,] #subset the mixed.mod.pvals df for significant (p<=.05) Gut_SubSection pvals. Save as new df. It appears there are no significant Species pvals after padjustment. Will need to look into why this is. Perhaps if using the full sample set that includes F1-F3 GI/HG samples there would be enough replication to find significant species pvals.
 #create an output zscore df and calculate z score for each otu using the scale function. ERROR IN THIS SECTION, ASINSQRT APPEARS TO BE RUNNING ON Family and Genus columns
 mixed.mod.sig.otu.Gut_SubSection.trans=cbind(mixed.mod.sig.otu.Gut_SubSection[,1:10],asin(sqrt(mixed.mod.sig.otu.Gut_SubSection[,-1:-10]))) #make a asinsqrt transfomred mixed mod sig otu gut subsection df. Normalizing ASVs is necessary for z scoring.

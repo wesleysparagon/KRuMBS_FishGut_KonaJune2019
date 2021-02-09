@@ -307,6 +307,8 @@ permanova.gut.subsection.II
 
 pairwise.permanova.subsection=pairwise.adonis(bray.relabund.19.jun.clean2.2,metadata.19.jun.samples2$Gut_SubSection,p.adjust.m="BH")
 pairwise.permanova.subsection
+
+#write.csv(pairwise.permanova.subsection,file="pairwise.permanova.subsection.mb.csv")
 ```
 
 Gut subsection and Species are both very significant, whereas the interaction term is less (but still noticably) significant. Gut subsection explains double the variation of species or their interaction. Interestingly, the interaction term explains more variation than species alone, despite the low effect size (F value).
