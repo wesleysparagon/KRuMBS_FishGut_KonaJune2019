@@ -17,6 +17,7 @@ library(pairwiseAdonis)
 library(lme4)
 library(lmerTest)
 library(lsmeans)
+library(ggplot2)
 
 #set up custom functions
 cull.otu=function(relabund.df, min.num, min.abund, min.single.abund) {
@@ -305,6 +306,9 @@ permanova.gut.subsection
 permanova.gut.subsection.II=adonis.II(bray.relabund.19.jun.clean2.2~Gut_SubSection*Species,by="margin",strata=metadata.19.jun.samples2$ATTRIBUTE_Fish_Number,data=metadata.19.jun.samples2,permutations=999)
 permanova.gut.subsection.II
 
+#export permanova.gut.subsection and use as Table X2b in manuscript
+write.csv(permanova.gut.subsection$aov.tab,file="permanova.gut.subsection.csv")
+
 pairwise.permanova.subsection=pairwise.adonis(bray.relabund.19.jun.clean2.2,metadata.19.jun.samples2$Gut_SubSection,p.adjust.m="BH")
 pairwise.permanova.subsection
 
@@ -538,8 +542,8 @@ mixed.mod.section.sig.feature.Gut_Section=cbind(mixed.mod.section.sig.feature.Gu
 #write.csv(mixed.mod.section.sig.feature.Gut_Section,file="mixed.mod.section.sig.feature.Gut_Section.csv")
 
 #create an output zscore df and calculate z score for each otu using the scale function.
-mixed.mod.sig.feature.Gut_SubSection.trans=relabund.19.jun.clean2.dist.t.3.cull.trans
-mixed.mod.sig.feature.Gut_SubSection.trans=mixed.mod.sig.feature.Gut_SubSection.trans[,colnames(mixed.mod.sig.feature.Gut_SubSection.trans) %in% mixed.mod.sig.feature.Gut_SubSection$cluster.index] #subset for just significant features
+mixed.mod.sig.feature.Gut_SubSection.trans=mixed.mod.sig.feature.Gut_SubSection[,26:56]
+mixed.mod.sig.feature.Gut_SubSection.trans1=asin(sqrt(mixed.mod.sig.feature.Gut_SubSection.trans))#arcsine sqrt transform the relabund data
 mixed.mod.sig.feature.Gut_SubSection.zscore=as.data.frame((t(mixed.mod.sig.feature.Gut_SubSection.trans)))
 
 #calculate zscore
@@ -547,7 +551,13 @@ for (i in 1:ncol(mixed.mod.sig.feature.Gut_SubSection.zscore)) { #calculate the 
   mixed.mod.sig.feature.Gut_SubSection.zscore[,i]=scale(mixed.mod.sig.feature.Gut_SubSection.zscore[,i],center=TRUE,scale=TRUE)
 }
 
-#write.csv(mixed.mod.sig.feature.Gut_SubSection.zscore,file="mixed.mod.sig.feature.Gut_SubSection.zscore.csv")
+#retranspose zscore df
+mixed.mod.sig.feature.Gut_SubSection.zscore.t=as.data.frame(t(mixed.mod.sig.feature.Gut_SubSection.zscore))
+
+#add back in feature metadata
+mixed.mod.sig.feature.Gut_SubSection.zscore.t1=cbind(mixed.mod.sig.feature.Gut_SubSection.zscore.t,mixed.mod.sig.feature.Gut_SubSection[,-26:-56])
+
+write.csv(mixed.mod.sig.feature.Gut_SubSection.zscore.t1,file="mixed.mod.sig.feature.Gut_SubSection.zscore.t1.csv")
 
 ```
 
