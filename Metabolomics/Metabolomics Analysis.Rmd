@@ -44,7 +44,7 @@ cull.otu=function(relabund.df, min.num, min.abund, min.single.abund) {
 }
 
 #read in data and metadata
-data=read.csv(file="KRuMBS_Fishguts_bothtrips_A_quant_filtered_UPDATED.csv")
+data=read.csv(file="KRuMBS_Fishguts_bothtrips_A_quant_filtered_UPDATED_withanalogs.csv")
 metadata=read.csv(file="Metadata_KRuMBS_Fishguts_Seaweed_FULL.csv")
 molnetdata=read.csv(file="KRuMBS_ClassyFireResults_Network.csv")
 
@@ -307,7 +307,7 @@ permanova.gut.subsection.II=adonis.II(bray.relabund.19.jun.clean2.2~Gut_SubSecti
 permanova.gut.subsection.II
 
 #export permanova.gut.subsection and use as Table X2b in manuscript
-write.csv(permanova.gut.subsection$aov.tab,file="permanova.gut.subsection.csv")
+#write.csv(permanova.gut.subsection$aov.tab,file="permanova.gut.subsection.csv")
 
 pairwise.permanova.subsection=pairwise.adonis(bray.relabund.19.jun.clean2.2,metadata.19.jun.samples2$Gut_SubSection,p.adjust.m="BH")
 pairwise.permanova.subsection
@@ -517,11 +517,11 @@ molnetdata2=molnetdata[molnetdata$cluster.index %in% rownames(mixed.mod.section.
 molnetdata2=molnetdata2[match(rownames(mixed.mod.section.sig.feature.Gut_Section),molnetdata2$cluster.index),] #order molnetdata2 according to features in mixed.mod.section.sig.feature.Gut_Section.
 
 #subset feature library ID data.
-libraryID=data[data$row.ID %in% rownames(mixed.mod.sig.feature.Gut_SubSection),1:6]
+libraryID=data[data$row.ID %in% rownames(mixed.mod.sig.feature.Gut_SubSection),1:8]
 libraryID=libraryID[match(rownames(mixed.mod.sig.feature.Gut_SubSection),libraryID$row.ID),]
 
 #repeat for mixed.mod.section
-libraryID1=data[data$row.ID %in% rownames(mixed.mod.section.sig.feature.Gut_Section),1:6]
+libraryID1=data[data$row.ID %in% rownames(mixed.mod.section.sig.feature.Gut_Section),1:8]
 libraryID1=libraryID1[match(rownames(mixed.mod.section.sig.feature.Gut_Section),libraryID1$row.ID),]
 
 #subset the relabund data
@@ -542,7 +542,7 @@ mixed.mod.section.sig.feature.Gut_Section=cbind(mixed.mod.section.sig.feature.Gu
 #write.csv(mixed.mod.section.sig.feature.Gut_Section,file="mixed.mod.section.sig.feature.Gut_Section.csv")
 
 #create an output zscore df and calculate z score for each otu using the scale function.
-mixed.mod.sig.feature.Gut_SubSection.trans=mixed.mod.sig.feature.Gut_SubSection[,26:56]
+mixed.mod.sig.feature.Gut_SubSection.trans=mixed.mod.sig.feature.Gut_SubSection[,28:58]
 mixed.mod.sig.feature.Gut_SubSection.trans1=asin(sqrt(mixed.mod.sig.feature.Gut_SubSection.trans))#arcsine sqrt transform the relabund data
 mixed.mod.sig.feature.Gut_SubSection.zscore=as.data.frame((t(mixed.mod.sig.feature.Gut_SubSection.trans)))
 
@@ -555,9 +555,9 @@ for (i in 1:ncol(mixed.mod.sig.feature.Gut_SubSection.zscore)) { #calculate the 
 mixed.mod.sig.feature.Gut_SubSection.zscore.t=as.data.frame(t(mixed.mod.sig.feature.Gut_SubSection.zscore))
 
 #add back in feature metadata
-mixed.mod.sig.feature.Gut_SubSection.zscore.t1=cbind(mixed.mod.sig.feature.Gut_SubSection.zscore.t,mixed.mod.sig.feature.Gut_SubSection[,-26:-56])
+mixed.mod.sig.feature.Gut_SubSection.zscore.t1=cbind(mixed.mod.sig.feature.Gut_SubSection.zscore.t,mixed.mod.sig.feature.Gut_SubSection[,-28:-58])
 
-write.csv(mixed.mod.sig.feature.Gut_SubSection.zscore.t1,file="mixed.mod.sig.feature.Gut_SubSection.zscore.t1.csv")
+#write.csv(mixed.mod.sig.feature.Gut_SubSection.zscore.t1,file="mixed.mod.sig.feature.Gut_SubSection.zscore.t1.csv")
 
 ```
 
