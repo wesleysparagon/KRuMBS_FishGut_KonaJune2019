@@ -43,6 +43,18 @@ cull.otu=function(relabund.df, min.num, min.abund, min.single.abund) {
   relabund.df.cull<<-relabund.df.cull
 }
 
+zscore.calculation=function(x) {
+  #Inputs: x = dummy variable that function will be run on. Must be a vector of numbers.
+  
+  zscoredat=x #duplicate vector x, save as a new df zscoredat.
+  
+  for (i in 1:length(x)) { #for each value in vector x
+    zscoredat[i]=(x[i]-mean(x))/sd(x) #subset the input data to the corresponding position, and make it equal to the zscored value of the original cell value at that position.
+    #zscoring is done by subtracting the mean value for a vector from the value of the vector at position i, and then dividing by the SD for the vector.
+  }
+  zscoredat1 <<- zscoredat #save output as new df, zscoredat1
+}
+
 #read in data and metadata
 data=read.csv(file="KRuMBS_Fishguts_bothtrips_A_quant_filtered_UPDATED_withanalogs.csv")
 metadata=read.csv(file="Metadata_KRuMBS_Fishguts_Seaweed_FULL.csv")
@@ -547,9 +559,7 @@ mixed.mod.sig.feature.Gut_SubSection.trans1=asin(sqrt(mixed.mod.sig.feature.Gut_
 mixed.mod.sig.feature.Gut_SubSection.zscore=as.data.frame((t(mixed.mod.sig.feature.Gut_SubSection.trans)))
 
 #calculate zscore
-for (i in 1:ncol(mixed.mod.sig.feature.Gut_SubSection.zscore)) { #calculate the zscore
-  mixed.mod.sig.feature.Gut_SubSection.zscore[,i]=scale(mixed.mod.sig.feature.Gut_SubSection.zscore[,i],center=TRUE,scale=TRUE)
-}
+mixed.mod.sig.feature.Gut_SubSection.zscore=as.data.frame(apply(mixed.mod.sig.feature.Gut_SubSection.trans1,1,FUN=zscore.calculation))
 
 #retranspose zscore df
 mixed.mod.sig.feature.Gut_SubSection.zscore.t=as.data.frame(t(mixed.mod.sig.feature.Gut_SubSection.zscore))
@@ -557,7 +567,7 @@ mixed.mod.sig.feature.Gut_SubSection.zscore.t=as.data.frame(t(mixed.mod.sig.feat
 #add back in feature metadata
 mixed.mod.sig.feature.Gut_SubSection.zscore.t1=cbind(mixed.mod.sig.feature.Gut_SubSection.zscore.t,mixed.mod.sig.feature.Gut_SubSection[,-28:-58])
 
-#write.csv(mixed.mod.sig.feature.Gut_SubSection.zscore.t1,file="mixed.mod.sig.feature.Gut_SubSection.zscore.t1.csv")
+write.csv(mixed.mod.sig.feature.Gut_SubSection.zscore.t1,file="mixed.mod.sig.feature.Gut_SubSection.zscore.t1.v1.csv")
 
 ```
 
