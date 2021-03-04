@@ -556,7 +556,9 @@ mixed.mod.section.sig.feature.Gut_Section=cbind(mixed.mod.section.sig.feature.Gu
 #create an output zscore df and calculate z score for each otu using the scale function.
 mixed.mod.sig.feature.Gut_SubSection.trans=mixed.mod.sig.feature.Gut_SubSection[,28:58]
 mixed.mod.sig.feature.Gut_SubSection.trans1=asin(sqrt(mixed.mod.sig.feature.Gut_SubSection.trans))#arcsine sqrt transform the relabund data
-mixed.mod.sig.feature.Gut_SubSection.zscore=as.data.frame((t(mixed.mod.sig.feature.Gut_SubSection.trans)))
+
+#write.csv(mixed.mod.sig.feature.Gut_SubSection.trans1,file="mixed.mod.sig.feature.Gut_SubSection.trans1.csv")
+
 
 #calculate zscore
 mixed.mod.sig.feature.Gut_SubSection.zscore=as.data.frame(apply(mixed.mod.sig.feature.Gut_SubSection.trans1,1,FUN=zscore.calculation))
@@ -564,10 +566,31 @@ mixed.mod.sig.feature.Gut_SubSection.zscore=as.data.frame(apply(mixed.mod.sig.fe
 #retranspose zscore df
 mixed.mod.sig.feature.Gut_SubSection.zscore.t=as.data.frame(t(mixed.mod.sig.feature.Gut_SubSection.zscore))
 
+#compare z score vs. arcsinsqrt data in a regression
+zscore.comparison=as.data.frame(unlist(mixed.mod.sig.feature.Gut_SubSection.zscore.t)) #extract unlisted zscores as a df.
+zscore.comparison$arcsinesqrt=unlist(mixed.mod.sig.feature.Gut_SubSection.trans1) #add unlisted arcsinesqrt values to df
+zscore.comparison$relabund=unlist(mixed.mod.sig.feature.Gut_SubSection.trans) #add unlisted relabund values to df
+colnames(zscore.comparison)[1]="zscore" #rename column
+zscore.comparison=cbind(zscore.comparison,mixed.mod.sig.feature.Gut_SubSection[,-28:-58]) #add in metadata
+
+#plot zscore against arcsinesqrt value
+ggplot(zscore.comparison,aes(y=zscore,x=arcsinesqrt,color=as.factor(row.ID)))+
+  geom_point()+
+  geom_hline(yintercept=-.3)
+#looks like a zscore cutoff of -.3 is good. This will make it so baseline of all zscore rows in 2 way heatmap will be the same.
+
+#update the mixed.mod.sig.feature.Gut_SubSection.zscore.t so that any zscore value<=-.3 now =-.3
+mixed.mod.sig.feature.Gut_SubSection.zscore.t1.v2=mixed.mod.sig.feature.Gut_SubSection.zscore.t #save a new copy of the df.
+mixed.mod.sig.feature.Gut_SubSection.zscore.t1.v2[mixed.mod.sig.feature.Gut_SubSection.zscore.t1.v2<=-.3]=-.3 #subset df for all cell values <= -.3 and replace those values with -.3.
+#add back in feature metadata
+mixed.mod.sig.feature.Gut_SubSection.zscore.t1.v2=cbind(mixed.mod.sig.feature.Gut_SubSection.zscore.t1.v2,mixed.mod.sig.feature.Gut_SubSection[,-28:-58])
+
+#write.csv(mixed.mod.sig.feature.Gut_SubSection.zscore.t1.v2,file="mixed.mod.sig.feature.Gut_SubSection.zscore.t1.v2.csv")
+
 #add back in feature metadata
 mixed.mod.sig.feature.Gut_SubSection.zscore.t1=cbind(mixed.mod.sig.feature.Gut_SubSection.zscore.t,mixed.mod.sig.feature.Gut_SubSection[,-28:-58])
 
-write.csv(mixed.mod.sig.feature.Gut_SubSection.zscore.t1,file="mixed.mod.sig.feature.Gut_SubSection.zscore.t1.v1.csv")
+#write.csv(mixed.mod.sig.feature.Gut_SubSection.zscore.t1,file="mixed.mod.sig.feature.Gut_SubSection.zscore.t1.v1.csv")
 
 ```
 
