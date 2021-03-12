@@ -19,41 +19,10 @@ library(lmerTest)
 library(lsmeans)
 library(ggplot2)
 
-#set up custom functions
-cull.otu=function(relabund.df, min.num, min.abund, min.single.abund) {
-  #Inputs:  relabund.df = dataframe containing ONLY relative abundance data, no metadata or other info. Samples in rows and OTUs in columns.
-            
-            #min.num = the minimum number of samples an OTU needs to be present in to not be culled.
-            
-            #min.abund = the minimum relative abundance an OTU needs to have in (the min.num) samples to not be culled.
- 
-            #min.single.abund = the minimum relative abundance an OTU needs to have in a SINGLE sample to not be culled.
-   
-  sub=c() #create a empty vector
-  
-  cull=function(x) { #make a function that says for any input, generate a logical vector of TRUEs and FALSEs that will be used for subsetting, selecting OTUs that
-    sub=ifelse(length(x[x>=min.abund])>=min.num #have a relabund>"min.abund" in "min.num" samples 
-               | length(x[x>=min.single.abund])>0,TRUE,FALSE) #or have a relabund>"min.single.abund" in at least one sample
-    return(sub)
-  }
-  
-  cull.vec=apply(relabund.df,2,FUN=cull) #apply cull function to relabund.df, save output as a vector.
-  relabund.df.cull=relabund.df[,cull.vec] #Use cull.vec to subset the columns of relabund.df for OTUs that passed the cull threshold.
-  
-  relabund.df.cull<<-relabund.df.cull
-}
-
-zscore.calculation=function(x) {
-  #Inputs: x = dummy variable that function will be run on. Must be a vector of numbers.
-  
-  zscoredat=x #duplicate vector x, save as a new df zscoredat.
-  
-  for (i in 1:length(x)) { #for each value in vector x
-    zscoredat[i]=(x[i]-mean(x))/sd(x) #subset the input data to the corresponding position, and make it equal to the zscored value of the original cell value at that position.
-    #zscoring is done by subtracting the mean value for a vector from the value of the vector at position i, and then dividing by the SD for the vector.
-  }
-  zscoredat1 <<- zscoredat #save output as new df, zscoredat1
-}
+#source custom functions
+source("cull.otu.script.R")
+source("generate.long.format.script.R")
+source("zscore.calculation.script.R")
 
 #read in data and metadata
 data=read.csv(file="KRuMBS_Fishguts_bothtrips_A_quant_filtered_UPDATED_withanalogs.csv")
@@ -465,7 +434,8 @@ relabund.19.jun.clean2.dist.t.4.cull=relabund.df.cull
 #asinsqrt transform the data
 relabund.19.jun.clean2.dist.t.4.cull.trans=asin(sqrt(relabund.19.jun.clean2.dist.t.4.cull))
 #merge in metadata
-relabund.19.jun.clean2.dist.t.4.cull.trans=cbind(relabund.19.jun.clean2.dist.t.4.cull.trans,metadata.19.jun.samples2[metadata.19.jun.samples2$Gut_SubSection!="ST",])
+metadata.19.jun.samples3=metadata.19.jun.samples2[metadata.19.jun.samples2$Gut_SubSection!="ST",] #remove ST samples from metadata, save as new df.
+relabund.19.jun.clean2.dist.t.4.cull.trans=cbind(relabund.19.jun.clean2.dist.t.4.cull.trans,metadata.19.jun.samples3)
 
 #now run a mixed model on the transformed feature data. Have relative abundance be a function of Species, Gut_SubSection, and Fish_Number be a random effect. Interaction term has been removed since it was not significant in the multivariate analysis. Could re-run model with Species also as a random effect.
 mixed.mod=function(x) { #create a function that performs the desired mixed model
@@ -651,7 +621,98 @@ mixed.mod.sig.network.Species=mixed.mod.network.pvals[mixed.mod.network.pvals$Sp
 
 #write.csv(mixed.mod.sig.network.Gut_SubSection,file="mixed.mod.sig.network.Gut_SubSection.csv")
 
+```
 
+Visualize significant features across gut subsections.
+
+```{r}
+#Convert the file to longformat
+mixed.mod.sig.feature.Gut_SubSection.1=mixed.mod.sig.feature.Gut_SubSection[,28:58] #subset mimixed.mod.sig.feature.Gut_SubSection df for just the feature relabund data
+
+sig.feature.subsection.data=mixed.mod.sig.feature.Gut_SubSection[,1:27] #subset mimixed.mod.sig.feature.Gut_SubSection df for just the feature metadata
+sig.feature.subsection.data$OTUNumber=rownames(sig.feature.subsection.data) #create a new column of row IDs called "OTUNumber"
+
+colnames(metadata.19.jun.samples3)[1]="Sample_ID" #change sample column name to Sample_ID
+
+generate.long.format(mixed.mod.sig.feature.Gut_SubSection.1,metadata.19.jun.samples3,sig.feature.subsection.data) #generate longformat
+
+colnames(abund.longformat)[2]="row_ID" #rename OTU column as row_ID.
+
+abund.longformat1=abund.longformat[,-4:-7] #remove pval cols
 
 ```
+
+Now, visualize these differentially abundants features.
+
+```{r}
+#plot all the features together
+ggplot(abund.longformat1,aes(x=Gut_SubSection.y,y=abund,color=Library.Common.Name,group=row_ID))+
+  geom_point()+geom_smooth()+
+    facet_wrap(~Component.Index,scales="free")+
+    theme(legend.position="bottom")
+#looks surprsingly good. Now try with just smoother.
+
+ggplot(abund.longformat1,aes(x=Gut_SubSection.y,y=abund,color=Library.Common.Name,group=row_ID))+
+  geom_smooth()+
+    facet_wrap(~Component.Index,scales="free")+
+    theme(legend.position="bottom")
+
+
+#Average abund values for eac feature in each gut subsection
+abund.longformat1$row_ID_subsection=paste(abund.longformat1$row_ID,abund.longformat1$Gut_SubSection.y) #first make a new col combining feature ID and subsection
+
+abund.longformat2=aggregate(abund.longformat1$abund,by=list(abund.longformat1$row_ID_subsection),FUN=mean) #calculate the average for each feature abund at each subsection
+
+abund.longformat2$SE=aggregate(abund.longformat1$abund,by=list(abund.longformat1$row_ID_subsection),FUN=stderror)[[2]] #add a new column corresponding to SE
+
+abund.longformat2=cbind(abund.longformat2,as.data.frame(t(as.data.frame(strsplit(abund.longformat2$Group.1,split=" "))))) #add in seperated feature and subsection columns
+
+#rename cols and rows
+colnames(abund.longformat2)=c("row_ID_subsection","mean_relabund","SE","row_ID","Gut_SubSection") 
+rownames(abund.longformat2)=abund.longformat2$row_ID_subsection
+
+#add back in feature data
+abund.longformat3=merge(abund.longformat2,sig.feature.subsection.data[,5:28],by.x="row_ID",by.y="OTUNumber",all.x=T,all.)
+
+#now plot avergae relabund for each features across gut subsections, colored by lib ID and faceted out by subnetwork.
+ggplot(abund.longformat3,aes(x=Gut_SubSection,y=mean_relabund,color=Library.Common.Name,group=row_ID))+
+  geom_point(size=3)+geom_line(size=1.5)+
+    facet_wrap(~Component.Index,scales="free")+
+    theme(legend.position="bottom")
+#there are a few networks that look bad. specifically: 15 and 45
+
+#now try the same plot without NA lib IDs and geom_bar
+ggplot(abund.longformat3[abund.longformat3$Library.Common.Name!="N/A",],aes(x=Gut_SubSection,y=mean_relabund,fill=Library.Common.Name,group=row_ID))+
+  geom_bar(stat="identity",col="black")+
+    facet_wrap(~Component.Index,scales="free")+
+    theme(legend.position="bottom")
+#export as 2500x1500 PNG and save as mixed.mod.significant.gut.subsection.features
+
+#now try the plot points and lines
+ggplot(abund.longformat3[abund.longformat3$Library.Common.Name!="N/A",],aes(x=Gut_SubSection,y=mean_relabund,color=Library.Common.Name,group=row_ID))+
+  geom_point(size=3)+geom_line(size=1.5)+
+    facet_wrap(~Component.Index,scales="free")+
+    theme(legend.position="bottom")
+#Better, but 45 still looks bad as does -1 and 5 a little bit. Would be nicer to group by some clearer classification. export as 2500x1500 PNG and save as mixed.mod.significant.gut.subsection.features1
+
+#now try the same plot with added errorbars
+ggplot(abund.longformat3[abund.longformat3$Library.Common.Name!="N/A",],aes(x=Gut_SubSection,y=mean_relabund,color=Library.Common.Name,group=row_ID))+
+  geom_point(size=3.5)+geom_line(size=2)+
+  geom_pointrange(aes(ymin=mean_relabund-SE,ymax=mean_relabund+SE))+
+    facet_wrap(~Component.Index,scales="free")+
+    theme(legend.position="bottom")
+#export as 2500x1250 PNG and save as mixed.mod.significant.gut.subsection.features2
+
+#now try the same plot using geom_smooth
+ggplot(abund.longformat1[abund.longformat1$Library.Common.Name!="N/A",],aes(x=Gut_SubSection.y,y=abund,color=Library.Common.Name,group=row_ID))+
+  geom_point()+geom_smooth()+
+    facet_wrap(~Component.Index,scales="free")+
+    theme(legend.position="bottom")
+#Better, but 45 still looks bad as does -1 and 5 a little bit. Would be nicer to group by some clearer classification. 2500x1000 PNG and save as mixed.mod.significant.gut.subsection.features4
+
+```
+
+I think the points at means with SE pointranges look best, although SE pointrange might need to be adjusted to reflect non normal distribution.
+
+Next, plot individual features Emily suggested.
 

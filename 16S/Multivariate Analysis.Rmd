@@ -81,17 +81,15 @@ metadata.fish.F4.F8.unifrac=metadata.fish.F4.F8[metadata.fish.F4.F8$SampleCode %
 The unifrac data and metadata have been imported and worked up. Next, run PERMANOVAs on the dist matrices.
 
 ```{r}
-#First model: full distance matrix (without PC), variables of interest: Species, Gut_section, and Fish_Number as strata.
-permanova.gut.zone=adonis.II(weighted.unifrac.dist~Species*Gut_Zone,by="margin",strata=metadata.fish.unifrac$Fish_Number,data=metadata.fish.unifrac,permutations=999)
-permanova.gut.zone #Gut_Zone and Species are both significant, no significant interaction.Gut_Zone much more significant
+#Model F4-F8 distance matrix without PC samples, variables of interest: Species, Gut_subsection, and Fish_Number. Use adonis2 marginal tests, first testing the effect of the interaction 
+perm=how(nperm=999)
+setBlocks(perm)=with(metadata.fish.F4.F8.unifrac,Species)
+permanova.gut.subsection=adonis2(weighted.unifrac.F4.F8.dist~Gut_SubSection+Fish_Number,by="margin",data=metadata.fish.F4.F8.unifrac,permutations=perm)
+permanova.gut.subsection
+#Marginally significant interaction.
 
-#Check if the strata=metadata.fish$Fish_Number term is influencing the results.
-test.no.strata=adonis.II(weighted.unifrac.dist~Species*Gut_Zone,by="margin",data=metadata.fish.unifrac,permutations=999)
-test.no.strata #looks like the results are very similar, so the permanova.gut.section model wil be used. Note: Pseudo-F values are exactly the same whereas pvals do change slightly when the strata variable is changed.
-
-#Third model: F4-F8 distance matrix without PC samples, variables of interest: Species, Gut_subsection, and Fish_Number as strata. 
-permanova.gut.subsection=adonis(weighted.unifrac.F4.F8.dist~Gut_SubSection*Species,by="margin",strata=metadata.fish.F4.F8.unifrac$Fish_Number,data=metadata.fish.F4.F8.unifrac,permutations=999)
-permanova.gut.subsection #Gut_SubSection and Species are both significant and have similar F values. Non significant significant interaction.
+permanova.gut.subsection1=adonis2(weighted.unifrac.F4.F8.dist~Gut_SubSection+Species,by="margin",data=metadata.fish.F4.F8.unifrac,permutations=perm)
+permanova.gut.subsection1
 
 #write.csv(permanova.gut.subsection$aov.tab,file="permanova.gut.subsection.csv") #export permanova results and save as CSV to be used for Table X2 in manuscript.
 
