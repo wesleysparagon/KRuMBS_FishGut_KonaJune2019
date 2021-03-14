@@ -20,53 +20,16 @@ library(ggplot2)
 library(cowplot)
 library(gridExtra)
 
-#set up custom functions
-
-generate.long.format = function(abund,metadata,taxonomy) {
-  #Inputs:  #abund = relative or raw abundance dataframe, with the samples as columns and OTUs as rows. Column names must correspond EXACTLY to sample names in metadata and row names must correspond EXACTLY to OTU names in taxonomy.
-            
-            #metadata = metadata dataframe, with samples as rows. Contents of dataframe may vary, but it MUST contain a column called "Sample_ID" that contains the sample names which will match exactly to the sample names in the abund dataframe.
-  
-            #taxonomy = taxonomy dataframe, with OTUs as rows. Contents of dataframe may vary,but it MUST contain a column called "OTUNumber" that contains the OTU names which will match exactly to the OTU names in the abund dataframe.
-  
-  df1=as.data.frame(unlist(abund)) #unlist abund, put unlisted abund vector as a column in new dataframe, df1. The length of this column = ncol(abund) x nrow(abund)
-  
-  colnames(df1)="abund" #change column 1 name in df1 to "abund".
-  
-  df1$OTU=rep(rownames(abund),times=ncol(abund)) #add a new column, OTU, which contains the original OTU names ( rownames(abund) ), repeated by the number of columns ( times=ncol(abund) ). Because unlist will list values sequentially BY COLUMN, to create the "OTU" column the original OTU names in the original order are simply repeated X times, where X is the number of columns. This new column will have a length = nrow(abund) x ncol(abund), and now each value in the "abund" column has an associated value in the "OTU" column. 
-  
-  df1$Sample=rep(colnames(abund),each=nrow(abund))
-  
-  df2=merge(df1,taxonomy,by.x="OTU",by.y="OTUNumber")
-  
-  df3=merge(df2,metadata,by.x="Sample",by.y="Sample_ID")
-  
-  abund.longformat <<- df3
-  
+#make a function to calculate standard error
+stderror=function(x) {
+  se=sd(x)/sqrt(length(x))
+  return(se)
 }
 
-cull.otu=function(relabund.df, min.num, min.abund, min.single.abund) {
-  #Inputs:  relabund.df = dataframe containing ONLY relative abundance data, no metadata or other info. Samples in rows and OTUs in columns.
-            
-            #min.num = the minimum number of samples an OTU needs to be present in to not be culled.
-            
-            #min.abund = the minimum relative abundance an OTU needs to have in (the min.num) samples to not be culled.
- 
-            #min.single.abund = the minimum relative abundance an OTU needs to have in a SINGLE sample to not be culled.
-   
-  sub=c() #create a empty vector
-  
-  cull=function(x) { #make a function that says for any input, generate a logical vector of TRUEs and FALSEs that will be used for subsetting, selecting OTUs that
-    sub=ifelse(length(x[x>=min.abund])>=min.num #have a relabund>"min.abund" in "min.num" samples 
-               | length(x[x>=min.single.abund])>0,TRUE,FALSE) #or have a relabund>"min.single.abund" in at least one sample
-    return(sub)
-  }
-  
-  cull.vec=apply(relabund.df,2,FUN=cull) #apply cull function to relabund.df, save output as a vector.
-  relabund.df.cull=relabund.df[,cull.vec] #Use cull.vec to subset the columns of relabund.df for OTUs that passed the cull threshold.
-  
-  relabund.df.cull<<-relabund.df.cull
-}
+#source custom functions
+source("cull.otu.script.R")
+source("generate.long.format.script.R")
+source("zscore.calculation.script.R")
 
 #Read in metadata
 metadata=read.csv(file="metadata.csv") #read in metadata
@@ -322,16 +285,14 @@ rownames(mixed.mod.pvals)=colnames(relabund.t.fish.F4.F8.cull.trans)[2:693] #Cha
 mixed.mod.sig.otu.Gut_SubSection=mixed.mod.pvals[mixed.mod.pvals$Gut_SubSection.padjust<=.05,] #subset the mixed.mod.pvals df for significant (p<=.05) Gut_SubSection pvals. Save as new df. 285 sig ASVs after padjustment.
 mixed.mod.sig.otu.Gut_SubSection=cbind(mixed.mod.sig.otu.Gut_SubSection,taxonomy.fish.F4.F8.cull[rownames(taxonomy.fish.F4.F8.cull) %in% rownames(mixed.mod.sig.otu.Gut_SubSection),],relabund.fish.F4.F8.cull[rownames(relabund.fish.F4.F8.cull) %in% rownames(mixed.mod.sig.otu.Gut_SubSection),]) #merge mixed.mod.sig.otu.Gut_SubSection with the associated OTU taxonomies.
 
-write.csv(mixed.mod.sig.otu.Gut_SubSection,file="mixed.mod.sig.otu.Gut_SubSection.csv") #export and use as table SX2
+#write.csv(mixed.mod.sig.otu.Gut_SubSection,file="mixed.mod.sig.otu.Gut_SubSection.csv") #export and use as table SX2
 
 mixed.mod.sig.otu.Species=mixed.mod.pvals[mixed.mod.pvals$Species.padjust<=.05,] #subset the mixed.mod.pvals df for significant (p<=.05) Gut_SubSection pvals. Save as new df. It appears there are no significant Species pvals after padjustment. Will need to look into why this is. Perhaps if using the full sample set that includes F1-F3 GI/HG samples there would be enough replication to find significant species pvals.
-#create an output zscore df and calculate z score for each otu using the scale function. ERROR IN THIS SECTION, ASINSQRT APPEARS TO BE RUNNING ON Family and Genus columns
-mixed.mod.sig.otu.Gut_SubSection.trans=cbind(mixed.mod.sig.otu.Gut_SubSection[,1:10],asin(sqrt(mixed.mod.sig.otu.Gut_SubSection[,-1:-10]))) #make a asinsqrt transfomred mixed mod sig otu gut subsection df. Normalizing ASVs is necessary for z scoring.
-mixed.mod.sig.otu.Gut_SubSection_zscore=as.data.frame(t(mixed.mod.sig.otu.Gut_SubSection.trans[,-1:-10]))
+#create an output zscore df and calculate z score for each otu using the scale function.
+mixed.mod.sig.otu.Gut_SubSection.trans=cbind(mixed.mod.sig.otu.Gut_SubSection[,1:12],asin(sqrt(mixed.mod.sig.otu.Gut_SubSection[,-1:-12]))) #make a asinsqrt transfomred mixed mod sig otu gut subsection df. Normalizing ASVs is necessary for z scoring.
 
-for (i in 1:ncol(mixed.mod.sig.otu.Gut_SubSection_zscore)) { #calculate the zscore
-  mixed.mod.sig.otu.Gut_SubSection_zscore[,i]=scale(mixed.mod.sig.otu.Gut_SubSection_zscore[,i],center=TRUE,scale=TRUE)
-}
+#calculate zscore
+mixed.mod.sig.otu.Gut_SubSection.zscore=as.data.frame(apply(mixed.mod.sig.otu.Gut_SubSection.trans[,-1:-12],1,FUN=zscore.calculation))
 
 #export new dfs
 #write.csv(mixed.mod.sig.otu.Gut_SubSection_zscore,file="mixed.mod.sig.otu.Gut_SubSection_zscore.csv")
@@ -361,13 +322,39 @@ relabund.t.fish.F4.F8.cull.sig.subsection.cull=relabund.t.fish.F4.F8.cull.sig.su
 #subset the mixed.mod.sig.otu.Gut_SubSection df for only these 59 ASvs.
 mixed.mod.sig.otu.Gut_SubSection.cull=mixed.mod.sig.otu.Gut_SubSection[rownames(mixed.mod.sig.otu.Gut_SubSection) %in% colnames(relabund.t.fish.F4.F8.cull.sig.subsection.cull),]
 
+#asinsqrt transform this subset of ASVs
+mixed.mod.sig.otu.Gut_SubSection.cull.trans=asin(sqrt(mixed.mod.sig.otu.Gut_SubSection.cull[,c(-1:-12,-46)]))
+
 #Updated colnames THIS CHUNK MAY HAVE AN ERROR, THERE IS NO mixed.mod.sig.otu.Gut_SubSection.cull$Genus column
 #colnames(relabund.t.fish.F4.F8.cull.sig.subsection.cull)[1:59]=paste(mixed.mod.sig.otu.Gut_SubSection.cull$Genus,rownames(mixed.mod.sig.otu.Gut_SubSection.cull),sep="_") #change colnames to correspond to ASV Family_ASVnumber
 
 #subset the mixed.mod.sig.otu.Gut_SubSection_zscore df to select only the culled significant ASVs.
-mixed.mod.sig.otu.Gut_SubSection_zscore.cull=mixed.mod.sig.otu.Gut_SubSection_zscore[,colnames(mixed.mod.sig.otu.Gut_SubSection_zscore) %in% rownames(mixed.mod.sig.otu.Gut_SubSection.cull)]
+mixed.mod.sig.otu.Gut_SubSection_zscore.cull=mixed.mod.sig.otu.Gut_SubSection.zscore[,colnames(mixed.mod.sig.otu.Gut_SubSection.zscore) %in% rownames(mixed.mod.sig.otu.Gut_SubSection.cull)]
 
-#write.csv(mixed.mod.sig.otu.Gut_Section_zscore.cull,file="mixed.mod.sig.otu.Gut_Section_zscore.cull.csv")
+#transpose mixed.mod.sig.otu.Gut_SubSection_zscore.cull
+mixed.mod.sig.otu.Gut_SubSection_zscore.cull.t=as.data.frame(t(mixed.mod.sig.otu.Gut_SubSection_zscore.cull))
+
+#compare z score vs. arcsinsqrt data in a regression
+zscore.comparison=as.data.frame(unlist(mixed.mod.sig.otu.Gut_SubSection_zscore.cull.t)) #extract unlisted zscores as a df.
+zscore.comparison$arcsinesqrt=unlist(mixed.mod.sig.otu.Gut_SubSection.cull.trans) #add unlisted arcsinesqrt values to df
+
+colnames(zscore.comparison)[1]="zscore" #rename column
+zscore.comparison$OTU=mixed.mod.sig.otu.Gut_SubSection.cull$OTUNumber #add in otu names
+
+#plot zscore against arcsinesqrt value
+ggplot(zscore.comparison,aes(y=zscore,x=arcsinesqrt,color=OTU,group=OTU))+
+  geom_point()+
+  theme(legend.position="none")+
+  geom_hline(yintercept=-.5)
+#-.5 appears to be a good minimum zscore threshold.
+
+#update the mixed.mod.sig.otu.Gut_SubSection.zscore.t so that any zscore value<=-.5 now =-.5
+mixed.mod.sig.otu.Gut_SubSection.zscore.t1=mixed.mod.sig.otu.Gut_SubSection_zscore.cull.t #save a new copy of the df.
+mixed.mod.sig.otu.Gut_SubSection.zscore.t1[mixed.mod.sig.otu.Gut_SubSection.zscore.t1<=-.5]=-.5 #subset df for all cell values <= -.5 and replace those values with -.5.
+#add back in feature metadata
+mixed.mod.sig.otu.Gut_SubSection.zscore.t2=cbind(mixed.mod.sig.otu.Gut_SubSection.zscore.t1,mixed.mod.sig.otu.Gut_SubSection.cull[,c(1:12,46)])
+
+#write.csv(mixed.mod.sig.otu.Gut_SubSection.zscore.t2,file="mixed.mod.sig.otu.Gut_SubSection.zscore.t2.csv")
 #write.csv(relabund.t.fish.F4.F8.cull.sig.section.cull,file="relabund.t.fish.F4.F8.cull.sig.section.cull.csv")
 #write.csv(mixed.mod.sig.otu.Gut_Section.cull,file="mixed.mod.sig.otu.Gut_Section.cull.csv")
 ```
@@ -380,31 +367,31 @@ mixed.mod.sig.otu.Gut_SubSection.longformat.cull=abund.longformat[abund.longform
 #subset the culled ASVs to remove bacteria that are classified at the family level as "uncultured", "Bacteria_unclassified", and "Bacteroidetes_unclassified"
 mixed.mod.sig.otu.Gut_SubSection.longformat.cull1=mixed.mod.sig.otu.Gut_SubSection.longformat.cull[mixed.mod.sig.otu.Gut_SubSection.longformat.cull$Family!="Bacteria_unclassified" & mixed.mod.sig.otu.Gut_SubSection.longformat.cull$Family!="Bacteroidales_unclassified" & mixed.mod.sig.otu.Gut_SubSection.longformat.cull$Family!="uncultured",]
 mixed.mod.sig.otu.Gut_SubSection.longformat.cull1$OTU_Subsection=paste(mixed.mod.sig.otu.Gut_SubSection.longformat.cull1$OTU,mixed.mod.sig.otu.Gut_SubSection.longformat.cull1$Gut_SubSection,sep="_") #combine gut subsection and otu into new column
-write.csv(mixed.mod.sig.otu.Gut_SubSection.longformat.cull1,file="mixed.mod.sig.otu.Gut_SubSection.longformat.cull1.csv")
+#write.csv(mixed.mod.sig.otu.Gut_SubSection.longformat.cull1,file="mixed.mod.sig.otu.Gut_SubSection.longformat.cull1.csv")
 
 #average the abund values across OTU_Subsection
 mixed.mod.sig.otu.Gut_SubSection.longformat.cull1.mean=aggregate(mixed.mod.sig.otu.Gut_SubSection.longformat.cull1$abund,by=list(mixed.mod.sig.otu.Gut_SubSection.longformat.cull1$OTU_Subsection),FUN=mean)
 colnames(mixed.mod.sig.otu.Gut_SubSection.longformat.cull1.mean)=c("OTU_Subsection","mean_abund") #update colnames
+#add in the SE values for each OTU_Subsection
+mixed.mod.sig.otu.Gut_SubSection.longformat.cull1.mean$SE=aggregate(mixed.mod.sig.otu.Gut_SubSection.longformat.cull1$abund,by=list(mixed.mod.sig.otu.Gut_SubSection.longformat.cull1$OTU_Subsection),FUN=stderror)[[2]]
+
 mixed.mod.sig.otu.Gut_SubSection.longformat.cull1.mean=merge(mixed.mod.sig.otu.Gut_SubSection.longformat.cull1.mean,mixed.mod.sig.otu.Gut_SubSection.longformat.cull1[,-3],by.x="OTU_Subsection",by.y="OTU_Subsection") #merge back in metadata and taxonomy info
 
 #adjust the levels of the family factor to order the graph correctly
-mixed.mod.sig.otu.Gut_SubSection.longformat.cull1.mean$Family=factor(mixed.mod.sig.otu.Gut_SubSection.longformat.cull1.mean$Family,levels=c("Pasteurellaceae","Peptostreptococcaceae","Vibrionaceae","Erysipelotrichaceae","Brevinemataceae","Clostridiaceae_1","DMI_fa","Parabasalia_unclassified","Akkermansiaceae","Clostridiales_vadinBB60_group","Rikenellaceae","Ruminococcaceae"))
+mixed.mod.sig.otu.Gut_SubSection.longformat.cull1.mean$Family=factor(mixed.mod.sig.otu.Gut_SubSection.longformat.cull1.mean$Family,levels=c("Pasteurellaceae","Peptostreptococcaceae","Vibrionaceae","Erysipelotrichaceae","Brevinemataceae","Clostridiaceae_1","Parabasalia_unclassified","DMI_fa","Akkermansiaceae","Christensenellaceae","Clostridiales_vadinBB60_group","Desulfovibrionaceae","Eggerthellaceae","Lachnospiraceae","Paludibacteraceae","Rikenellaceae","Ruminococcaceae","Victivallaceae"))
 
 #visualize these culled significant ASVs. Group (using facet_wrap) by family, color code by genus, and use black ines to divide different ASVs. Export as a 2000x1800 PNG.
-ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat.cull1,aes(x=Gut_SubSection,y=mean_relabund,fill=Genus))+
-    geom_bar(stat="identity",col="black")+
-    facet_wrap(~Family,scales="free")+
-  theme(legend.position="bottom")
+#ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat.cull1,aes(x=Gut_SubSection,y=mean_relabund,fill=Genus))+
+    #geom_bar(stat="identity",col="black")+
+    #facet_wrap(~Family,scales="free")+
+  #theme(legend.position="bottom")
 
-#repeat this graph except using geom_point and geom_line to better visualize individual ASV behavior (peaking at various subsections, etc). Export as 2500x1500 PNG.
+#repeat this graph except using geom_point and geom_line to better visualize individual ASV behavior (peaking at various subsections, etc). Export as 2000x1500 PNG to use in figure with two way heatmap.
 ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat.cull1.mean,aes(x=Gut_SubSection,y=mean_abund,color=Genus,group=OTU))+
-    geom_point(size=3)+geom_line(size=1.5)+
+    geom_point(size=3.5)+geom_line(size=2)+
+    geom_pointrange(aes(ymin=mean_abund-SE,ymax=mean_abund+SE))+
     facet_wrap(~Family,scales="free")+
-    theme(legend.position="bottom")
-
-#make plots of specific ASVs we want to visualize for krumbs presentation
-pasteurellaceae.plot=ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat.cull1.mean[mixed.mod.sig.otu.Gut_SubSection.longformat.cull1.mean$Family=="Pasteurellaceae",],aes(x=Gut_SubSection,y=mean_abund,color=Genus,group=OTU))+
-    geom_point(size=3)+geom_line(size=1.5)
+    ylab("Relative Abundance")+
     theme(legend.position="bottom")
 
 ```
