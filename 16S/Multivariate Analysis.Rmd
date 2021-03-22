@@ -81,17 +81,16 @@ metadata.fish.F4.F8.unifrac=metadata.fish.F4.F8[metadata.fish.F4.F8$SampleCode %
 The unifrac data and metadata have been imported and worked up. Next, run PERMANOVAs on the dist matrices.
 
 ```{r}
-#Model F4-F8 distance matrix without PC samples, variables of interest: Species, Gut_subsection, and Fish_Number. Use adonis2 marginal tests, first testing the effect of the interaction 
-perm=how(nperm=999)
-setBlocks(perm)=with(metadata.fish.F4.F8.unifrac,Species)
-permanova.gut.subsection=adonis2(weighted.unifrac.F4.F8.dist~Gut_SubSection+Fish_Number,by="margin",data=metadata.fish.F4.F8.unifrac,permutations=perm)
+#Model F4-F8 distance matrix without PC samples, variables of interest: Species and Gut_subsection. Use adonis2 marginal tests. 
+permanova.gut.subsection=adonis2(weighted.unifrac.F4.F8.dist~Gut_SubSection+Species,by="margin",data=metadata.fish.F4.F8.unifrac,permutations=999)
 permanova.gut.subsection
-#Marginally significant interaction.
 
-permanova.gut.subsection1=adonis2(weighted.unifrac.F4.F8.dist~Gut_SubSection+Species,by="margin",data=metadata.fish.F4.F8.unifrac,permutations=perm)
-permanova.gut.subsection1
+#export for table x2a
+write.csv(permanova.gut.subsection,file="permanova.gut.subsection.csv")
 
-#write.csv(permanova.gut.subsection$aov.tab,file="permanova.gut.subsection.csv") #export permanova results and save as CSV to be used for Table X2 in manuscript.
+#Using the same unifrac matrix, test the effect of gut SECTION and species.
+permanova.gut.section=adonis2(weighted.unifrac.F4.F8.dist~Gut_Section+Species,by="margin",data=metadata.fish.F4.F8.unifrac,permutations=999)
+permanova.gut.section
 
 #Next run pairwise adonis and the 3rd model to identify which gut regions differ from each other.
 pairwise.gut.zone=pairwise.adonis(weighted.unifrac.dist,metadata.fish.unifrac$Gut_Zone)
