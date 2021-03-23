@@ -241,8 +241,8 @@ Now I will analyze only the dataset that corresponds to the 16S multivariate dat
 #read in unifrac metadata
 metadata.fish.F4.F8.unifrac=read.csv(file="metadata.fish.F4.F8.unifrac.csv")
 metadata.19.jun.samples2=merge(metadata.19.jun.samples1,metadata.fish.F4.F8.unifrac,by.x="SampleCode",by.y="SampleCode")
-metadata.19.jun.samples2$Gut_SubSection1=metadata.19.jun.samples2$Gut_SubSection #create a duplicate gut subsection col
-metadata.19.jun.samples2$Gut_SubSection1[metadata.19.jun.samples2$Gut_Section=="HG"]="HG"
+metadata.19.jun.samples2$Gut_SubSection1=metadata.19.jun.samples2$Gut_SubSection.x #create a duplicate gut subsection col
+metadata.19.jun.samples2$Gut_SubSection1[metadata.19.jun.samples2$Gut_Section.x=="HG"]="HG"
 metadata.19.jun.samples2$Gut_SubSection1=factor(metadata.19.jun.samples2$Gut_SubSection1,levels=c("ST","GI_1","GI_2","GI_3","GI_4","HG"))
 
 relabund.19.jun.clean2.dist.t.2=relabund.19.jun.clean2.dist.t[rownames(relabund.19.jun.clean2.dist.t) %in% metadata.19.jun.samples2$sample_name2,]
@@ -272,10 +272,10 @@ points(nmds.relabund.2, #plot each sample as a point
        pch=pointvec[metadata.19.jun.samples2$Species], #point shape corresponds to fish Species
        col=colvec3[metadata.19.jun.samples2$Gut_SubSection])
 text(-.42,.525,label="Stress=.17")
-ordiellipse(nmds.relabund.2,metadata.19.jun.samples2$Gut_SubSection1,kind="sd",draw="polygon",lwd=2.5,border=colvec3[-6:-7],col=colvec3[-6:-7]) #add SD ellipses, colored by Gut_Section.
+ordiellipse(nmds.relabund.2,metadata.19.jun.samples2$Gut_SubSection1,kind="sd",draw="polygon",lwd=2.5,border=colvec3[-6:-7],col=colvec3[-6:-7]) #add SD ellipses, colored by Gut_SubSection except group all HG samples as one ellipse.
 ordiarrows(nmds.relabund.2,group=metadata.19.jun.samples2$Fish_Number,order.by=metadata.19.jun.samples2$Gut_SubSection,lwd=2,col="black")
 #alpha=c(0,0) use to remove color from ellipse fill
-#export as 8.5x9 PDF and use in Figure X3
+#export as 8.5x9 PDF and use in Figure 3
 
 c("mediumpurple1",viridis(n=3,option="D")[2:3])
 ```
@@ -719,10 +719,10 @@ ggplot(abund.longformat4,aes(x=Gut_SubSection.x,y=mean_relabund,color=Common.Nam
 #export as 12X12 portrait PDF and save as mixed.mod.significant.gut.subsection.features6. Use for Fig 7
 
 #now try the same plot using geom_smooth
-ggplot(abund.longformat1[abund.longformat1$Library.Common.Name!="N/A",],aes(x=Gut_SubSection.y,y=abund,color=Library.Common.Name,group=row_ID))+
-  geom_point()+geom_smooth()+
-    facet_wrap(~Component.Index,scales="free")+
-    theme(legend.position="bottom")
+#ggplot(abund.longformat1[abund.longformat1$Library.Common.Name!="N/A",],aes(x=Gut_SubSection.y,y=abund,color=Library.Common.Name,group=row_ID))+
+  #geom_point()+geom_smooth()+
+    #facet_wrap(~Component.Index,scales="free")+
+    #theme(legend.position="bottom")
 #Better, but 45 still looks bad as does -1 and 5 a little bit. Would be nicer to group by some clearer classification. 2500x1000 PNG and save as mixed.mod.significant.gut.subsection.features4
 
 ```

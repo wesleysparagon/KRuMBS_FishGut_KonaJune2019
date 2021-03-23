@@ -386,11 +386,11 @@ mixed.mod.sig.otu.Gut_SubSection.longformat.cull1.mean$Family=factor(mixed.mod.s
     #facet_wrap(~Family,scales="free")+
   #theme(legend.position="bottom")
 
-#repeat this graph except using geom_point and geom_line to better visualize individual ASV behavior (peaking at various subsections, etc). Export as 2000x1500 PNG to use in figure with two way heatmap.
+#repeat this graph except using geom_point and geom_line to better visualize individual ASV behavior (peaking at various subsections, etc). Export as export as 13X13 portrait PDF to use in figure 6.
 ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat.cull1.mean,aes(x=Gut_SubSection,y=mean_abund,color=Genus,group=OTU))+
     geom_point(size=3.5)+geom_line(size=2)+
     geom_pointrange(aes(ymin=mean_abund-SE,ymax=mean_abund+SE))+
-    facet_wrap(~Family,scales="free")+
+    facet_wrap(~Family,scales="free",ncol=3)+
     ylab("Relative Abundance")+
     theme(legend.position="bottom")
 
