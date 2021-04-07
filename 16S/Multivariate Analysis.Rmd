@@ -157,19 +157,19 @@ Next, plot the same NMDS but color by Gut_SubSection instead of Gut_Zone. Do thi
 ```{r}
 colvec2=c("mediumpurple1",viridis(n=7,option="D",begin=.15)) #generate colvec
 
-plot(nmds.weighted.unifrac.F4.F8,type="n") #Set up the NMDS plot environment
+plot(nmds.weighted.unifrac.F4.F8,type="n",cex.lab=1.5,cex.axis=1.5) #Set up the NMDS plot environment
 points(nmds.weighted.unifrac.F4.F8, #plot each sample as a point
        cex=3.5,
        pch=pointvec[metadata.fish.F4.F8.unifrac$Species], #point shape corresponds to fish Species
        col=colvec2[as.factor(metadata.fish.F4.F8.unifrac$Gut_SubSection)]) 
-text(-.475,.4,label="Stress=.14")
+text(-.465,.4,label="Stress=.14",cex=1.5)
 
 ordiellipse(nmds.weighted.unifrac.F4.F8,metadata.fish.F4.F8.unifrac$Gut_SubSection1,kind="sd",draw="polygon",lwd=2.5,border=colvec2[-6:-7],col=colvec2[-6:-7]) #add SD ellipses, colored by Gut_Section. 
 #alpha=c(0,0) used to remove coloration from ellipses
 
 ordiarrows(nmds.weighted.unifrac.F4.F8,group=metadata.fish.F4.F8.unifrac$Fish_Number,order.by=metadata.fish.F4.F8.unifrac$Gut_SubSection,lwd=2,col="black")
 
-#Export as 8.5x9 PDF. merge with a legend, dispersion graph, and corresponding NMDS and dispersion graphs for metabolomics data and use that as Figure X3 for manuscript.
+#Export as 8.5x9 landscape PDF. merge with a legend, dispersion graph, and corresponding NMDS and dispersion graphs for metabolomics data and use that as Figure X3 for manuscript.
 
 #Additional options with arrows include
 #plot(nmds.weighted.unifrac.F4.F8,type="n") #Set up the NMDS plot environment
@@ -374,7 +374,7 @@ shannoneven.gut.subsection.plot=ggplot(alpha.diversity.fish.F4.F8,aes(x=Gut_SubS
   geom_text(data=alpha.diversity.fish.F4.F8,aes(x=Gut_SubSection,y=posthocymax.shannoneven+.05,label=posthoc.shannoneven))
 
 shannon.gut.subsection.plot=ggplot(alpha.diversity.fish.F4.F8,aes(x=Gut_SubSection,y=shannon,fill=Gut_SubSection))+
-  ylab("Shannon")+
+  ylab("Shannon diversity")+
   geom_boxplot()+
   scale_fill_manual(values=colvec2)+
   ggtitle("C")+
@@ -382,7 +382,7 @@ shannon.gut.subsection.plot=ggplot(alpha.diversity.fish.F4.F8,aes(x=Gut_SubSecti
   theme(legend.position = "none",axis.text=element_text(size=12))+
   geom_text(data=alpha.diversity.fish.F4.F8,aes(x=Gut_SubSection,y=posthocymax.shannon+.35,label=posthoc.shannon))
 
-plot_grid(sobs.gut.subsection.plot,shannoneven.gut.subsection.plot,shannon.gut.subsection.plot) ##use the plot_grid function to plot the above 2 plots (par(mfrow=())) doesnt work with ggplot2). Save as PNG (995 x 750) and use as Figure 2 in manuscript.
+plot_grid(sobs.gut.subsection.plot,shannoneven.gut.subsection.plot,shannon.gut.subsection.plot) ##use the plot_grid function to plot the above 2 plots (par(mfrow=())) doesnt work with ggplot2). Save as PNG (950 x 800) and use as Figure 2 in manuscript.
 ```
 
 
@@ -428,15 +428,15 @@ There is a significant difference in distances to centroid for the various gut s
 ```{r}
 
 dispersion.gut.subsection.plot.v1=ggplot(dispersion.gut.subsection1,aes(y=distances,x=Gut_SubSection,fill=Gut_SubSection))+
-  ylab(label="unifrac distance to centroid")+
+  ylab(label="Dispersion (unifrac distance to centroid)")+
   geom_boxplot()+
   scale_fill_manual(values=colvec2)+
   theme_classic()+
-  theme(legend.position = "none")
+  theme(legend.position = "none",axis.text=element_text(size=20),axis.title=element_text(size=20))
 
 dispersion.gut.subsection.plot.v1
 
-#save as 8.5x9 and use as Figure x3
+#save as 8.5x9 landscape PDF and use as Figure x3
 
 ```
 
