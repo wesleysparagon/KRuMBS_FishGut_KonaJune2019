@@ -266,12 +266,12 @@ nmds.relabund.2=metaMDS(bray.relabund.19.jun.clean2.2,k=2,trymax=100)
 
 colvec3=c("mediumpurple1",viridis(n=7,option="D",begin=.15))
 
-plot(nmds.relabund.2,type="n")
+plot(nmds.relabund.2,type="n",cex.lab=1.5,cex.axis=1.5)
 points(nmds.relabund.2, #plot each sample as a point
        cex=3.5,
        pch=pointvec[metadata.19.jun.samples2$Species], #point shape corresponds to fish Species
        col=colvec3[metadata.19.jun.samples2$Gut_SubSection])
-text(-.42,.525,label="Stress=.17")
+text(-.42,.525,label="Stress=.17",cex=1.5)
 ordiellipse(nmds.relabund.2,metadata.19.jun.samples2$Gut_SubSection1,kind="sd",draw="polygon",lwd=2.5,border=colvec3[-6:-7],col=colvec3[-6:-7]) #add SD ellipses, colored by Gut_SubSection except group all HG samples as one ellipse.
 ordiarrows(nmds.relabund.2,group=metadata.19.jun.samples2$Fish_Number,order.by=metadata.19.jun.samples2$Gut_SubSection,lwd=2,col="black")
 #alpha=c(0,0) use to remove color from ellipse fill
@@ -344,11 +344,12 @@ dispersion.mb.gut.subsection1$posthocymax=posthocymax[dispersion.mb.gut.subsecti
 
 #now, visualize the dispersion data
 ggplot(dispersion.mb.gut.subsection1,aes(y=`bray curtis distance to centroid`,x=Gut_SubSection,fill=Gut_SubSection))+
+  ylab(label="Dispersion (bray curtis distance to centroid)")+
   geom_boxplot()+
   scale_fill_manual(values=colvec3)+
   theme_classic()+
-  theme(legend.position = "none")+
-  geom_text(data=dispersion.mb.gut.subsection1,aes(x=Gut_SubSection,y=posthocymax+.02,label=posthoc))
+  theme(legend.position = "none",axis.text=element_text(size=20),axis.title=element_text(size=20))+
+  geom_text(data=dispersion.mb.gut.subsection1,aes(x=Gut_SubSection,y=posthocymax+.05,label=posthoc),size=6)
 
 #export as 8.5x9 PDF, include in figure X3
 ```
