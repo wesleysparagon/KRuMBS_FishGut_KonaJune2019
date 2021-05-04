@@ -28,7 +28,7 @@ source("zscore.calculation.script.R")
 data=read.csv(file="KRuMBS_Fishguts_bothtrips_A_quant_filtered_UPDATED_withanalogs.csv")
 metadata=read.csv(file="Metadata_KRuMBS_Fishguts_Seaweed_FULL.csv")
 molnetdata=read.csv(file="KRuMBS_ClassyFireResults_Network.csv")
-sig.feature.subsection=read.csv(file="sig.feature.subsection.data_ECG_v1.csv")
+sig.feature.subsection=read.csv(file="sig.feature.subsection.data_ECG_v2.csv")
 
 #adjust order of factors for gut section and gut subsection to help with graphing
 metadata$ATTRIBUTE_Gut_Section=factor(metadata$ATTRIBUTE_Gut_Section,levels=c("ST","GI","HG","PC","not applicable"))
@@ -519,6 +519,8 @@ relabund.section.sig.feature=relabund.section.sig.feature[match(rownames(mixed.m
 
 #combine molnetdata, libraryID data, realbund data, and mixed mod data into 1 df
 mixed.mod.sig.feature.Gut_SubSection=cbind(mixed.mod.sig.feature.Gut_SubSection,molnetdata1,libraryID,relabund.sig.feature) #merge mixed.mod.sig.otu.Gut_SubSection with the associated  molnet enhancer classifications
+
+#repeat for mixed mod section
 mixed.mod.section.sig.feature.Gut_Section=cbind(mixed.mod.section.sig.feature.Gut_Section,molnetdata2,libraryID1,relabund.section.sig.feature)
 
 #export as CSVs
@@ -715,9 +717,11 @@ ggplot(abund.longformat4,aes(x=Gut_SubSection.x,y=mean_relabund,color=Common.Nam
   geom_point(size=3.5)+geom_line(size=2)+
   geom_pointrange(aes(ymin=mean_relabund-SE,ymax=mean_relabund+SE))+
     facet_wrap(~ClassyFire.Parent.Level.1,scales="free",ncol=3)+
+    ylab("Relative Abundance")+
+  xlab("Gut_SubSection")+
     theme(legend.position="bottom")
     #+geom_text(label = abund.longformat3$Library.Common.Name.x[abund.longformat3$Library.Common.Name.x!="N/A"],na.rm=T)
-#export as 12X12 portrait PDF and save as mixed.mod.significant.gut.subsection.features6. Use for Fig 7
+#export as 12X13 landscape PDF and save as mixed.mod.significant.gut.subsection.features7. Use for Fig 7
 
 #now try the same plot using geom_smooth
 #ggplot(abund.longformat1[abund.longformat1$Library.Common.Name!="N/A",],aes(x=Gut_SubSection.y,y=abund,color=Library.Common.Name,group=row_ID))+

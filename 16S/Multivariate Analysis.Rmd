@@ -226,19 +226,21 @@ stderror=function(x) {
 #Model the alpha diversity (sobs and shannoneven and shannon) metrics using mixed models with Gut_Section and Fish_Species as fixed effects and Fish_ID as a random effect.
 #First, check to see that the sobs and shannoneven data are normal
 hist(alpha.diversity.fish.F4.F8$sobs) #asses normality of sobs data
+shapiro.test(alpha.diversity.fish.F4.F8$sobs)
 ```
 
 The sobs data look normal.
 
 ```{r}
 hist(alpha.diversity.fish.F4.F8$shannoneven) #asses normality of shannoneven data
-
+shapiro.test(alpha.diversity.fish.F4.F8$shannoneven)
 ```
 
 The shannoneven data look normal.
 
 ```{r}
 hist(alpha.diversity.fish.F4.F8$shannon) #asses normality of shannoneven data
+shapiro.test(alpha.diversity.fish.F4.F8$shannon)
 
 ```
 
