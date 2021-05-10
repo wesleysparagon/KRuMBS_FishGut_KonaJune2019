@@ -97,9 +97,10 @@ blank.removal(data.19.jun.samples,data.19.jun.blank,7:63,7:18,2)
 
 31 features were removed.
 
-Next, remove low abundance peaks.
+Next, remove low abundance features.
 
 ```{r}
+#Set up abund removal function
 abund.removal = function(data,sample.cols) {
   
   abund.threshold = function(x) {
@@ -140,7 +141,7 @@ hist(unlist(data.19.jun.clean2[,7:63])[unlist(data.19.jun.clean2[,7:63])!=0],xli
 
 #Looks like the distribtion of peak area vlaues has a substantial right hand skew, with a peak frequency at between 40,000 and 50,000.
 
-#Next, look at the minimum peak area value in the dataset. Consider this a threshold that Emily applied.
+#Next, look at the minimum peak area value in the dataset.
 min(unlist(data.19.jun.clean2[,7:63])[unlist(data.19.jun.clean2[,7:63])!=0])
 #Minimum peak area is 13,246.03
 
@@ -179,63 +180,7 @@ hist(unlist(relabund.19.jun.clean2[,7:63])[unlist(relabund.19.jun.clean2[,7:63])
 #The highest relabund freq is very low, between .0004 and .0008. The data has a strong right skew. Generallt the width of the peak is tighter with the relabund vs. abund data.
 ```
 
-The data structure is similar to that of 16S data. Highly zero inflated, most features have low abundance/relative abundance, and there is a large right hand skew as a few features are highly abundant.
-
-Next, let's convert to the relabund data to a bray curtis distance matrix, run a NMDS and PERMANOVA. We will then compare to the same process with raw abundance data data.
-
-```{r}
-#work up relabund data for vegdist
-rownames(relabund.19.jun.clean2)=relabund.19.jun.clean2$row.ID
-relabund.19.jun.clean2.dist=relabund.19.jun.clean2[,7:63]
-relabund.19.jun.clean2.dist.t=as.data.frame(t(relabund.19.jun.clean2.dist))
-
-#work up the abund data for vegdist
-rownames(data.19.jun.clean2)=data.19.jun.clean2$row.ID
-data.19.jun.clean2.dist=data.19.jun.clean2[,7:63]
-data.19.jun.clean2.dist.t=as.data.frame(t(data.19.jun.clean2.dist))
-
-bray.relabund.19.jun.clean2=vegdist(relabund.19.jun.clean2.dist.t,method="bray")
-bray.19.jun.clean2=vegdist(data.19.jun.clean2.dist.t,method="bray")
-
-nmds.relabund=metaMDS(bray.relabund.19.jun.clean2,k=2,trymax=100)
-#Convergent solutions were reached and stress was ok (~.17)
-
-nmds=metaMDS(bray.19.jun.clean2,k=2,trymax=100)
-#Convergent solutions were reached and stress was good (~.13)
-
-pointvec=c(15,16,17) #generate a vector of points to correspond to Species.
-colvec=viridis(n=4,option="D")
-
-#adjust the oder of the metadata samples to correspond to the order of samples in the dist matrix
-metadata.19.jun.samples1=metadata.19.jun.samples[match(rownames(data.19.jun.clean2.dist.t),metadata.19.jun.samples$sample_name2),]
-
-plot(nmds.relabund,type="n",main="relabund",xlim=c(-.8,.5))
-points(nmds.relabund, #plot each sample as a point
-       cex=2,
-       pch=pointvec[metadata.19.jun.samples1$Species], #point shape corresponds to fish Species
-       col=colvec[metadata.19.jun.samples1$Gut_Section]) 
-legend(-1,0,legend = c("ST","PC","GI","HG","K. cinerascens","K. hawaiiensis","K. vaigiensis"),cex=1,y.intersp=.75,bg="transparent",bty="n",col=c(colvec,"black","black","black"),pch=c(16,16,16,16,15,16,17),pt.cex=1)
-
-plot(nmds,type="n",main="raw abundance",xlim=c(-.8,.5))
-points(nmds, #plot each sample as a point
-       cex=2,
-       pch=pointvec[metadata.19.jun.samples1$Species], #point shape corresponds to fish Species
-       col=colvec[metadata.19.jun.samples1$Gut_Section]) 
-legend(-.8,0,legend = c("ST","PC","GI","HG","K. cinerascens","K. hawaiiensis","K. vaigiensis"),cex=1,y.intersp=.75,bg="transparent",bty="n",col=c(colvec,"black","black","black"),pch=c(16,16,16,16,15,16,17),pt.cex=1)
-
-```
-
-Regardless of if I use raw abundance or relative abundance data, the NMDS shows clear distinction in metabolomic communities by gut section. Hard to tell if species has an effect. Now I will run permanovas on the relabund dist matrix to asses the effects of Gut_Section and Species on metabolomic communities. Looks like the dispersion patterns here do not reflect the microbial community patterns. ST and HG have highest dispersion while GI and especially PC have low dispersion. I cannot explain the ST, GI, and HG patterns but it is likely that the PC has such low dispersion because we didn't sample any digesta from that section (or very little), so the signal is mostly fish tissue which is likely more uniform between individuals?
-
-```{r}
-permanova.gut.section=adonis2(relabund.19.jun.clean2.dist.t~Gut_Section+Species,by="margin",data=metadata.19.jun.samples1)
-permanova.gut.section
-
-```
-
-Gut Section is the most significant predictor of metabolomic community structure, followed by Species and a barely significant interaction between the two. Gut_Section explained the most variability.
-
-Now I will analyze only the dataset that corresponds to the 16S multivariate dataset, looking at gut subsection instead of gut section.
+Convert to the relabund data to a bray curtis distance matrix, run a NMDS and PERMANOVA. 
 
 ```{r}
 #read in unifrac metadata
@@ -264,7 +209,9 @@ colnames(metadata.19.jun.samples2)[7]="Gut_SubSection"
 nmds.relabund.2=metaMDS(bray.relabund.19.jun.clean2.2,k=2,trymax=100)
 #convergent solution reached, decent stress (.17)
 
-colvec3=c("mediumpurple1",viridis(n=7,option="D",begin=.15))
+colvec3=c("mediumpurple1",viridis(n=7,option="D",begin=.15)) #generate a vector of colors to correspond to Gut_SubSection.
+pointvec=c(15,16,17) #generate a vector of points to correspond to Species.
+
 
 plot(nmds.relabund.2,type="n",cex.lab=1.5,cex.axis=1.5)
 points(nmds.relabund.2, #plot each sample as a point
@@ -277,12 +224,11 @@ ordiarrows(nmds.relabund.2,group=metadata.19.jun.samples2$Fish_Number,order.by=m
 #alpha=c(0,0) use to remove color from ellipse fill
 #export as 8.5x9 PDF and use in Figure 3
 
-c("mediumpurple1",viridis(n=3,option="D")[2:3])
 ```
 
 We can see a clear succesional gradient from ST -> HG_3, and also more clearly see that species cluster distinctly, especially K. hawaiiensis.
 
-Now, I will run a permanova on this dataset.
+Run a permanova on this dataset.
 
 ```{r}
 permanova.gut.subsection=adonis2(bray.relabund.19.jun.clean2.2~Gut_SubSection+Species,by="margin",data=metadata.19.jun.samples2,permutations=999)
@@ -297,15 +243,13 @@ pairwise.permanova.subsection
 #write.csv(pairwise.permanova.subsection,file="pairwise.permanova.subsection.mb.csv")
 ```
 
-Gut subsection and Species are both very significant, whereas the interaction term is less (but still noticably) significant. Gut subsection explains double the variation of species or their interaction. Interestingly, the interaction term explains more variation than species alone, despite the low effect size (F value).
-
-Next, calculate the gut subsection dispersion values for the MB data.
+Calculate the gut subsection dispersion values for the MB data.
 
 ```{r}
 #Extract dispersion values from the unifrac data and asses their distribution.
 dispersion.mb.gut.subsection=betadisper(bray.relabund.19.jun.clean2.2,type="centroid",group=metadata.19.jun.samples2$Gut_SubSection)
 dispersion.mb.gut.subsection
-hist(dispersion.mb.gut.subsection$distances) #asses the distribution of the dispersion data. It looks normal
+hist(dispersion.mb.gut.subsection$distances) #assess the distribution of the dispersion data. It looks normal.
 
 dispersion.mb.gut.subsection1=as.data.frame(dispersion.mb.gut.subsection[[3]]) #make a new df with just the distances.
 colnames(dispersion.mb.gut.subsection1)[1]="bray curtis distance to centroid"
@@ -329,7 +273,7 @@ colnames(dispersion.mb.gut.subsection2)=c("Gut_SubSection","bray curtis distance
 
 #write.csv(dispersion.mb.gut.subsection2,file="dispersion.mb.gut.subsection2.csv")
 
-#Model the distance values in response to Gut_SubSection and Fish_Number as a random effect.
+#Model the distance values in response to Gut_SubSection and Species with Fish_Number as a random effect.
 dispersion.mb.mod.gut.subsection=lmer(`bray curtis distance to centroid`~Gut_SubSection+Species+(1|Fish_Number),data=dispersion.mb.gut.subsection1)
 summary(dispersion.mb.mod.gut.subsection)
 anova(dispersion.mb.mod.gut.subsection,ddf="Kenward-Roger") #Gut_SubSectionis significant.
@@ -351,10 +295,10 @@ ggplot(dispersion.mb.gut.subsection1,aes(y=`bray curtis distance to centroid`,x=
   theme(legend.position = "none",axis.text=element_text(size=20),axis.title=element_text(size=20))+
   geom_text(data=dispersion.mb.gut.subsection1,aes(x=Gut_SubSection,y=posthocymax+.05,label=posthoc),size=6)
 
-#export as 8.5x9 PDF, include in figure X3
+#export as 8.5x9 PDF, include in figure 2.
 ```
 
-Next, I will import the parallel 16S distance matrix, and compare the 2 using procrustes and mantel tests.
+Import the parallel 16S distance matrix, and compare the 2 using procrustes and mantel tests.
 
 ```{r}
 #Read in the 16S dist matrix, and subset it so it only includes the corresponding metabolomic samples
@@ -369,7 +313,7 @@ weighted.unifrac.F4.F8.dist1=as.dist(weighted.unifrac.F4.F8.matrix1) #convert to
 mantel(weighted.unifrac.F4.F8.dist1,bray.relabund.19.jun.clean2.2)
 ```
 
-Mantel test is significant.
+Run procrustes.
 
 ```{r}
 #Generate a nmds from the 16S dist matrix
@@ -418,9 +362,7 @@ pro.test=protest(nmds.16s,nmds.relabund.2,scores="sites")
 pro.test
 ```
 
-The protest comes out as "significant", but I am not sure how useful the pvalue is. Need to read up more on the procrustes SS and correlation statistics.
-
-Next, do a preliminary modelling of how individual features (relative abundance) respond to gut subsection.
+Model how individual features (relative abundance) respond to gut subsection.
 
 ```{r}
 #Work up the relative abundance data for analysis.
@@ -446,17 +388,8 @@ mixed.mod=function(x) { #create a function that performs the desired mixed model
 }
 mixed.mod.relabund.19.jun.clean2.dist.t.4.cull.trans=apply(relabund.19.jun.clean2.dist.t.4.cull.trans[,-550:-569],2,FUN=mixed.mod) #apply mixed.mod only to columns containing feature data. Save as new object.
 
-#make a new mixed mod function testing gut section instead of subsection
-mixed.mod.section=function(x) {
-  mod1=lmer(x~Species+Gut_Section+(1|Fish_Number),data=relabund.19.jun.clean2.dist.t.4.cull.trans)
-  return(mod1)
-}
-mixed.mod.section.relabund.19.jun.clean2.dist.t.4.cull.trans=apply(relabund.19.jun.clean2.dist.t.4.cull.trans[,-550:-569],2,FUN=mixed.mod.section) #apply mixed.mod only to columns containing ASV data. Save as new object.
-
 #Now let's inspect the results of the mixed models.
 mixed.mod.singularity=lapply(mixed.mod.relabund.19.jun.clean2.dist.t.4.cull.trans,FUN=isSingular) #test each mixed model for singularity, save in list. After inspecting the list it looks like ~33% of models are singular.
-
-mixed.mod.section.singularity=lapply(mixed.mod.section.relabund.19.jun.clean2.dist.t.4.cull.trans,FUN=isSingular) #test each mixed model for singularity, save in list. After inspecting the list it looks like ~33% of models are singular.
 
 anova.kw=function(x) { #make a function that performs anova (Kenward-Roger)
   results=anova(x,ddf="Kenward-Roger")
@@ -465,10 +398,6 @@ anova.kw=function(x) { #make a function that performs anova (Kenward-Roger)
 
 mixed.mod.results=lapply(mixed.mod.relabund.19.jun.clean2.dist.t.4.cull.trans,FUN=anova.kw) #perform an anova(ddf="Kenward-Roger") on all mixed models, save output.
 mixed.mod.pvals=as.data.frame(t(as.data.frame(mixed.mod.results))[seq(from=6,to=3294,by=6),]) #extract the pvals from the mixed.mod.results list. Do this by converting list to df, transposing it, and then extracting every 6th column (which correspond to the pvals from each model).
-
-#repeat for mixed.mod.section
-mixed.mod.section.results=lapply(mixed.mod.section.relabund.19.jun.clean2.dist.t.4.cull.trans,FUN=anova.kw) #perform an anova(ddf="Kenward-Roger") on all mixed models, save output.
-mixed.mod.section.pvals=as.data.frame(t(as.data.frame(mixed.mod.section.results))[seq(from=6,to=3288,by=6),]) #extract the pvals from the mixed.mod.results list. Do this by converting list to df, transposing it, and then extracting every 6th column (which correspond to the pvals from each model).
 
 #Work up p values.
 mixed.mod.pvals$Gut_SubSection.padjust=p.adjust(mixed.mod.pvals$Gut_SubSection,method="BH") #Adjust p values for multiple comparisons
@@ -481,47 +410,21 @@ sum(mixed.mod.pvals$Species<=.05)
 #77 features respond significantly to species before padjustment.
 mixed.mod.sig.feature.Species=mixed.mod.pvals[mixed.mod.pvals$Species.padjust<=.05,] #subset the mixed.mod.pvals df for significant (p<=.05) Gut_SubSection pvals. Save as new df. It appears there are no significant Species pvals after padjustment. Will need to look into why this is. Perhaps if using the full sample set that includes F1-F3 GI/HG samples there would be enough replication to find significant species pvals.
 
-#Work up p values for mixed.mod.section
-mixed.mod.section.pvals$Gut_Section.padjust=p.adjust(mixed.mod.section.pvals$Gut_Section,method="BH") #Adjust p values for multiple comparisons
-mixed.mod.section.pvals$Species.padjust=p.adjust(mixed.mod.section.pvals$Species,method="BH") #Adjust p values for multiple comparisons
-rownames(mixed.mod.section.pvals)=colnames(relabund.19.jun.clean2.dist.t.4.cull.trans)[1:549] #Change rownames to correspond with tested feature names.
-sum(mixed.mod.section.pvals$Gut_Section<=.05)
-#216 features respond significantly to subsection before padjustment.
-mixed.mod.section.sig.feature.Gut_Section=mixed.mod.section.pvals[mixed.mod.section.pvals$Gut_Section.padjust<=.05,] #subset the mixed.mod.section.pvals df for significant (p<=.05) Gut_Section pvals. Save as new df. 116 features respond significantly to gut section after padjustment.
-sum(mixed.mod.section.pvals$Species<=.05)
-#63 features respond significantly to species before padjustment.
-mixed.mod.section.sig.feature.Species=mixed.mod.section.pvals[mixed.mod.section.pvals$Species.padjust<=.05,] #subset the mixed.mod.pvals df for significant (p<=.05) Gut_SubSection pvals. Save as new df. It appears there are no significant Species pvals after padjustment. Will need to look into why this is. Perhaps if using the full sample set that includes F1-F3 GI/HG samples there would be enough replication to find significant species pvals.
-
 #subset molnet enhancer data
 molnetdata1=molnetdata[molnetdata$cluster.index %in% rownames(mixed.mod.sig.feature.Gut_SubSection),] #subset molnet enhancer data
 molnetdata1=molnetdata1[match(rownames(mixed.mod.sig.feature.Gut_SubSection),molnetdata1$cluster.index),] #order molnetdata1 according to features in mixed.mod.sig.feature.Gut_Subsection.
 
-#repeat for mixed.mod.section
-molnetdata2=molnetdata[molnetdata$cluster.index %in% rownames(mixed.mod.section.sig.feature.Gut_Section),] #subset molnet enhancer data
-molnetdata2=molnetdata2[match(rownames(mixed.mod.section.sig.feature.Gut_Section),molnetdata2$cluster.index),] #order molnetdata2 according to features in mixed.mod.section.sig.feature.Gut_Section.
-
 #subset feature library ID data.
 libraryID=data[data$row.ID %in% rownames(mixed.mod.sig.feature.Gut_SubSection),1:8]
 libraryID=libraryID[match(rownames(mixed.mod.sig.feature.Gut_SubSection),libraryID$row.ID),]
-
-#repeat for mixed.mod.section
-libraryID1=data[data$row.ID %in% rownames(mixed.mod.section.sig.feature.Gut_Section),1:8]
-libraryID1=libraryID1[match(rownames(mixed.mod.section.sig.feature.Gut_Section),libraryID1$row.ID),]
 
 #subset the relabund data
 relabund.19.jun.clean2.dist.t.4.cull.t=as.data.frame(t(relabund.19.jun.clean2.dist.t.4.cull)) #transpose relabund data
 relabund.sig.feature=relabund.19.jun.clean2.dist.t.4.cull.t[rownames(relabund.19.jun.clean2.dist.t.4.cull.t) %in% rownames(mixed.mod.sig.feature.Gut_SubSection),]
 relabund.sig.feature=relabund.sig.feature[match(rownames(mixed.mod.sig.feature.Gut_SubSection),rownames(relabund.sig.feature)),]
 
-#repeat for mixed.mod.section data
-relabund.section.sig.feature=relabund.19.jun.clean2.dist.t.4.cull.t[rownames(relabund.19.jun.clean2.dist.t.4.cull.t) %in% rownames(mixed.mod.section.sig.feature.Gut_Section),]
-relabund.section.sig.feature=relabund.section.sig.feature[match(rownames(mixed.mod.section.sig.feature.Gut_Section),rownames(relabund.section.sig.feature)),]
-
 #combine molnetdata, libraryID data, realbund data, and mixed mod data into 1 df
 mixed.mod.sig.feature.Gut_SubSection=cbind(mixed.mod.sig.feature.Gut_SubSection,molnetdata1,libraryID,relabund.sig.feature) #merge mixed.mod.sig.otu.Gut_SubSection with the associated  molnet enhancer classifications
-
-#repeat for mixed mod section
-mixed.mod.section.sig.feature.Gut_Section=cbind(mixed.mod.section.sig.feature.Gut_Section,molnetdata2,libraryID1,relabund.section.sig.feature)
 
 #export as CSVs
 #write.csv(mixed.mod.sig.feature.Gut_SubSection,file="mixed.mod.sig.feature.Gut_SubSection.csv")
@@ -532,7 +435,6 @@ mixed.mod.sig.feature.Gut_SubSection.trans=mixed.mod.sig.feature.Gut_SubSection[
 mixed.mod.sig.feature.Gut_SubSection.trans1=asin(sqrt(mixed.mod.sig.feature.Gut_SubSection.trans))#arcsine sqrt transform the relabund data
 
 #write.csv(mixed.mod.sig.feature.Gut_SubSection.trans1,file="mixed.mod.sig.feature.Gut_SubSection.trans1.csv")
-
 
 #calculate zscore
 mixed.mod.sig.feature.Gut_SubSection.zscore=as.data.frame(apply(mixed.mod.sig.feature.Gut_SubSection.trans1,1,FUN=zscore.calculation))
@@ -568,65 +470,6 @@ mixed.mod.sig.feature.Gut_SubSection.zscore.t1=cbind(mixed.mod.sig.feature.Gut_S
 
 ```
 
-Next, some the realbund for all features by network and then model the networks by subsection.
-
-```{r}
-#transpose relabund data so features are rows
-relabund.19.jun.clean2.dist.t.4.t=as.data.frame(t(relabund.19.jun.clean2.dist.t.4))
-
-#subset network linkouts to correspond to the above features and add to df
-data.network=as.data.frame(data$Component.Index)
-rownames(data.network)=data$row.ID
-data.network=data.network[rownames(data.network) %in% rownames(relabund.19.jun.clean2.dist.t.4.t),]
-relabund.19.jun.clean2.dist.t.4.t=cbind(data.network,relabund.19.jun.clean2.dist.t.4.t)
-relabund.19.jun.clean2.dist.t.4.t$data.network=as.factor(relabund.19.jun.clean2.dist.t.4.t$data.network)
-
-#sum relabund by netowrk
-relabund.network=aggregate(relabund.19.jun.clean2.dist.t.4.t[,2:32],by=list(relabund.19.jun.clean2.dist.t.4.t$data.network),FUN=sum)
-
-#transpose df for modeling
-relabund.network.t=as.data.frame(t(relabund.network[,-1]))
-colnames(relabund.network.t)=relabund.network$Group.1
-
-#remove networks with no relabund value in any sample
-relabund.network.t=relabund.network.t[,apply(relabund.network.t,2,FUN=sum)!=0]
-
-#add in metadata
-relabund.network.t=cbind(relabund.network.t,relabund.19.jun.clean2.dist.t.4.cull.trans[,550:568])
-
-#arcsinesqrt transform data
-relabund.network.t.trans=cbind(asin(sqrt(relabund.network.t[,1:131])),relabund.network.t[,-1:-131])
-
-#make mixed mod for summed networks
-mixed.mod.network=function(x) { #create a function that performs the desired mixed model
-  mod.network=lmer(x~Species+Gut_SubSection+(1|Fish_Number),data=relabund.network.t.trans)
-  return(mod.network)
-}
-
-#apply gut subseciton function to networks
-mixed.mod.networks=apply(relabund.network.t.trans[,1:131],2,FUN=mixed.mod.network) #apply mixed.mod only to columns containing ASV data. Save as new object.
-
-#inspect results
-mixed.mod.network.singularity=lapply(mixed.mod.networks,FUN=isSingular) #test each mixed model for singularity, save in list. After inspecting the list it looks like ~33% of models are singular.
-
-mixed.mod.network.results=lapply(mixed.mod.networks,FUN=anova.kw) #perform an anova(ddf="Kenward-Roger") on all mixed models, save output.
-mixed.mod.network.pvals=as.data.frame(t(as.data.frame(mixed.mod.network.results))[seq(from=6,to=786,by=6),]) #extract the pvals from the mixed.mod.results list. Do this by converting list to df, transposing it, and then extracting every 6th column (which correspond to the pvals from each model).
-
-#Work up p values.
-mixed.mod.network.pvals$Gut_SubSection.padjust=p.adjust(mixed.mod.network.pvals$Gut_SubSection,method="BH") #Adjust p values for multiple comparisons
-mixed.mod.network.pvals$Species.padjust=p.adjust(mixed.mod.network.pvals$Species,method="BH") #Adjust p values for multiple comparisons
-rownames(mixed.mod.network.pvals)=colnames(relabund.network.t.trans)[1:131] #Change rownames to correspond with tested network names.
-sum(mixed.mod.network.pvals$Gut_SubSection<=.05)
-#38 networks respond significantly to subsection before padjustment.
-mixed.mod.sig.network.Gut_SubSection=mixed.mod.network.pvals[mixed.mod.network.pvals$Gut_SubSection.padjust<=.05,] #subset the mixed.mod.pvals df for significant (p<=.05) Gut_SubSection pvals. Save as new df. 25 features respond significantly to gut subsection after padjustment.
-sum(mixed.mod.network.pvals$Species<=.05)
-#21 features respond significantly to species before padjustment.
-mixed.mod.sig.network.Species=mixed.mod.network.pvals[mixed.mod.network.pvals$Species.padjust<=.05,] #subset the mixed.mod.pvals df for significant (p<=.05) Gut_SubSection pvals. Save as new df. It appears there are no significant Species pvals after padjustment. Will need to look into why this is. Perhaps if using the full sample set that includes F1-F3 GI/HG samples there would be enough replication to find significant species pvals.
-
-#write.csv(mixed.mod.sig.network.Gut_SubSection,file="mixed.mod.sig.network.Gut_SubSection.csv")
-
-```
-
 Visualize significant features across gut subsections.
 
 ```{r}
@@ -650,17 +493,6 @@ abund.longformat1=abund.longformat[,-4:-7] #remove pval cols
 Now, visualize these differentially abundants features.
 
 ```{r}
-#plot all the features together
-ggplot(abund.longformat1,aes(x=Gut_SubSection.y,y=abund,color=Library.Common.Name,group=row_ID))+
-  geom_point()+geom_smooth()+
-    facet_wrap(~Component.Index,scales="free")+
-    theme(legend.position="bottom")
-#looks surprsingly good. Now try with just smoother.
-
-ggplot(abund.longformat1,aes(x=Gut_SubSection.y,y=abund,color=Library.Common.Name,group=row_ID))+
-  geom_smooth()+
-    facet_wrap(~Component.Index,scales="free")+
-    theme(legend.position="bottom")
 
 #Average abund values for eac feature in each gut subsection
 abund.longformat1$row_ID_subsection=paste(abund.longformat1$row_ID,abund.longformat1$Gut_SubSection.y) #first make a new col combining feature ID and subsection
@@ -684,34 +516,6 @@ abund.longformat3$ClassyFire.Parent.Level.1=factor(abund.longformat3$ClassyFire.
 #subset abund.longformat3 to remove features without lib or analog IDs
 abund.longformat4=abund.longformat3[is.na(abund.longformat3$Common.Name.Analog)==FALSE,]
 
-#now plot avergae relabund for each features across gut subsections, colored by lib ID and faceted out by subnetwork.
-#ggplot(abund.longformat3,aes(x=Gut_SubSection,y=mean_relabund,color=Library.Common.Name,group=row_ID))+
-  #geom_point(size=3)+geom_line(size=1.5)+
-    #facet_wrap(~Component.Index,scales="free")+
-   # theme(legend.position="bottom")
-#there are a few networks that look bad. specifically: 15 and 45
-
-#now try the same plot without NA lib IDs and geom_bar
-#ggplot(abund.longformat3[abund.longformat3$Library.Common.Name!="N/A",],aes(x=Gut_SubSection,y=mean_relabund,fill=Library.Common.Name,group=row_ID))+
-  #geom_bar(stat="identity",col="black")+
-    #facet_wrap(~Component.Index,scales="free")+
-    #theme(legend.position="bottom")
-#export as 2500x1500 PNG and save as mixed.mod.significant.gut.subsection.features
-
-#now try the plot points and lines
-#ggplot(abund.longformat3[abund.longformat3$Library.Common.Name!="N/A",],aes(x=Gut_SubSection,y=mean_relabund,color=Library.Common.Name,group=row_ID))+
-  #geom_point(size=3)+geom_line(size=1.5)+
-    #facet_wrap(~Component.Index,scales="free")+
-    #theme(legend.position="bottom")
-#Better, but 45 still looks bad as does -1 and 5 a little bit. Would be nicer to group by some clearer classification. export as 2500x1500 PNG and save as mixed.mod.significant.gut.subsection.features1
-
-#now try the same plot with added errorbars
-#ggplot(abund.longformat3[abund.longformat3$Library.Common.Name.x!="N/A",],aes(x=Gut_SubSection,y=mean_relabund,color=Library.Common.Name.x,group=row_ID))+
-  #geom_point(size=3.5)+geom_line(size=2)+
-  #geom_pointrange(aes(ymin=mean_relabund-SE,ymax=mean_relabund+SE))+
-    #facet_wrap(~Component.Index.x,scales="free")+
-    #theme(legend.position="bottom")
-
 #now try the same plot with facet by ClassyFire.Parent.Level.1
 ggplot(abund.longformat4,aes(x=Gut_SubSection.x,y=mean_relabund,color=Common.Name.Analog,group=row_ID))+
   geom_point(size=3.5)+geom_line(size=2)+
@@ -723,16 +527,5 @@ ggplot(abund.longformat4,aes(x=Gut_SubSection.x,y=mean_relabund,color=Common.Nam
     #+geom_text(label = abund.longformat3$Library.Common.Name.x[abund.longformat3$Library.Common.Name.x!="N/A"],na.rm=T)
 #export as 12X13 landscape PDF and save as mixed.mod.significant.gut.subsection.features7. Use for Fig 7
 
-#now try the same plot using geom_smooth
-#ggplot(abund.longformat1[abund.longformat1$Library.Common.Name!="N/A",],aes(x=Gut_SubSection.y,y=abund,color=Library.Common.Name,group=row_ID))+
-  #geom_point()+geom_smooth()+
-    #facet_wrap(~Component.Index,scales="free")+
-    #theme(legend.position="bottom")
-#Better, but 45 still looks bad as does -1 and 5 a little bit. Would be nicer to group by some clearer classification. 2500x1000 PNG and save as mixed.mod.significant.gut.subsection.features4
-
 ```
-
-I think the points at means with SE pointranges look best, although SE pointrange might need to be adjusted to reflect non normal distribution.
-
-Next, plot individual features Emily suggested.
 
