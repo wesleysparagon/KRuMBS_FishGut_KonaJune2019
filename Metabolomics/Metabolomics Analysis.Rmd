@@ -185,12 +185,21 @@ Convert to the relabund data to a bray curtis distance matrix, run a NMDS and PE
 ```{r}
 #read in unifrac metadata
 metadata.fish.F4.F8.unifrac=read.csv(file="metadata.fish.F4.F8.unifrac.csv")
-metadata.19.jun.samples2=merge(metadata.19.jun.samples1,metadata.fish.F4.F8.unifrac,by.x="SampleCode",by.y="SampleCode")
+
+#adjust the oder of the metadata samples to correspond to the order of samples in the dist matrix
+#metadata.19.jun.samples1=metadata.19.jun.samples[match(rownames(data.19.jun.clean2.dist.t),metadata.19.jun.samples$sample_name2),]
+
+#merge metadata ith unifrac metadata
+metadata.19.jun.samples2=merge(metadata.19.jun.samples,metadata.fish.F4.F8.unifrac,by.x="SampleCode",by.y="SampleCode")
 metadata.19.jun.samples2$Gut_SubSection1=metadata.19.jun.samples2$Gut_SubSection.x #create a duplicate gut subsection col
 metadata.19.jun.samples2$Gut_SubSection1[metadata.19.jun.samples2$Gut_Section.x=="HG"]="HG"
 metadata.19.jun.samples2$Gut_SubSection1=factor(metadata.19.jun.samples2$Gut_SubSection1,levels=c("ST","GI_1","GI_2","GI_3","GI_4","HG"))
 
-relabund.19.jun.clean2.dist.t.2=relabund.19.jun.clean2.dist.t[rownames(relabund.19.jun.clean2.dist.t) %in% metadata.19.jun.samples2$sample_name2,]
+#adjust relative abundance dataframe to reflect metadata.19.jun.samples2 samples
+rownames(relabund.19.jun.clean2)=relabund.19.jun.clean2$row.ID #update rownames to correspond to feature ID
+relabund.19.jun.clean2.dist=relabund.19.jun.clean2[,7:63] #remove feature metadata
+relabund.19.jun.clean2.dist.t=as.data.frame(t(relabund.19.jun.clean2.dist)) #transpose
+relabund.19.jun.clean2.dist.t.2=relabund.19.jun.clean2.dist.t[rownames(relabund.19.jun.clean2.dist.t) %in% metadata.19.jun.samples2$sample_name2,] #subset df for only samples in metadata.19.jun.samples2
 
 #adjust the row order of relabund.19.jun.clean2.dist.t.2 to match the metadata order
 relabund.19.jun.clean2.dist.t.3=relabund.19.jun.clean2.dist.t.2[match(metadata.19.jun.samples2$sample_name2,rownames(relabund.19.jun.clean2.dist.t.2)),]
@@ -467,7 +476,6 @@ mixed.mod.sig.feature.Gut_SubSection.zscore.t1.v2=cbind(mixed.mod.sig.feature.Gu
 mixed.mod.sig.feature.Gut_SubSection.zscore.t1=cbind(mixed.mod.sig.feature.Gut_SubSection.zscore.t,mixed.mod.sig.feature.Gut_SubSection[,-28:-58])
 
 #write.csv(mixed.mod.sig.feature.Gut_SubSection.zscore.t1,file="mixed.mod.sig.feature.Gut_SubSection.zscore.t1.v1.csv")
-
 ```
 
 Visualize significant features across gut subsections.
