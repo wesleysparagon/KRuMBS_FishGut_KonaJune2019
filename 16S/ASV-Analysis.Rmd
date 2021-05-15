@@ -51,10 +51,12 @@ relabund.t=relabund[,-87:-95]  #remove last 9 columns (which correspond to chara
 relabund.t=as.data.frame(t(relabund.t)) #transpose relabund.t df
 
 #subset relabund, relabund.t, and abund so they match with respective metadata
+relabund.fish=relabund[,colnames(relabund) %in% metadata.fish.noST$SampleCode]
 relabund.fish.F4.F8.ST=relabund[,colnames(relabund) %in% metadata.fish.F4.F8$SampleCode]
 relabund.fish.F4.F8=relabund.fish[,colnames(relabund.fish) %in% metadata.fish.F4.F8.noST$SampleCode]
 relabund.fish.F4.F8=cbind(relabund.fish.F4.F8,relabund[,87:95]) #add back in taxonomy info
 relabund.fish.F4.F8.ST=cbind(relabund.fish.F4.F8.ST,relabund[,87:95]) #add back in taxonomy info
+relabund.t.fish=relabund.t[rownames(relabund.t) %in% metadata.fish.noST$SampleCode,]
 relabund.t.fish.F4.F8.ST=relabund.t[rownames(relabund.t) %in% metadata.fish.F4.F8$SampleCode,]
 relabund.t.fish.F4.F8=relabund.t.fish[rownames(relabund.t.fish) %in% metadata.fish.F4.F8.noST$SampleCode,]
 
@@ -62,6 +64,7 @@ relabund.t.fish.F4.F8=relabund.t.fish[rownames(relabund.t.fish) %in% metadata.fi
 relabund.fish.F4.F8.ST.zerocull=relabund.fish.F4.F8.ST[apply(relabund.fish.F4.F8.ST[,1:37],1,FUN=sum)!=0,]
 
 #subset taxonomy
+taxonomy=relabund[,87:95]
 taxonomy.fish.F4.F8.ST=relabund.fish.F4.F8.ST[,38:46]
 ```
 
@@ -77,11 +80,8 @@ Cull ASVs.
 
 ```{r}
 #Cull ASVs at .0005 relabund cutoff (in at least 3 samples) or .01 relabund in 1 sample.
-cull.otu(relabund.t.fish,3,.0005,.01)
-relabund.t.fish.cull=relabund.df.cull #rename output
 cull.otu(relabund.t.fish.F4.F8,3,.0005,.01) #repeat for the relabund.t.fish.F4.F8 df. 692 ASVs remain. 
 relabund.t.fish.F4.F8.cull=relabund.df.cull #rename output
-relabund.fish.cull=as.data.frame(t(relabund.t.fish.cull)) #transpose culled relabund data
 relabund.fish.F4.F8.cull=as.data.frame(t(relabund.t.fish.F4.F8.cull)) #transpose culled relabund data
 cull.otu(relabund.t.fish.F4.F8.ST,3,.0005,.01)
 relabund.t.fish.F4.F8.ST.cull=relabund.df.cull #721 ASVs remain
@@ -91,13 +91,10 @@ relabund.t.fish.F4.F8.ST.cull=relabund.df.cull #721 ASVs remain
 #write.csv(relabund.fish.F4.F8.cull,file="relabund.fish.F4.F8.cull.csv")
 
 #make a taxonomy df for culled fish ASVs
-taxonomy.fish.cull=taxonomy.fish[rownames(taxonomy.fish) %in% rownames(relabund.fish.cull),]
-taxonomy.fish.F4.F8.cull=taxonomy.fish[rownames(taxonomy.fish) %in% rownames(relabund.fish.F4.F8.cull),]
+taxonomy.fish.F4.F8.cull=taxonomy[rownames(taxonomy) %in% rownames(relabund.fish.F4.F8.cull),]
 taxonomy.fish.F4.F8.ST.cull=taxonomy.fish.F4.F8.ST[rownames(taxonomy.fish.F4.F8.ST) %in% colnames(relabund.t.fish.F4.F8.ST.cull),]
-colnames(taxonomy.fish.cull)[2]="Kingdom" #change name of column 1 to Kingdom. This is necessary for phyloseq.
 colnames(taxonomy.fish.F4.F8.cull)[2]="Kingdom" #change name of column 1 to Kingdom. This is necessary for phyloseq.
 colnames(taxonomy.fish.F4.F8.ST.cull)[2]="Kingdom" #change name of column 1 to Kingdom. This is necessary for phyloseq.
-taxonomy.fish.cull=taxonomy.fish.cull[,-1] #remove first column. This is necessary for phyloseq.
 taxonomy.fish.F4.F8.cull=taxonomy.fish.F4.F8.cull[,-1] #remove first column. This is necessary for phyloseq.
 taxonomy.fish.F4.F8.ST.cull=taxonomy.fish.F4.F8.ST.cull[,-1] #remove first column. This is necessary for phyloseq.
 
