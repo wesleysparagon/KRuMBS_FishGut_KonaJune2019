@@ -525,15 +525,16 @@ abund.longformat3$ClassyFire.Parent.Level.1=factor(abund.longformat3$ClassyFire.
 abund.longformat4=abund.longformat3[is.na(abund.longformat3$Common.Name.Analog)==FALSE,]
 
 #now try the same plot with facet by ClassyFire.Parent.Level.1
-ggplot(abund.longformat4,aes(x=Gut_SubSection.x,y=mean_relabund,color=Common.Name.Analog,group=row_ID))+
+ggplot(abund.longformat4,aes(x=Gut_SubSection.x,y=mean_relabund,color=Common.Name.1,group=row_ID))+
   geom_point(size=3.5)+geom_line(size=2)+
   geom_pointrange(aes(ymin=mean_relabund-SE,ymax=mean_relabund+SE))+
     facet_wrap(~ClassyFire.Parent.Level.1,scales="free",ncol=3)+
     ylab("Relative Abundance")+
-  xlab("Gut_SubSection")+
+    xlab("Gut_SubSection")+
+    labs(color="Common Name")+
     theme(legend.position="bottom")
     #+geom_text(label = abund.longformat3$Library.Common.Name.x[abund.longformat3$Library.Common.Name.x!="N/A"],na.rm=T)
-#export as 12X13 landscape PDF and save as mixed.mod.significant.gut.subsection.features7. Use for Fig 7
+#export as 12X13 landscape PDF and save as mixed.mod.significant.gut.subsection.features8. Use for Fig 7
 
 ```
 
