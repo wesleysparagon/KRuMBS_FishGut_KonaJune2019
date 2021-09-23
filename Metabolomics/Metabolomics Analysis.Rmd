@@ -185,6 +185,7 @@ Convert to the relabund data to a bray curtis distance matrix, run a NMDS and PE
 ```{r}
 #read in unifrac metadata
 metadata.fish.F4.F8.unifrac=read.csv(file="metadata.fish.F4.F8.unifrac.csv")
+metadata.fish.F4.F5.F8.unifrac=read.csv(file="metadata.fish.F4.F5.F8.unifrac.csv")
 
 #adjust the oder of the metadata samples to correspond to the order of samples in the dist matrix
 #metadata.19.jun.samples1=metadata.19.jun.samples[match(rownames(data.19.jun.clean2.dist.t),metadata.19.jun.samples$sample_name2),]
@@ -195,25 +196,46 @@ metadata.19.jun.samples2$Gut_SubSection1=metadata.19.jun.samples2$Gut_SubSection
 metadata.19.jun.samples2$Gut_SubSection1[metadata.19.jun.samples2$Gut_Section.x=="HG"]="HG"
 metadata.19.jun.samples2$Gut_SubSection1=factor(metadata.19.jun.samples2$Gut_SubSection1,levels=c("ST","GI_1","GI_2","GI_3","GI_4","HG"))
 
+#repeat for F4.F5.F8 unifrac data
+metadata.19.jun.samples2.v1=merge(metadata.19.jun.samples,metadata.fish.F4.F5.F8.unifrac,by.x="SampleCode",by.y="SampleCode")
+metadata.19.jun.samples2.v1$Gut_SubSection1=metadata.19.jun.samples2.v1$Gut_SubSection.x #create a duplicate gut subsection col
+metadata.19.jun.samples2.v1$Gut_SubSection1[metadata.19.jun.samples2.v1$Gut_Section.x=="HG"]="HG"
+metadata.19.jun.samples2.v1$Gut_SubSection1=factor(metadata.19.jun.samples2.v1$Gut_SubSection1,levels=c("ST","GI_1","GI_2","GI_3","GI_4","HG"))
+
 #adjust relative abundance dataframe to reflect metadata.19.jun.samples2 samples
 rownames(relabund.19.jun.clean2)=relabund.19.jun.clean2$row.ID #update rownames to correspond to feature ID
 relabund.19.jun.clean2.dist=relabund.19.jun.clean2[,7:63] #remove feature metadata
 relabund.19.jun.clean2.dist.t=as.data.frame(t(relabund.19.jun.clean2.dist)) #transpose
 relabund.19.jun.clean2.dist.t.2=relabund.19.jun.clean2.dist.t[rownames(relabund.19.jun.clean2.dist.t) %in% metadata.19.jun.samples2$sample_name2,] #subset df for only samples in metadata.19.jun.samples2
 
+#repeat for F4.F5.F8 unifrac data
+relabund.19.jun.clean2.dist.t.2.v1=relabund.19.jun.clean2.dist.t[rownames(relabund.19.jun.clean2.dist.t) %in% metadata.19.jun.samples2.v1$sample_name2,] #subset df for only samples in metadata.19.jun.samples2.v1
+
 #adjust the row order of relabund.19.jun.clean2.dist.t.2 to match the metadata order
 relabund.19.jun.clean2.dist.t.3=relabund.19.jun.clean2.dist.t.2[match(metadata.19.jun.samples2$sample_name2,rownames(relabund.19.jun.clean2.dist.t.2)),]
 
+#repeat for F4.F5.F8 data
+relabund.19.jun.clean2.dist.t.3.v1=relabund.19.jun.clean2.dist.t.2.v1[match(metadata.19.jun.samples2.v1$sample_name2,rownames(relabund.19.jun.clean2.dist.t.2.v1)),]
+
 #adjust rownames so that they will line up with the 16S sample names that will be imported later
-rownames(relabund.19.jun.clean2.dist.t.3)=metadata.19.jun.samples2$SampleCode
+rownames(relabund.19.jun.clean2.dist.t.3)=metadata.19.jun.samples2$SampleCode 
+
+#repeat for F4.F5.F8 data
+rownames(relabund.19.jun.clean2.dist.t.3.v1)=metadata.19.jun.samples2.v1$SampleCode
 
 #Generate dist matrix
 bray.relabund.19.jun.clean2.2=vegdist(relabund.19.jun.clean2.dist.t.3,method="bray")
+bray.relabund.19.jun.clean2.2.v1=vegdist(relabund.19.jun.clean2.dist.t.3.v1,method="bray") #for the F4.F5.F8 data
 
 #reorder the metadata so it lines up with the distance matrix
 colnames(metadata.19.jun.samples2)[5]="Species"
 colnames(metadata.19.jun.samples2)[6]="Gut_Section"
 colnames(metadata.19.jun.samples2)[7]="Gut_SubSection"
+
+#repeat for the F4.F5.F8 metadata
+colnames(metadata.19.jun.samples2.v1)[5]="Species"
+colnames(metadata.19.jun.samples2.v1)[6]="Gut_Section"
+colnames(metadata.19.jun.samples2.v1)[7]="Gut_SubSection"
 
 nmds.relabund.2=metaMDS(bray.relabund.19.jun.clean2.2,k=2,trymax=100)
 #convergent solution reached, decent stress (.17)
@@ -243,6 +265,10 @@ Run a permanova on this dataset.
 permanova.gut.subsection=adonis2(bray.relabund.19.jun.clean2.2~Gut_SubSection+Species,by="margin",data=metadata.19.jun.samples2,permutations=999)
 permanova.gut.subsection
 
+#now run a permanova on the F4.F5.F8 data
+permanova.gut.subsection.v1=adonis2(bray.relabund.19.jun.clean2.2.v1~Gut_SubSection,by="margin",data=metadata.19.jun.samples2.v1,permutations=999)
+permanova.gut.subsection.v1
+
 #export permanova.gut.subsection and use as Table X2b in manuscript
 #write.csv(permanova.gut.subsection,file="permanova.gut.subsection.csv")
 
@@ -255,10 +281,14 @@ pairwise.permanova.subsection
 Calculate the gut subsection dispersion values for the MB data.
 
 ```{r}
-#Extract dispersion values from the unifrac data and asses their distribution.
+#Extract dispersion values from the unifrac data and assess their distribution.
 dispersion.mb.gut.subsection=betadisper(bray.relabund.19.jun.clean2.2,type="centroid",group=metadata.19.jun.samples2$Gut_SubSection)
 dispersion.mb.gut.subsection
 hist(dispersion.mb.gut.subsection$distances) #assess the distribution of the dispersion data. It looks normal.
+
+#repeat for F4.F5.F8 data
+dispersion.mb.gut.subsection.v1=betadisper(bray.relabund.19.jun.clean2.2.v1,type="centroid",group=metadata.19.jun.samples2.v1$Gut_SubSection)
+dispersion.mb.gut.subsection.v1
 
 dispersion.mb.gut.subsection1=as.data.frame(dispersion.mb.gut.subsection[[3]]) #make a new df with just the distances.
 colnames(dispersion.mb.gut.subsection1)[1]="bray curtis distance to centroid"
@@ -267,6 +297,15 @@ dispersion.mb.gut.subsection1$Gut_SubSection=metadata.19.jun.samples2$Gut_SubSec
 dispersion.mb.gut.subsection1$Gut_Section=metadata.19.jun.samples2$Gut_Section
 dispersion.mb.gut.subsection1$Species=metadata.19.jun.samples2$Species
 dispersion.mb.gut.subsection1$Fish_Number=metadata.19.jun.samples2$Fish_Number
+
+#repeat fpr F4.F5.F8 data
+dispersion.mb.gut.subsection1.v1=as.data.frame(dispersion.mb.gut.subsection.v1[[3]]) #make a new df with just the distances.
+colnames(dispersion.mb.gut.subsection1.v1)[1]="bray curtis distance to centroid"
+dispersion.mb.gut.subsection1.v1$samples=rownames(dispersion.mb.gut.subsection1.v1) #add in metadata
+dispersion.mb.gut.subsection1.v1$Gut_SubSection=metadata.19.jun.samples2.v1$Gut_SubSection
+dispersion.mb.gut.subsection1.v1$Gut_Section=metadata.19.jun.samples2.v1$Gut_Section
+dispersion.mb.gut.subsection1.v1$Species=metadata.19.jun.samples2.v1$Species
+dispersion.mb.gut.subsection1.v1$Fish_Number=metadata.19.jun.samples2.v1$Fish_Number
 
 #convert dispersion.gut.section1 into df of means and SE so it can be graphed as a barplot. Use as part of Table SX1 in manuscript
 dispersion.mb.gut.subsection2=as.data.frame(aggregate(dispersion.mb.gut.subsection1$`bray curtis distance to centroid`,by=list(dispersion.mb.gut.subsection1$Gut_SubSection),FUN=mean))
@@ -287,6 +326,11 @@ dispersion.mb.mod.gut.subsection=lmer(`bray curtis distance to centroid`~Gut_Sub
 summary(dispersion.mb.mod.gut.subsection)
 anova(dispersion.mb.mod.gut.subsection,ddf="Kenward-Roger") #Gut_SubSectionis significant.
 lsmeans(dispersion.mb.mod.gut.subsection, pairwise ~ Gut_SubSection, adjust="tukey")
+
+#Repeat for F4.F5.F8 data
+dispersion.mb.mod.gut.subsection.v1=lmer(`bray curtis distance to centroid`~Gut_SubSection+(1|Fish_Number),data=dispersion.mb.gut.subsection1.v1)
+summary(dispersion.mb.mod.gut.subsection.v1)
+anova(dispersion.mb.mod.gut.subsection.v1,ddf="Kenward-Roger") #Gut_SubSectionis significant.
 
 #add in significance indicators to dispersion.mb.gut.subsection1 for use in boxplots .
 posthocvec=c("A","B","B","B","A","A","A","A")
@@ -321,6 +365,23 @@ weighted.unifrac.F4.F8.dist1=as.dist(weighted.unifrac.F4.F8.matrix1) #convert to
 
 mantel(weighted.unifrac.F4.F8.dist1,bray.relabund.19.jun.clean2.2)
 ```
+
+Repeat for the F4.F5.F8 data.
+
+```{r}
+#Read in the 16S dist matrix, and subset it so it only includes the corresponding metabolomic samples
+unifrac=read.csv(file="weighted.unifrac.matrix.F4.F5.F8.matrix.csv") #had to initially name the df "unifrac" because of problems with the read.csv function.
+weighted.unifrac.F4.F5.F8.matrix=unifrac #rename
+rownames(weighted.unifrac.F4.F5.F8.matrix)=weighted.unifrac.F4.F5.F8.matrix$X
+weighted.unifrac.F4.F5.F8.matrix=weighted.unifrac.F4.F5.F8.matrix[,-1]
+weighted.unifrac.F4.F5.F8.matrix1=weighted.unifrac.F4.F5.F8.matrix[rownames(weighted.unifrac.F4.F5.F8.matrix)!="F8_GI_3",colnames(weighted.unifrac.F4.F5.F8.matrix)!="F8_GI_3"]
+#re order the matrix so samples are in the same order as the metabolomic dist matrix. In this case, the row/colnames of the other dist matrix are the metabolomic long format, whereas the row/colnames of the 16s dist matrix are the shortened "SampleCode." So we have to match the 16S unifrac matrix against the metadata.19.jun.samples2$SampleCode, since this will be in the order that the samples are in in the metabolomic dist matrix. Ugh
+weighted.unifrac.F4.F5.F8.matrix1=weighted.unifrac.F4.F5.F8.matrix1[match(metadata.19.jun.samples2.v1$SampleCode,rownames(weighted.unifrac.F4.F5.F8.matrix1)),match(metadata.19.jun.samples2.v1$SampleCode,colnames(weighted.unifrac.F4.F5.F8.matrix1))]
+weighted.unifrac.F4.F5.F8.dist1=as.dist(weighted.unifrac.F4.F5.F8.matrix1) #convert to dist
+
+mantel(weighted.unifrac.F4.F5.F8.dist1,bray.relabund.19.jun.clean2.2.v1)
+```
+
 
 Run procrustes.
 

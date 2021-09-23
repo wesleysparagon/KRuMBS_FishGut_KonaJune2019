@@ -77,6 +77,7 @@ weighted.unifrac.F4.F5.F8.matrix=weighted.unifrac.F4.F8.matrix[-17:-29,-17:-29] 
 weighted.unifrac.dist=as.dist(weighted.unifrac.matrix) #convert to "dist" type
 weighted.unifrac.F4.F8.dist=as.dist(weighted.unifrac.F4.F8.matrix)
 weighted.unifrac.F4.F5.F8.dist=as.dist(weighted.unifrac.F4.F5.F8.matrix)
+#write.csv(weighted.unifrac.F4.F5.F8.matrix,file="weighted.unifrac.matrix.F4.F5.F8.matrix.csv")
 
 #Make metadata df corresponding to only the samples in the unifrac matrices, eg. only the samples to pass through the sequencing pipeline.
 metadata.fish.unifrac=metadata.fish[metadata.fish$SampleCode %in% rownames(weighted.unifrac.matrix),]
