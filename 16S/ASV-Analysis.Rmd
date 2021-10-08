@@ -85,6 +85,7 @@ relabund.t.fish.F4.F8.cull=relabund.df.cull #rename output
 relabund.fish.F4.F8.cull=as.data.frame(t(relabund.t.fish.F4.F8.cull)) #transpose culled relabund data
 cull.otu(relabund.t.fish.F4.F8.ST,3,.0005,.01)
 relabund.t.fish.F4.F8.ST.cull=relabund.df.cull #721 ASVs remain
+relabund.fish.F4.F8.ST.cull=as.data.frame(t(relabund.t.fish.F4.F8.ST.cull)) #retranspose
 
 #export relabund dfs as CSVs
 #write.csv(relabund.fish.cull,file="relabund.fish.cull.csv")
@@ -98,8 +99,15 @@ colnames(taxonomy.fish.F4.F8.ST.cull)[2]="Kingdom" #change name of column 1 to K
 taxonomy.fish.F4.F8.cull=taxonomy.fish.F4.F8.cull[,-1] #remove first column. This is necessary for phyloseq.
 taxonomy.fish.F4.F8.ST.cull=taxonomy.fish.F4.F8.ST.cull[,-1] #remove first column. This is necessary for phyloseq.
 
+#generate longformat for relabund.fish.F4.F8.cull
+metadata.fish.F4.F8.ST.unifrac=metadata.fish.F4.F8[metadata.fish.F4.F8$SampleCode %in% colnames(relabund.fish.F4.F8.ST.cull),] #subset metadata for only samples in relabund.fish.F4.F8.ST.cull
+colnames(metadata.fish.F4.F8.ST.unifrac)[1]="Sample_ID"
+taxonomy.fish.F4.F8.ST.cull$OTUNumber=rownames(taxonomy.fish.F4.F8.ST.cull) #add OTUNumber column
+generate.long.format(relabund.fish.F4.F8.ST.cull,metadata.fish.F4.F8.ST.unifrac,taxonomy.fish.F4.F8.ST.cull)
+abund.longformat.fish.F4.F8.ST=abund.longformat
+write.csv(abund.longformat.fish.F4.F8.ST, file="abund.longformat.fish.F4.F8.ST.csv")
+
 #Now average every OTU relabund value from relabund.t.fish.F4.F8.ST.cull for each of the gut subsections.
-metadata.fish.F4.F8.unifrac=metadata.fish.F4.F8[-23:-24,] #remove samples from metadata that failed to seq so the metadata can be correctly merged with the relabund data
 relabund.t.fish.F4.F8.ST.cull=cbind(relabund.t.fish.F4.F8.ST.cull,metadata.fish.F4.F8.unifrac) #first merge metadata
 relabund.t.fish.F4.F8.ST.cull.mean=as.data.frame(matrix(nrow=8,ncol=721)) #create a blank df to store averaged outputs
 for (i in 1:721){ #for each OTU column

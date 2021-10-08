@@ -137,17 +137,17 @@ nmds.weighted.unifrac.F4.F8
 Plot NMDS.
 
 ```{r}
-pointvec=c(15,16,17) #generate a vector of points to correspond to Species.
+#pointvec=c(15,16,17) #generate a vector of points to correspond to Species. No longer needed.
 colvec2=c("mediumpurple1",viridis(n=7,option="D",begin=.15)) #generate vector of colors to correspond to Gut_SubSection
 
 #Plot NMDS
 plot(nmds.weighted.unifrac.F4.F8,type="n",cex.lab=1.5,cex.axis=1.5) #Set up the NMDS plot environment
 points(nmds.weighted.unifrac.F4.F8, #plot each sample as a point
        cex=3.5,
-       pch=pointvec[metadata.fish.F4.F8.unifrac$Species], #point shape corresponds to fish Species
+       pch=16, #pointvec[metadata.fish.F4.F8.unifrac$Species], #point shape corresponds to fish Species. No longer needed.
        col=colvec2[as.factor(metadata.fish.F4.F8.unifrac$Gut_SubSection)]) 
 text(-.465,.4,label="Stress=.14",cex=1.5)
-ordiellipse(nmds.weighted.unifrac.F4.F8,metadata.fish.F4.F8.unifrac$Gut_SubSection1,kind="sd",draw="polygon",lwd=2.5,border=colvec2[-6:-7],col=colvec2[-6:-7]) #add SD ellipses, colored by Gut_Section. 
+ordiellipse(nmds.weighted.unifrac.F4.F8,metadata.fish.F4.F8.unifrac$Gut_SubSection1,kind="sd",draw="polygon",lwd=2.5,border=colvec2[-6:-7],col=colvec2[-6:-7],alpha=50) #add SD ellipses, colored by Gut_Section. 
 #alpha=c(0,0) used to remove coloration from ellipses
 ordiarrows(nmds.weighted.unifrac.F4.F8,group=metadata.fish.F4.F8.unifrac$Fish_Number,order.by=metadata.fish.F4.F8.unifrac$Gut_SubSection,lwd=2,col="black")
 
