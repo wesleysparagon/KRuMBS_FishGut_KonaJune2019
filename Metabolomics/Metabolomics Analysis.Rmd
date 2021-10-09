@@ -393,14 +393,14 @@ nmds.16s=metaMDS(weighted.unifrac.F4.F8.dist1,k=2,trymax=10)
 plot(nmds.16s,type="n",main="16S")
 points(nmds.16s, #plot each sample as a point
        cex=2,
-       pch=pointvec[metadata.19.jun.samples2$Species], #point shape corresponds to fish Species
+       pch=16, #pointvec[metadata.19.jun.samples2$Species], #point shape corresponds to fish Species. No longer need this
        col=colvec3[metadata.19.jun.samples2$Gut_SubSection]) 
 
 #replot the metabolomics nmds for comparison
 plot(nmds.relabund.2,type="n",main="Metabolomics")
 points(nmds.relabund.2, #plot each sample as a point
        cex=2,
-       pch=pointvec[metadata.19.jun.samples2$Species], #point shape corresponds to fish Species
+       pch=#pointvec[metadata.19.jun.samples2$Species], #point shape corresponds to fish Species
        col=colvec3[metadata.19.jun.samples2$Gut_SubSection]) 
 #as you can see, it looks like there is potential to align the two nmds plots pretty well.
 
@@ -412,21 +412,21 @@ summary(pro)
 plot(pro,kind=1)
 plot(pro,kind=2) #Not sure how to interperet this.
 
-pointvec2=c(22,21,24)
+#pointvec2=c(22,21,24) no longer need this
 
 #next plot a more detailed procrustes plot, with the filled points representing the rotated (metabolomic) samples and the open points representing the target (16S) samples.
 plot(pro,kind=1,lwd=3,len=.075,ar.col=colvec3[metadata.19.jun.samples2$Gut_SubSection])
 points(pro, display="rotated",#plot each sample as a point
        cex=3.5,
-       pch=pointvec[metadata.19.jun.samples2$Species], #point shape corresponds to fish Species
+       pch=16, #pointvec[metadata.19.jun.samples2$Species], #point shape corresponds to fish Species. No longer need this
        col=colvec3[metadata.19.jun.samples2$Gut_SubSection]) 
 points(pro, display="target",#plot each sample as a point
        cex=3.5,
        lwd=3,
-       pch=pointvec2[metadata.19.jun.samples2$Species], #point shape corresponds to fishSpecies
+       pch=17, #pointvec2[metadata.19.jun.samples2$Species], #point shape corresponds to fishSpecies. No longer need this
        col=colvec3[metadata.19.jun.samples2$Gut_SubSection]) 
 
-#export as 8.5x11 PDF for manuscript
+#export as 8.5x11 landscape PDF for manuscript
 
 pro.test=protest(nmds.16s,nmds.relabund.2,scores="sites")
 pro.test
