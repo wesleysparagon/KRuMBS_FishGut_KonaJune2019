@@ -265,9 +265,13 @@ Run a permanova on this dataset.
 permanova.gut.subsection=adonis2(bray.relabund.19.jun.clean2.2~Gut_SubSection+Species,by="margin",data=metadata.19.jun.samples2,permutations=999)
 permanova.gut.subsection
 
-#now run a permanova on the F4.F5.F8 data
-permanova.gut.subsection.v1=adonis2(bray.relabund.19.jun.clean2.2.v1~Gut_SubSection,by="margin",data=metadata.19.jun.samples2.v1,permutations=999)
+#repeat without species
+permanova.gut.subsection.v1=adonis2(bray.relabund.19.jun.clean2.2~Gut_SubSection,by="margin",data=metadata.19.jun.samples2,permutations=999)
 permanova.gut.subsection.v1
+
+#now run a permanova on the F4.F5.F8 data
+permanova.gut.subsection.v2=adonis2(bray.relabund.19.jun.clean2.2.v1~Gut_SubSection,by="margin",data=metadata.19.jun.samples2.v1,permutations=999)
+permanova.gut.subsection.v2
 
 #export permanova.gut.subsection and use as Table X2b in manuscript
 #write.csv(permanova.gut.subsection,file="permanova.gut.subsection.csv")
@@ -327,10 +331,16 @@ summary(dispersion.mb.mod.gut.subsection)
 anova(dispersion.mb.mod.gut.subsection,ddf="Kenward-Roger") #Gut_SubSectionis significant.
 lsmeans(dispersion.mb.mod.gut.subsection, pairwise ~ Gut_SubSection, adjust="tukey")
 
-#Repeat for F4.F5.F8 data
-dispersion.mb.mod.gut.subsection.v1=lmer(`bray curtis distance to centroid`~Gut_SubSection+(1|Fish_Number),data=dispersion.mb.gut.subsection1.v1)
+#Repeat without species
+dispersion.mb.mod.gut.subsection.v1=lmer(`bray curtis distance to centroid`~Gut_SubSection+(1|Fish_Number),data=dispersion.mb.gut.subsection1)
 summary(dispersion.mb.mod.gut.subsection.v1)
 anova(dispersion.mb.mod.gut.subsection.v1,ddf="Kenward-Roger") #Gut_SubSectionis significant.
+lsmeans(dispersion.mb.mod.gut.subsection.v1, pairwise ~ Gut_SubSection, adjust="tukey")
+
+#Repeat for F4.F5.F8 data
+dispersion.mb.mod.gut.subsection.v2=lmer(`bray curtis distance to centroid`~Gut_SubSection+(1|Fish_Number),data=dispersion.mb.gut.subsection1.v1)
+summary(dispersion.mb.mod.gut.subsection.v2)
+anova(dispersion.mb.mod.gut.subsection.v2,ddf="Kenward-Roger") #Gut_SubSectionis significant.
 
 #add in significance indicators to dispersion.mb.gut.subsection1 for use in boxplots .
 posthocvec=c("A","B","B","B","A","A","A","A")
