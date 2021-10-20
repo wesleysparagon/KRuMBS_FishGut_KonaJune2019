@@ -98,6 +98,10 @@ The unifrac data and metadata have been imported and worked up. Next, run PERMAN
 permanova.gut.subsection=adonis2(weighted.unifrac.F4.F8.dist~Gut_SubSection+Species,by="margin",data=metadata.fish.F4.F8.unifrac,permutations=999)
 permanova.gut.subsection
 
+#Model F4-F8 distance matrix without PC samples, predictor variable: Gut_subsection. Use adonis2 marginal tests. 
+permanova.gut.subsection.v1=adonis2(weighted.unifrac.F4.F8.dist~Gut_SubSection,by="margin",data=metadata.fish.F4.F8.unifrac,permutations=999)
+permanova.gut.subsection.v1
+
 #export for Table X2a
 #write.csv(permanova.gut.subsection,file="permanova.gut.subsection.csv")
 
@@ -114,8 +118,12 @@ Next, run a PERMANOVA on the F4.F5.F8 culled data.
 
 ```{r}
 #Model F4.F5.F8 distance matrix, predictor variable: Gut_subsection. Use adonis2 marginal tests. 
-permanova.gut.subsection.v1=adonis2(weighted.unifrac.F4.F5.F8.dist~Gut_SubSection,by="margin",data=metadata.fish.F4.F5.F8.unifrac,permutations=999)
-permanova.gut.subsection.v1
+permanova.gut.subsection.v2=adonis2(weighted.unifrac.F4.F5.F8.dist~Gut_SubSection,by="margin",data=metadata.fish.F4.F5.F8.unifrac,permutations=999)
+permanova.gut.subsection.v2
+
+#Repeat for gut section.
+permanova.gut.section.v2=adonis2(weighted.unifrac.F4.F5.F8.dist~Gut_Section,by="margin",data=metadata.fish.F4.F5.F8.unifrac,permutations=999)
+permanova.gut.section.v2
 
 #export for Table _____
 #write.csv(permanova.gut.subsection.v1,file="permanova.gut.subsection.v1.csv")
@@ -210,12 +218,18 @@ alpha.diversity.mean.gut_subsection$Gut_SubSection=aggregate(alpha.diversity.fis
 adiv.mod.gut.subsection.sobs=lmer(sobs~Gut_SubSection+Species+(1|Fish_Number),data=alpha.diversity.fish.F4.F8)
 summary(adiv.mod.gut.subsection.sobs)
 anova(adiv.mod.gut.subsection.sobs,ddf="Kenward-Roger") #Gut_SubSection is significant, Species is not significant.
-lsmeans(adiv.mod.gut.subsection.sobs, pairwise ~ Gut_SubSection, adjust="tukey") #Post Hoc analysis for the Gut_SubSection factor. This function averages across Species so that it is ONLY testing the differences between Gut_SubSection. 
+lsmeans(adiv.mod.gut.subsection.sobs, pairwise ~ Gut_SubSection, adjust="tukey") #Post Hoc analysis for the Gut_SubSection factor. This function averages across Species so that it is ONLY testing the differences between Gut_SubSection.
 
-#Repeat for the F4.F5.F8 data.
-adiv.mod.gut.subsection.sobs.v1=lmer(sobs~Gut_SubSection+(1|Fish_Number),data=alpha.diversity.fish.F4.F5.F8)
+#repeat but without species
+adiv.mod.gut.subsection.sobs.v1=lmer(sobs~Gut_SubSection+(1|Fish_Number),data=alpha.diversity.fish.F4.F8)
 summary(adiv.mod.gut.subsection.sobs.v1)
 anova(adiv.mod.gut.subsection.sobs.v1,ddf="Kenward-Roger") #Gut_SubSection is significant, Species is not significant.
+lsmeans(adiv.mod.gut.subsection.sobs.v1, pairwise ~ Gut_SubSection, adjust="tukey") #Post Hoc analysis for the Gut_SubSection factor. This function averages across Species so that it is ONLY testing the differences between Gut_SubSection. 
+
+#Repeat for the F4.F5.F8 data.
+adiv.mod.gut.subsection.sobs.v2=lmer(sobs~Gut_SubSection+(1|Fish_Number),data=alpha.diversity.fish.F4.F5.F8)
+summary(adiv.mod.gut.subsection.sobs.v2)
+anova(adiv.mod.gut.subsection.sobs.v2,ddf="Kenward-Roger") #Gut_SubSection is significant, Species is not significant.
 
 #Fit a mixed model to the shannoneven data with Gut_SubSeciton and fish species as fixed effects and fish ID as a random effect.
 adiv.mod.gut.subsection.shannoneven=lmer(shannoneven~Gut_SubSection+Species+(1|Fish_Number),data=alpha.diversity.fish.F4.F8)
@@ -223,10 +237,16 @@ summary(adiv.mod.gut.subsection.shannoneven)
 anova(adiv.mod.gut.subsection.shannoneven,ddf="Kenward-Roger") #Gut_SubSection is significant, species is not.
 lsmeans(adiv.mod.gut.subsection.shannoneven, pairwise ~ Gut_SubSection, adjust="tukey")
 
-#Repeat for the F4.F5.F8 data.
-adiv.mod.gut.subsection.shannoneven.v1=lmer(shannoneven~Gut_SubSection+(1|Fish_Number),data=alpha.diversity.fish.F4.F5.F8)
+#repeat without species
+adiv.mod.gut.subsection.shannoneven.v1=lmer(shannoneven~Gut_SubSection+(1|Fish_Number),data=alpha.diversity.fish.F4.F8)
 summary(adiv.mod.gut.subsection.shannoneven.v1)
 anova(adiv.mod.gut.subsection.shannoneven.v1,ddf="Kenward-Roger") #Gut_SubSection is significant, species is not.
+lsmeans(adiv.mod.gut.subsection.shannoneven, pairwise ~ Gut_SubSection, adjust="tukey")
+
+#Repeat for the F4.F5.F8 data.
+adiv.mod.gut.subsection.shannoneven.v2=lmer(shannoneven~Gut_SubSection+(1|Fish_Number),data=alpha.diversity.fish.F4.F5.F8)
+summary(adiv.mod.gut.subsection.shannoneven.v2)
+anova(adiv.mod.gut.subsection.shannoneven.v2,ddf="Kenward-Roger") #Gut_SubSection is significant, species is not.
 
 #Fit a mixed model to the shannon data with Gut_SubSeciton and fish species as fixed effects and fish ID as a random effect.
 adiv.mod.gut.subsection.shannon=lmer(shannon~Gut_SubSection+Species+(1|Fish_Number),data=alpha.diversity.fish.F4.F8)
@@ -234,10 +254,16 @@ summary(adiv.mod.gut.subsection.shannon)
 anova(adiv.mod.gut.subsection.shannon,ddf="Kenward-Roger") #Gut_SubSection is significant, species is not.
 lsmeans(adiv.mod.gut.subsection.shannon, pairwise ~ Gut_SubSection, adjust="tukey")
 
-#Repeat for the F4.F5.F8 data.
-adiv.mod.gut.subsection.shannon.v1=lmer(shannon~Gut_SubSection+(1|Fish_Number),data=alpha.diversity.fish.F4.F5.F8)
+#repeat without species
+adiv.mod.gut.subsection.shannon.v1=lmer(shannon~Gut_SubSection+(1|Fish_Number),data=alpha.diversity.fish.F4.F8)
 summary(adiv.mod.gut.subsection.shannon.v1)
 anova(adiv.mod.gut.subsection.shannon.v1,ddf="Kenward-Roger") #Gut_SubSection is significant, species is not.
+lsmeans(adiv.mod.gut.subsection.shannon, pairwise ~ Gut_SubSection, adjust="tukey")
+
+#Repeat for the F4.F5.F8 data.
+adiv.mod.gut.subsection.shannon.v2=lmer(shannon~Gut_SubSection+(1|Fish_Number),data=alpha.diversity.fish.F4.F5.F8)
+summary(adiv.mod.gut.subsection.shannon.v2)
+anova(adiv.mod.gut.subsection.shannon.v2,ddf="Kenward-Roger") #Gut_SubSection is significant, species is not.
 
 #export this df as a csv for Table X in manuscript.
 #write.csv(alpha.diversity.mean.gut_subsection,file="alpha.diversity.mean.gut_subsection.csv")
@@ -345,10 +371,16 @@ summary(dispersion.mod.gut.subsection)
 anova(dispersion.mod.gut.subsection,ddf="Kenward-Roger") #Gut_SubSectionis significant.
 lsmeans(dispersion.mod.gut.subsection, pairwise ~ Gut_SubSection, adjust="tukey")
 
-#Repeat for F4.F5.F8 data
-dispersion.mod.gut.subsection.v1=lmer(sqrt.distances~Gut_SubSection+(1|Fish_Number),data=dispersion.gut.subsection.F4.F5.F8.1)
+#Repeat without species
+dispersion.mod.gut.subsection.v1=lmer(sqrt.distances~Gut_SubSection+(1|Fish_Number),data=dispersion.gut.subsection1)
 summary(dispersion.mod.gut.subsection.v1)
 anova(dispersion.mod.gut.subsection.v1,ddf="Kenward-Roger") #Gut_SubSectionis significant.
+lsmeans(dispersion.mod.gut.subsection, pairwise ~ Gut_SubSection, adjust="tukey")
+
+#Repeat for F4.F5.F8 data
+dispersion.mod.gut.subsection.v2=lmer(sqrt.distances~Gut_SubSection+(1|Fish_Number),data=dispersion.gut.subsection.F4.F5.F8.1)
+summary(dispersion.mod.gut.subsection.v2)
+anova(dispersion.mod.gut.subsection.v2,ddf="Kenward-Roger") #Gut_SubSectionis significant.
 ```
 
 Visualize dispersion data.
