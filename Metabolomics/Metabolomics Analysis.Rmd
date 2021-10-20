@@ -461,15 +461,23 @@ relabund.19.jun.clean2.dist.t.4.cull.trans=asin(sqrt(relabund.19.jun.clean2.dist
 metadata.19.jun.samples3=metadata.19.jun.samples2[metadata.19.jun.samples2$Gut_SubSection!="ST",] #remove ST samples from metadata, save as new df.
 relabund.19.jun.clean2.dist.t.4.cull.trans=cbind(relabund.19.jun.clean2.dist.t.4.cull.trans,metadata.19.jun.samples3)
 
-#now run a mixed model on the transformed feature data. Have relative abundance be a function of Species, Gut_SubSection, and Fish_Number be a random effect. Interaction term has been removed since it was not significant in the multivariate analysis. Could re-run model with Species also as a random effect.
+#now run a mixed model on the transformed feature data. Have relative abundance be a function of Species, Gut_SubSection, and Fish_Number be a random effect. Interaction term has been removed since it was not significant in the multivariate analysis. Create a second model without species.
 mixed.mod=function(x) { #create a function that performs the desired mixed model
   mod=lmer(x~Species+Gut_SubSection+(1|Fish_Number),data=relabund.19.jun.clean2.dist.t.4.cull.trans)
   return(mod)
 }
+mixed.mod1=function(x) { #create a function that performs the desired mixed model
+  mod1=lmer(x~Gut_SubSection+(1|Fish_Number),data=relabund.19.jun.clean2.dist.t.4.cull.trans)
+  return(mod1)
+}
+
 mixed.mod.relabund.19.jun.clean2.dist.t.4.cull.trans=apply(relabund.19.jun.clean2.dist.t.4.cull.trans[,-550:-569],2,FUN=mixed.mod) #apply mixed.mod only to columns containing feature data. Save as new object.
+
+mixed.mod1.relabund.19.jun.clean2.dist.t.4.cull.trans=apply(relabund.19.jun.clean2.dist.t.4.cull.trans[,-550:-569],2,FUN=mixed.mod1) #repeat for mixed.mod1
 
 #Now let's inspect the results of the mixed models.
 mixed.mod.singularity=lapply(mixed.mod.relabund.19.jun.clean2.dist.t.4.cull.trans,FUN=isSingular) #test each mixed model for singularity, save in list. After inspecting the list it looks like ~33% of models are singular.
+mixed.mod1.singularity=lapply(mixed.mod1.relabund.19.jun.clean2.dist.t.4.cull.trans,FUN=isSingular) #test each mixed model for singularity, save in list. After inspecting the list it looks like ~33% of models are singular.
 
 anova.kw=function(x) { #make a function that performs anova (Kenward-Roger)
   results=anova(x,ddf="Kenward-Roger")
@@ -478,6 +486,11 @@ anova.kw=function(x) { #make a function that performs anova (Kenward-Roger)
 
 mixed.mod.results=lapply(mixed.mod.relabund.19.jun.clean2.dist.t.4.cull.trans,FUN=anova.kw) #perform an anova(ddf="Kenward-Roger") on all mixed models, save output.
 mixed.mod.pvals=as.data.frame(t(as.data.frame(mixed.mod.results))[seq(from=6,to=3294,by=6),]) #extract the pvals from the mixed.mod.results list. Do this by converting list to df, transposing it, and then extracting every 6th column (which correspond to the pvals from each model).
+
+#repeat for mixed.mod1
+mixed.mod1.results=lapply(mixed.mod1.relabund.19.jun.clean2.dist.t.4.cull.trans,FUN=anova.kw) #perform an anova(ddf="Kenward-Roger") on all mixed models, save output.
+mixed.mod1.pvals=as.data.frame(t(as.data.frame(mixed.mod1.results))[seq(from=6,to=3294,by=6),]) #extract the pvals from the mixed.mod.results list. Do this by converting list to df, transposing it, and then extracting every 6th column (which correspond to the pvals from each model).
+colnames(mixed.mod1.pvals)="Gut_SubSection"
 
 #Work up p values.
 mixed.mod.pvals$Gut_SubSection.padjust=p.adjust(mixed.mod.pvals$Gut_SubSection,method="BH") #Adjust p values for multiple comparisons
@@ -489,6 +502,16 @@ mixed.mod.sig.feature.Gut_SubSection=mixed.mod.pvals[mixed.mod.pvals$Gut_SubSect
 sum(mixed.mod.pvals$Species<=.05)
 #77 features respond significantly to species before padjustment.
 mixed.mod.sig.feature.Species=mixed.mod.pvals[mixed.mod.pvals$Species.padjust<=.05,] #subset the mixed.mod.pvals df for significant (p<=.05) Gut_SubSection pvals. Save as new df. It appears there are no significant Species pvals after padjustment. Will need to look into why this is. Perhaps if using the full sample set that includes F1-F3 GI/HG samples there would be enough replication to find significant species pvals.
+
+#repeat for mixed.mod1
+mixed.mod1.pvals$Gut_SubSection.padjust=p.adjust(mixed.mod1.pvals$Gut_SubSection,method="BH") #Adjust p values for multiple comparisons
+rownames(mixed.mod1.pvals)=colnames(relabund.19.jun.clean2.dist.t.4.cull.trans)[1:549] #Change rownames to correspond with tested feature names.
+sum(mixed.mod1.pvals$Gut_SubSection<=.05)
+#121 features respond significantly to subsection before padjustment.
+mixed.mod1.sig.feature.Gut_SubSection=mixed.mod.pvals[mixed.mod.pvals$Gut_SubSection.padjust<=.05,] #subset the mixed.mod1.pvals df for significant (p<=.05) Gut_SubSection pvals. Save as new df. 64 features respond significantly to gut subsection after padjustment.
+
+#test to be sure the same features came out as significant in mixed.mod and mixed.mod1
+rownames(mixed.mod.sig.feature.Gut_SubSection)==rownames(mixed.mod1.sig.feature.Gut_SubSection) #yes they are all the same.
 
 #subset molnet enhancer data
 molnetdata1=molnetdata[molnetdata$cluster.index %in% rownames(mixed.mod.sig.feature.Gut_SubSection),] #subset molnet enhancer data
