@@ -102,6 +102,10 @@ permanova.gut.subsection
 permanova.gut.subsection.v1=adonis2(weighted.unifrac.F4.F8.dist~Gut_SubSection,by="margin",data=metadata.fish.F4.F8.unifrac,permutations=999)
 permanova.gut.subsection.v1
 
+#Model F4-F8 distance matrix without PC samples, predictor variable: Gut_section. Use adonis2 marginal tests. 
+permanova.gut.section.v1=adonis2(weighted.unifrac.F4.F8.dist~Gut_Section,by="margin",data=metadata.fish.F4.F8.unifrac,permutations=999)
+permanova.gut.section.v1
+
 #export for Table X2a
 #write.csv(permanova.gut.subsection,file="permanova.gut.subsection.csv")
 

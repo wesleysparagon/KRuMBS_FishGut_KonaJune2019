@@ -108,7 +108,7 @@ abund.longformat.fish.F4.F8.ST=abund.longformat
 write.csv(abund.longformat.fish.F4.F8.ST, file="abund.longformat.fish.F4.F8.ST.csv")
 
 #Now average every OTU relabund value from relabund.t.fish.F4.F8.ST.cull for each of the gut subsections.
-relabund.t.fish.F4.F8.ST.cull=cbind(relabund.t.fish.F4.F8.ST.cull,metadata.fish.F4.F8.unifrac) #first merge metadata
+relabund.t.fish.F4.F8.ST.cull=cbind(relabund.t.fish.F4.F8.ST.cull,metadata.fish.F4.F8.ST.unifrac) #first merge metadata
 relabund.t.fish.F4.F8.ST.cull.mean=as.data.frame(matrix(nrow=8,ncol=721)) #create a blank df to store averaged outputs
 for (i in 1:721){ #for each OTU column
   relabund.t.fish.F4.F8.ST.cull.mean[,i]=aggregate(relabund.t.fish.F4.F8.ST.cull[,i],by=list(relabund.t.fish.F4.F8.ST.cull$Gut_SubSection),FUN=mean)[[2]] #aggregate by gut subsection, calculate means, and store means in bank df.
@@ -256,21 +256,34 @@ relabund.t.fish.F4.F8.cull.trans=asin(sqrt(relabund.t.fish.F4.F8.cull)) #arcsine
 relabund.t.fish.F4.F8.cull.trans$Sample=rownames(relabund.t.fish.F4.F8.cull.trans)
 relabund.t.fish.F4.F8.cull.trans=merge(relabund.t.fish.F4.F8.cull.trans,metadata.fish.F4.F8.noST,by.x="Sample",by.y="SampleCode") #merge metadata into relabund data
 
-#now run a mixed model on the transformed ASV data. Have relative abundance be a function of Species, Gut_SubSection, and Fish_Number be a random effect. Interaction term has been removed since it was not significant in the multivariate analysis. Could re-run model with Species also as a random effect.
+#now run a mixed model on the transformed ASV data. Have relative abundance be a function of Species, Gut_SubSection, and Fish_Number be a random effect. Interaction term has been removed since it was not significant in the multivariate analysis. Run a second mixed model, mixed.mod1, without the species variable
 mixed.mod=function(x) { #create a function that performs the desired mixed model
   mod=lmer(x~Species+Gut_SubSection+(1|Fish_Number),data=relabund.t.fish.F4.F8.cull.trans)
   return(mod)
 }
+mixed.mod1=function(x) { #create a function that performs the desired mixed model
+  mod1=lmer(x~Gut_SubSection+(1|Fish_Number),data=relabund.t.fish.F4.F8.cull.trans)
+  return(mod1)
+}
+
 mixed.mod.relabund.t.fish.F4.F8.cull.trans=apply(relabund.t.fish.F4.F8.cull.trans[,c(-1,-694:-701)],2,FUN=mixed.mod) #apply mixed.mod only to columns containing ASV data. Save as new object.
+mixed.mod1.relabund.t.fish.F4.F8.cull.trans=apply(relabund.t.fish.F4.F8.cull.trans[,c(-1,-694:-701)],2,FUN=mixed.mod1) #repeat for mixed mod1
 
 #Now let's inspect the results of the mixed models.
 mixed.mod.singularity=lapply(mixed.mod.relabund.t.fish.F4.F8.cull.trans,FUN=isSingular) #test each mixed model for singularity, save in list. After inspecting the list it looks like most models are not singular.
+mixed.mod1.singularity=lapply(mixed.mod1.relabund.t.fish.F4.F8.cull.trans,FUN=isSingular) #test each mixed model for singularity, save in list. After inspecting the list it looks like most models are not singular.
+
 anova.kw=function(x) { #make a function that performs anova (Kenward-Roger)
   results=anova(x,ddf="Kenward-Roger")
   return(results)
 }
+
 mixed.mod.results=lapply(mixed.mod.relabund.t.fish.F4.F8.cull.trans,FUN=anova.kw) #perform an anova(ddf="Kenward-Roger") on all mixed models, save output.
 mixed.mod.pvals=as.data.frame(t(as.data.frame(mixed.mod.results))[seq(from=6,to=4152,by=6),]) #extract the pvas from the mixed.mod.results list. Do this by converting list to df, transposing it, and then extracting every 6th column (which correspond to the pvals from each model).
+
+#repeat for mixed mod1
+mixed.mod1.results=lapply(mixed.mod1.relabund.t.fish.F4.F8.cull.trans,FUN=anova.kw) #perform an anova(ddf="Kenward-Roger") on all mixed models, save output.
+mixed.mod1.pvals=as.data.frame(t(as.data.frame(mixed.mod1.results))[seq(from=6,to=4152,by=6),]) #extract the pvas from the mixed.mod.results list. Do this by converting list to df, transposing it, and then extracting every 6th column (which correspond to the pvals from each model).
 
 #Work up p values.
 mixed.mod.pvals$Gut_SubSection.padjust=p.adjust(mixed.mod.pvals$Gut_SubSection,method="BH") #Adjust p values for multiple comparisons
@@ -278,6 +291,18 @@ mixed.mod.pvals$Species.padjust=p.adjust(mixed.mod.pvals$Species,method="BH") #A
 rownames(mixed.mod.pvals)=colnames(relabund.t.fish.F4.F8.cull.trans)[2:693] #Change rownames to correspond with tested OTU names.
 mixed.mod.sig.otu.Gut_SubSection=mixed.mod.pvals[mixed.mod.pvals$Gut_SubSection.padjust<=.05,] #subset the mixed.mod.pvals df for significant (p<=.05) Gut_SubSection pvals. Save as new df. 285 sig ASVs after padjustment.
 mixed.mod.sig.otu.Gut_SubSection=cbind(mixed.mod.sig.otu.Gut_SubSection,taxonomy.fish.F4.F8.cull[rownames(taxonomy.fish.F4.F8.cull) %in% rownames(mixed.mod.sig.otu.Gut_SubSection),],relabund.fish.F4.F8.cull[rownames(relabund.fish.F4.F8.cull) %in% rownames(mixed.mod.sig.otu.Gut_SubSection),]) #merge mixed.mod.sig.otu.Gut_SubSection with the associated OTU taxonomies.
+colnames(mixed.mod1.pvals)="Gut_SubSection"
+
+#repeat for mixed mod1
+mixed.mod1.pvals$Gut_SubSection.padjust=p.adjust(mixed.mod1.pvals$Gut_SubSection,method="BH") #Adjust p values for multiple comparisons
+rownames(mixed.mod1.pvals)=colnames(relabund.t.fish.F4.F8.cull.trans)[2:693] #Change rownames to correspond with tested OTU names.
+mixed.mod1.sig.otu.Gut_SubSection=mixed.mod1.pvals[mixed.mod1.pvals$Gut_SubSection.padjust<=.05,] #subset the mixed.mod.pvals df for significant (p<=.05) Gut_SubSection pvals. Save as new df. 283 sig ASVs after padjustment.
+mixed.mod1.sig.otu.Gut_SubSection=cbind(mixed.mod1.sig.otu.Gut_SubSection,taxonomy.fish.F4.F8.cull[rownames(taxonomy.fish.F4.F8.cull) %in% rownames(mixed.mod1.sig.otu.Gut_SubSection),],relabund.fish.F4.F8.cull[rownames(relabund.fish.F4.F8.cull) %in% rownames(mixed.mod1.sig.otu.Gut_SubSection),]) #merge mixed.mod.sig.otu.Gut_SubSection with the associated OTU taxonomies.
+
+#Confirm that the 283 sig ASVs from mixed.mod1 are all respresented in the original mixed mod 285 sig ASVs.
+sum(rownames(mixed.mod.sig.otu.Gut_SubSection) %in% rownames(mixed.mod1.sig.otu.Gut_SubSection)) #summed to 282
+rownames(mixed.mod.sig.otu.Gut_SubSection)[rownames(mixed.mod.sig.otu.Gut_SubSection) %in% rownames(mixed.mod1.sig.otu.Gut_SubSection)==FALSE] #OTUs188, 247, and 434 in the mixed mod sig ASVs that arent in the mixed mod1 sig ASVs
+rownames(mixed.mod1.sig.otu.Gut_SubSection)[rownames(mixed.mod1.sig.otu.Gut_SubSection) %in% rownames(mixed.mod.sig.otu.Gut_SubSection)==FALSE] #Otu00406 in the mixed mod1 sig ASVs that isnt in the mixed mod sig ASVs.
 
 #write.csv(mixed.mod.sig.otu.Gut_SubSection,file="mixed.mod.sig.otu.Gut_SubSection.csv") #export and use as table SX2
 
@@ -306,6 +331,9 @@ generate.long.format(mixed.mod.sig.otu.Gut_SubSection[,13:45],metadata.fish.F4.F
 #subset the relabund.t.fish.F4.F8.cull df to select only the significant ASVs (by gut subsection).
 relabund.t.fish.F4.F8.cull.sig.subsection=relabund.t.fish.F4.F8.cull[,colnames(relabund.t.fish.F4.F8.cull) %in% rownames(mixed.mod.sig.otu.Gut_SubSection)]
 
+#repeat for significant ASVs from mixed.mod1
+relabund.t.fish.F4.F8.cull.sig.subsection1=relabund.t.fish.F4.F8.cull[,colnames(relabund.t.fish.F4.F8.cull) %in% rownames(mixed.mod1.sig.otu.Gut_SubSection)]
+
 #Cull significant ASVs.
 cull.otu(relabund.t.fish.F4.F8.cull.sig.subsection,1,.01,.01)
 relabund.t.fish.F4.F8.cull.sig.subsection.cull=relabund.df.cull
@@ -313,6 +341,11 @@ ncol(relabund.t.fish.F4.F8.cull.sig.subsection.cull) #59 significant ASVs remain
 relabund.t.fish.F4.F8.cull.sig.subsection.cull$Sample=rownames(relabund.t.fish.F4.F8.cull.sig.subsection.cull)
 relabund.t.fish.F4.F8.cull.sig.subsection.cull=merge(relabund.t.fish.F4.F8.cull.sig.subsection.cull,metadata.fish.F4.F8.noST,by.x="Sample",by.y="Sample_ID") #add in metadata
 relabund.t.fish.F4.F8.cull.sig.subsection.cull=relabund.t.fish.F4.F8.cull.sig.subsection.cull[,-1] #remove sample names col
+
+#check to see if same 59 ASVs remain after culling the mixed mod1 sig ASVs.
+cull.otu(relabund.t.fish.F4.F8.cull.sig.subsection1,1,.01,.01)
+relabund.t.fish.F4.F8.cull.sig.subsection1.cull=relabund.df.cull
+ncol(relabund.t.fish.F4.F8.cull.sig.subsection1.cull) #58 significant ASVs remain after culling at the threshold. ASV 188 is missing. Manually remove this ASV from all downstream visualizations.
 
 #subset the mixed.mod.sig.otu.Gut_SubSection df for only these 59 ASvs.
 mixed.mod.sig.otu.Gut_SubSection.cull=mixed.mod.sig.otu.Gut_SubSection[rownames(mixed.mod.sig.otu.Gut_SubSection) %in% colnames(relabund.t.fish.F4.F8.cull.sig.subsection.cull),]
@@ -372,8 +405,19 @@ mixed.mod.sig.otu.Gut_SubSection.longformat.cull1.mean=merge(mixed.mod.sig.otu.G
 #adjust the levels of the family factor to order the graph correctly
 mixed.mod.sig.otu.Gut_SubSection.longformat.cull1.mean$Family=factor(mixed.mod.sig.otu.Gut_SubSection.longformat.cull1.mean$Family,levels=c("Pasteurellaceae","Peptostreptococcaceae","Vibrionaceae","Erysipelotrichaceae","Brevinemataceae","Clostridiaceae_1","Parabasalia_unclassified","DMI_fa","Akkermansiaceae","Christensenellaceae","Clostridiales_vadinBB60_group","Desulfovibrionaceae","Eggerthellaceae","Lachnospiraceae","Paludibacteraceae","Rikenellaceae","Ruminococcaceae","Victivallaceae"))
 
+#remove OTU 188 and save as new df.
+mixed.mod.sig.otu.Gut_SubSection.longformat.cull1.mean.v1=subset(mixed.mod.sig.otu.Gut_SubSection.longformat.cull1.mean, OTU!="Otu00188")
+
 #repeat this graph except using geom_point and geom_line to better visualize individual ASV behavior (peaking at various subsections, etc). Export as export as 13X13 portrait PDF to use in figure 6.
 ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat.cull1.mean,aes(x=Gut_SubSection,y=mean_abund,color=Genus,group=OTU))+
+    geom_point(size=3.5)+geom_line(size=2)+
+    geom_pointrange(aes(ymin=mean_abund-SE,ymax=mean_abund+SE))+
+    facet_wrap(~Family,scales="free",ncol=3)+
+    ylab("Relative Abundance")+
+    theme(legend.position="bottom")
+
+#repeat this graph except without OTU 188. Export as export as 13X13 portrait PDF to use in figure 6.
+ggplot(mixed.mod.sig.otu.Gut_SubSection.longformat.cull1.mean.v1,aes(x=Gut_SubSection,y=mean_abund,color=Genus,group=OTU))+
     geom_point(size=3.5)+geom_line(size=2)+
     geom_pointrange(aes(ymin=mean_abund-SE,ymax=mean_abund+SE))+
     facet_wrap(~Family,scales="free",ncol=3)+

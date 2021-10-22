@@ -269,6 +269,10 @@ permanova.gut.subsection
 permanova.gut.subsection.v1=adonis2(bray.relabund.19.jun.clean2.2~Gut_SubSection,by="margin",data=metadata.19.jun.samples2,permutations=999)
 permanova.gut.subsection.v1
 
+#repeat with section
+permanova.gut.section.v1=adonis2(bray.relabund.19.jun.clean2.2~Gut_Section,by="margin",data=metadata.19.jun.samples2,permutations=999)
+permanova.gut.section.v1
+
 #now run a permanova on the F4.F5.F8 data
 permanova.gut.subsection.v2=adonis2(bray.relabund.19.jun.clean2.2.v1~Gut_SubSection,by="margin",data=metadata.19.jun.samples2.v1,permutations=999)
 permanova.gut.subsection.v2
