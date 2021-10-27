@@ -245,7 +245,7 @@ lsmeans(adiv.mod.gut.subsection.shannoneven, pairwise ~ Gut_SubSection, adjust="
 adiv.mod.gut.subsection.shannoneven.v1=lmer(shannoneven~Gut_SubSection+(1|Fish_Number),data=alpha.diversity.fish.F4.F8)
 summary(adiv.mod.gut.subsection.shannoneven.v1)
 anova(adiv.mod.gut.subsection.shannoneven.v1,ddf="Kenward-Roger") #Gut_SubSection is significant, species is not.
-lsmeans(adiv.mod.gut.subsection.shannoneven, pairwise ~ Gut_SubSection, adjust="tukey")
+lsmeans(adiv.mod.gut.subsection.shannoneven.v1, pairwise ~ Gut_SubSection, adjust="tukey")
 
 #Repeat for the F4.F5.F8 data.
 adiv.mod.gut.subsection.shannoneven.v2=lmer(shannoneven~Gut_SubSection+(1|Fish_Number),data=alpha.diversity.fish.F4.F5.F8)
@@ -262,7 +262,7 @@ lsmeans(adiv.mod.gut.subsection.shannon, pairwise ~ Gut_SubSection, adjust="tuke
 adiv.mod.gut.subsection.shannon.v1=lmer(shannon~Gut_SubSection+(1|Fish_Number),data=alpha.diversity.fish.F4.F8)
 summary(adiv.mod.gut.subsection.shannon.v1)
 anova(adiv.mod.gut.subsection.shannon.v1,ddf="Kenward-Roger") #Gut_SubSection is significant, species is not.
-lsmeans(adiv.mod.gut.subsection.shannon, pairwise ~ Gut_SubSection, adjust="tukey")
+lsmeans(adiv.mod.gut.subsection.shannon.v1, pairwise ~ Gut_SubSection, adjust="tukey")
 
 #Repeat for the F4.F5.F8 data.
 adiv.mod.gut.subsection.shannon.v2=lmer(shannon~Gut_SubSection+(1|Fish_Number),data=alpha.diversity.fish.F4.F5.F8)
@@ -379,7 +379,7 @@ lsmeans(dispersion.mod.gut.subsection, pairwise ~ Gut_SubSection, adjust="tukey"
 dispersion.mod.gut.subsection.v1=lmer(sqrt.distances~Gut_SubSection+(1|Fish_Number),data=dispersion.gut.subsection1)
 summary(dispersion.mod.gut.subsection.v1)
 anova(dispersion.mod.gut.subsection.v1,ddf="Kenward-Roger") #Gut_SubSectionis significant.
-lsmeans(dispersion.mod.gut.subsection, pairwise ~ Gut_SubSection, adjust="tukey")
+lsmeans(dispersion.mod.gut.subsection.v1, pairwise ~ Gut_SubSection, adjust="tukey")
 
 #Repeat for F4.F5.F8 data
 dispersion.mod.gut.subsection.v2=lmer(sqrt.distances~Gut_SubSection+(1|Fish_Number),data=dispersion.gut.subsection.F4.F5.F8.1)
