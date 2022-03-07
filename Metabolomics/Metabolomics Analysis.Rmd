@@ -253,7 +253,15 @@ text(-.42,.525,label="Stress=.17",cex=1.5)
 ordiellipse(nmds.relabund.2,metadata.19.jun.samples2$Gut_SubSection1,kind="sd",draw="polygon",lwd=2.5,border=colvec3[-6:-7],col=colvec3[-6:-7],alpha=50) #add SD ellipses, colored by Gut_SubSection except group all HG samples as one ellipse.
 ordiarrows(nmds.relabund.2,group=metadata.19.jun.samples2$Fish_Number,order.by=metadata.19.jun.samples2$Gut_SubSection,lwd=2,col="black")
 #alpha=c(0,0) use to remove color from ellipse fill
-#export as 8.5x9 PDF and use in Figure 3
+#export as 8.5x9 PDF and use in Figure 2
+
+plot(nmds.relabund.2,type="n",cex.lab=1.5,cex.axis=1.5)
+points(nmds.relabund.2, #plot each sample as a point
+       cex=3.5,
+       pch=16, #pointvec[metadata.19.jun.samples2$Species], #point shape corresponds to fish Species. No longer need this.
+       col=colvec3[metadata.19.jun.samples2$Gut_SubSection])
+text(-.42,.525,label="Stress=.17",cex=1.5)
+ordiarrows(nmds.relabund.2,group=metadata.19.jun.samples2$Fish_Number,order.by=metadata.19.jun.samples2$Gut_SubSection,lwd=2,col="black")
 
 ```
 

@@ -165,6 +165,16 @@ ordiarrows(nmds.weighted.unifrac.F4.F8,group=metadata.fish.F4.F8.unifrac$Fish_Nu
 
 #Export as 8.5x9 landscape PDF and use as Figure 2 for manuscript.
 
+plot(nmds.weighted.unifrac.F4.F8,type="n",cex.lab=1.5,cex.axis=1.5) #Set up the NMDS plot environment
+points(nmds.weighted.unifrac.F4.F8, #plot each sample as a point
+       cex=3.5,
+       pch=16, #pointvec[metadata.fish.F4.F8.unifrac$Species], #point shape corresponds to fish Species. No longer needed.
+       col=colvec2[as.factor(metadata.fish.F4.F8.unifrac$Gut_SubSection)]) 
+text(-.465,.4,label="Stress=.14",cex=1.5)
+ordiarrows(nmds.weighted.unifrac.F4.F8,group=metadata.fish.F4.F8.unifrac$Fish_Number,order.by=metadata.fish.F4.F8.unifrac$Gut_SubSection,lwd=2,col="black")
+
+#Export as 8.5x9 landscape PDF and use as Figure 2 for manuscript.
+
 ```
 
 Work up and visualize the alpha diversity data.
