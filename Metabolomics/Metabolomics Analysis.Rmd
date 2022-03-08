@@ -277,6 +277,10 @@ permanova.gut.subsection
 permanova.gut.subsection.v1=adonis2(bray.relabund.19.jun.clean2.2~Gut_SubSection,by="margin",data=metadata.19.jun.samples2,permutations=999)
 permanova.gut.subsection.v1
 
+#repeat with subsection and fish ID
+permanova.gut.subsection.fishID=adonis2(bray.relabund.19.jun.clean2.2~Gut_SubSection + Fish_Number,by="margin",data=metadata.19.jun.samples2,permutations=999)
+permanova.gut.subsection.fishID
+
 #repeat with section
 permanova.gut.section.v1=adonis2(bray.relabund.19.jun.clean2.2~Gut_Section,by="margin",data=metadata.19.jun.samples2,permutations=999)
 permanova.gut.section.v1
